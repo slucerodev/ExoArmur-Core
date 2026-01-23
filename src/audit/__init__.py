@@ -25,6 +25,10 @@ class NoOpAuditInterface:
     def log_event(self, event_type: str, correlation_id: str, data: Dict[str, Any], recorded_at: datetime) -> bool:
         """No-op audit event logging for federation interface compatibility"""
         return True
+    
+    def get_events(self, event_type_prefix: str = None, correlation_id: str = None, limit: int = None):
+        """No-op audit events retrieval for federation interface compatibility"""
+        return []
 
 
 class FederationAuditInterface:
