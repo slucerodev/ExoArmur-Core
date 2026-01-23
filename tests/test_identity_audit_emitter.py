@@ -108,11 +108,12 @@ class TestIdentityAuditEmitter:
     
     def test_emit_diagnostic_event_when_disabled(self):
         """Test diagnostic event emission when V2 federation is disabled"""
-        mock_audit_logger = Mock()
+        mock_audit_interface = Mock()
+        mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=False)
         
         emitter = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger,
+            audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
         
@@ -128,10 +129,10 @@ class TestIdentityAuditEmitter:
         result = emitter.emit_handshake_event(event)
         
         assert result is True
-        mock_audit_logger.log_event.assert_called_once()
+        mock_audit_interface.log_event.assert_called_once()
         
         # Check diagnostic event call
-        call_args = mock_audit_logger.log_event.call_args
+        call_args = mock_audit_interface.log_event.call_args
         assert call_args[1]["event_type"] == "federation.identity.disabled"
         assert call_args[1]["correlation_id"] == "diagnostic"
         assert call_args[1]["data"]["reason"] == "feature_flag_disabled"
@@ -160,11 +161,12 @@ class TestIdentityAuditEmitter:
     
     def test_create_event_handler(self):
         """Test creating event handler for state machine"""
-        mock_audit_logger = Mock()
+        mock_audit_interface = Mock()
+        mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=True)
         
         emitter = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger,
+            audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
         
@@ -185,7 +187,7 @@ class TestIdentityAuditEmitter:
         handler(event)
         
         # Should have called audit logger
-        mock_audit_logger.log_event.assert_called_once()
+        mock_audit_interface.log_event.assert_called_once()
     
     def test_get_audit_trail_enabled(self):
         """Test retrieving audit trail when V2 federation is enabled"""
@@ -241,7 +243,7 @@ class TestIdentityAuditEmitter:
         mock_feature_checker = Mock(return_value=True)
         
         emitter = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_interface=None,
+            audit_interface=NoOpAuditInterface(),
             feature_flag_checker=mock_feature_checker
         )
         
@@ -250,7 +252,7 @@ class TestIdentityAuditEmitter:
         assert trail is not None
         assert trail["session_id"] == "session-123"
         assert trail["event_count"] == 0
-        assert "note" in trail
+        assert "retrieved_at" in trail
     
     def test_validate_audit_integrity_success(self):
         """Test audit integrity validation with valid events"""
@@ -312,36 +314,36 @@ class TestIdentityAuditEmitter:
         assert validation["step_count_valid"] is False
         assert validation["expected_steps"] == 2
     
-def test_validate_audit_integrity_duplicate_idempotency_keys(self):
-    """Test audit integrity validation with duplicate idempotency keys"""
-    mock_feature_checker = Mock(return_value=True)
+    def test_validate_audit_integrity_duplicate_idempotency_keys(self):
+        """Test audit integrity validation with duplicate idempotency keys"""
+        mock_feature_checker = Mock(return_value=True)
         
-    # Mock audit interface with duplicate keys
-    mock_audit_interface = Mock()
-    mock_events = [
-        {
-            "event_type": "federation.identity.handshake_initiated",
-            "data": {"step_index": 0, "idempotency_key": "key1"},
-            "timestamp": "2024-01-01T00:00:00Z"
-        },
-        {
-            "event_type": "federation.identity.identity_verification_success",
-            "data": {"step_index": 1, "idempotency_key": "key1"},  # Duplicate key
-            "timestamp": "2024-01-01T00:00:01Z"
-        }
-    ]
-    mock_audit_interface.get_events = Mock(return_value=mock_events)
+        # Mock audit interface with duplicate keys
+        mock_audit_interface = Mock()
+        mock_events = [
+            {
+                "event_type": "federation.identity.handshake_initiated",
+                "data": {"step_index": 0, "idempotency_key": "key1"},
+                "timestamp": "2024-01-01T00:00:00Z"
+            },
+            {
+                "event_type": "federation.identity.identity_verification_success",
+                "data": {"step_index": 1, "idempotency_key": "key1"},  # Duplicate key
+                "timestamp": "2024-01-01T00:00:01Z"
+            }
+        ]
+        mock_audit_interface.get_events = Mock(return_value=mock_events)
+            
+        emitter = IdentityAuditEmitter(
+            audit_interface=mock_audit_interface,
+            feature_flag_checker=mock_feature_checker
+        )
+            
+        validation = emitter.validate_audit_integrity("session-123", 2)
         
-    emitter = IdentityAuditEmitter(
-        audit_interface=mock_audit_interface,
-        feature_flag_checker=mock_feature_checker
-    )
-        
-    validation = emitter.validate_audit_integrity("session-123", 2)
-    
-    assert validation["valid"] is False
-    assert validation["idempotency_valid"] is False
-    assert "Duplicate idempotency keys" in validation["issues"]
+        assert validation["valid"] is False
+        assert validation["idempotency_valid"] is False
+        assert "Duplicate idempotency keys" in validation["issues"]
     
     def test_validate_audit_integrity_chronological_violation(self):
         """Test audit integrity validation with chronological order violation"""
@@ -391,14 +393,14 @@ def test_validate_audit_integrity_duplicate_idempotency_keys(self):
     
     def test_emit_event_error_handling(self):
         """Test error handling during event emission"""
-        mock_audit_logger = Mock()
+        mock_audit_interface = Mock()
         mock_feature_checker = Mock(return_value=True)
         
-        # Make audit logger raise exception
-        mock_audit_logger.log_event = Mock(side_effect=Exception("Audit error"))
+        # Make audit interface raise exception
+        mock_audit_interface.log_event = Mock(side_effect=Exception("Audit error"))
         
         emitter = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger,
+            audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
         
@@ -429,32 +431,34 @@ class TestFeatureFlagIsolation:
         )
         
         # Test with feature flag disabled
-        mock_audit_logger_disabled = Mock()
+        mock_audit_interface_disabled = Mock()
+        mock_audit_interface_disabled.log_event = Mock(return_value=True)
         emitter_disabled = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger_disabled,
+            audit_interface=mock_audit_interface_disabled,
             feature_flag_checker=lambda: False
         )
         
         # Should emit diagnostic event
         result = emitter_disabled.emit_handshake_event(event)
         assert result is True
-        assert mock_audit_logger_disabled.log_event.call_count == 1
+        assert mock_audit_interface_disabled.log_event.call_count == 1
         
         # Test with feature flag enabled
-        mock_audit_logger_enabled = Mock()
+        mock_audit_interface_enabled = Mock()
+        mock_audit_interface_enabled.log_event = Mock(return_value=True)
         emitter_enabled = IdentityAuditEmitter(
-            audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger_enabled,
+            audit_interface=mock_audit_interface_enabled,
             feature_flag_checker=lambda: True
         )
         
         # Should emit actual event
         result = emitter_enabled.emit_handshake_event(event)
         assert result is True
-        assert mock_audit_logger_enabled.log_event.call_count == 1
+        assert mock_audit_interface_enabled.log_event.call_count == 1
         
         # Check event type difference
-        disabled_call = mock_audit_logger_disabled.log_event.call_args
-        enabled_call = mock_audit_logger_enabled.log_event.call_args
+        disabled_call = mock_audit_interface_disabled.log_event.call_args
+        enabled_call = mock_audit_interface_enabled.log_event.call_args
         
         assert disabled_call[1]["event_type"] == "federation.identity.disabled"
         assert enabled_call[1]["event_type"] == "federation.identity.handshake_initiated"
