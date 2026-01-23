@@ -1,0 +1,251 @@
+"""
+Identity Containment Execution Integration
+
+Integrates identity containment with the ExecutionKernel for
+approved containment operations.
+"""
+
+import logging
+from datetime import datetime, timezone
+from typing import Dict, Optional, Any
+from enum import Enum
+
+from spec.contracts.models_v1 import (
+    IdentityContainmentIntentV1,
+    IdentityContainmentAppliedRecordV1,
+    IdentityContainmentRevertedRecordV1
+)
+from src.federation.clock import Clock
+from src.federation.audit import AuditService, AuditEventType
+from src.control_plane.approval_service import ApprovalService
+from src.identity_containment.effector import IdentityContainmentEffector
+from src.identity_containment.intent_service import IdentityContainmentIntentService
+
+logger = logging.getLogger(__name__)
+
+
+class ExecutionActionType(str, Enum):
+    """Execution action types"""
+    IDENTITY_CONTAINMENT_APPLY = "identity_containment_apply"
+    IDENTITY_CONTAINMENT_REVERT = "identity_containment_revert"
+
+
+class IdentityContainmentExecutor:
+    """Handles execution of identity containment operations"""
+    
+    def __init__(
+        self,
+        clock: Clock,
+        audit_service: AuditService,
+        approval_service: ApprovalService,
+        intent_service: IdentityContainmentIntentService,
+        effector: IdentityContainmentEffector
+    ):
+        """Initialize executor
+        
+        Args:
+            clock: Clock for deterministic time handling
+            audit_service: Audit service for event emission
+            approval_service: Approval service for verification
+            intent_service: Intent service for intent retrieval
+            effector: Identity containment effector for operations
+        """
+        self.clock = clock
+        self.audit_service = audit_service
+        self.approval_service = approval_service
+        self.intent_service = intent_service
+        self.effector = effector
+    
+    def execute_containment_apply(self, approval_id: str) -> Optional[IdentityContainmentAppliedRecordV1]:
+        """Execute containment apply operation
+        
+        Args:
+            approval_id: Approval identifier for the operation
+            
+        Returns:
+            Applied record or None if execution failed
+        """
+        # Get approval status
+        approval = self.approval_service.get_approval_details(approval_id)
+        if not approval:
+            logger.error(f"Approval {approval_id} not found")
+            return None
+        
+        if approval.status != "APPROVED":
+            logger.error(f"Approval {approval_id} not approved: {approval.status}")
+            return None
+        
+        # Get intent by approval
+        intent = self.intent_service.get_intent_by_approval(approval_id)
+        if not intent:
+            logger.error(f"No intent found for approval {approval_id}")
+            return None
+        
+        # Verify approval binding
+        if not self.intent_service.verify_approval_binding(approval_id, intent.intent_hash):
+            logger.error(f"Approval {approval_id} not bound to intent {intent.intent_hash}")
+            return None
+        
+        # Verify intent not expired
+        now = self.clock.now()
+        if now >= intent.expires_at_utc:
+            logger.error(f"Intent {intent.intent_id} expired at {intent.expires_at_utc}")
+            return None
+        
+        try:
+            # Execute containment
+            applied_record = self.effector.apply(intent, approval_id)
+            
+            logger.info(f"Successfully executed containment apply for intent {intent.intent_id}")
+            
+            return applied_record
+            
+        except Exception as e:
+            logger.error(f"Failed to execute containment apply for intent {intent.intent_id}: {e}")
+            
+            # Emit audit event for execution failure
+            self.audit_service.emit_event(
+                event_type=AuditEventType.IDENTITY_CONTAINMENT_DENIED,
+                correlation_id=intent.correlation_id,
+                source_federate_id=None,  # Local operation
+                event_data={
+                    "intent_id": intent.intent_id,
+                    "approval_id": approval_id,
+                    "error": str(e),
+                    "stage": "execution_apply"
+                }
+            )
+            
+            return None
+    
+    def execute_containment_revert(self, intent_hash: str, reason: str) -> Optional[IdentityContainmentRevertedRecordV1]:
+        """Execute containment revert operation
+        
+        Args:
+            intent_hash: Hash of the intent to revert
+            reason: Reason for reversion
+            
+        Returns:
+            Reverted record or None if execution failed
+        """
+        # Get intent by hash
+        intent = self.intent_service.get_intent(intent_hash)
+        if not intent:
+            logger.error(f"No intent found for hash {intent_hash}")
+            return None
+        
+        try:
+            # Execute revert
+            reverted_record = self.effector.revert(intent, reason)
+            
+            logger.info(f"Successfully executed containment revert for intent {intent.intent_id}")
+            
+            return reverted_record
+            
+        except Exception as e:
+            logger.error(f"Failed to execute containment revert for intent {intent.intent_id}: {e}")
+            
+            # Emit audit event for execution failure
+            self.audit_service.emit_event(
+                event_type=AuditEventType.IDENTITY_CONTAINMENT_DENIED,
+                correlation_id=intent.correlation_id,
+                source_federate_id=None,  # Local operation
+                event_data={
+                    "intent_id": intent.intent_id,
+                    "intent_hash": intent_hash,
+                    "error": str(e),
+                    "stage": "execution_revert"
+                }
+            )
+            
+            return None
+    
+    def process_expirations(self) -> int:
+        """Process expired containments
+        
+        Returns:
+            Number of containments that expired and were reverted
+        """
+        try:
+            reverted_records = self.effector.process_expirations()
+            
+            logger.info(f"Processed {len(reverted_records)} expired containments")
+            
+            return len(reverted_records)
+            
+        except Exception as e:
+            logger.error(f"Failed to process expirations: {e}")
+            return 0
+
+
+class IdentityContainmentTickService:
+    """Service for periodic processing of containment expirations"""
+    
+    def __init__(
+        self,
+        executor: IdentityContainmentExecutor,
+        clock: Clock,
+        audit_service: AuditService,
+        tick_interval_seconds: int = 60
+    ):
+        """Initialize tick service
+        
+        Args:
+            executor: Identity containment executor
+            clock: Clock for deterministic time handling
+            audit_service: Audit service for event emission
+            tick_interval_seconds: Interval between ticks (default 1 minute)
+        """
+        self.executor = executor
+        self.clock = clock
+        self.audit_service = audit_service
+        self.tick_interval_seconds = tick_interval_seconds
+        self.last_tick_utc: Optional[datetime] = None
+    
+    def should_tick(self) -> bool:
+        """Check if tick should run based on interval"""
+        now = self.clock.now()
+        
+        if self.last_tick_utc is None:
+            return True
+        
+        elapsed = (now - self.last_tick_utc).total_seconds()
+        return elapsed >= self.tick_interval_seconds
+    
+    def tick(self) -> int:
+        """Run expiration processing tick
+        
+        Returns:
+            Number of containments that expired and were reverted
+        """
+        if not self.should_tick():
+            return 0
+        
+        now = self.clock.now()
+        
+        try:
+            # Process expirations
+            expired_count = self.executor.process_expirations()
+            
+            # Update last tick time
+            self.last_tick_utc = now
+            
+            # Emit audit event for tick
+            self.audit_service.emit_event(
+                event_type=AuditEventType.IDENTITY_CONTAINMENT_EXPIRED,
+                correlation_id=None,  # System operation
+                source_federate_id=None,  # Local operation
+                event_data={
+                    "tick_timestamp_utc": now.isoformat().replace('+00:00', 'Z'),
+                    "expired_count": expired_count,
+                    "tick_interval_seconds": self.tick_interval_seconds
+                }
+            )
+            
+            logger.info(f"Tick completed: processed {expired_count} expired containments")
+            
+            return expired_count
+            
+        except Exception as e:
+            logger.error(f"Tick failed: {e}")
+            return 0
