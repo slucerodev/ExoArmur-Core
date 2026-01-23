@@ -13,7 +13,6 @@ from .federation_identity_v2 import (
     CapabilityNegotiateMessage,
     TrustEstablishMessage,
     FederationConfirmMessage,
-    HandshakeSession,
     FederationIdentityMessage,
 )
 
@@ -27,6 +26,5 @@ __all__ = [
     "CapabilityNegotiateMessage", 
     "TrustEstablishMessage",
     "FederationConfirmMessage",
-    "HandshakeSession",
     "FederationIdentityMessage",
 ]

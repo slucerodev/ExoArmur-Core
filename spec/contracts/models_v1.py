@@ -306,12 +306,443 @@ class AuditRecordV1(BaseModel):
         return v
 
 
+# V2 Federation Identity Models (additive, behind feature flags)
+from enum import Enum
+from typing import Union
+
+
+class FederationRole(str, Enum):
+    """Federation role enumeration"""
+    MEMBER = "member"
+    COORDINATOR = "coordinator"
+    OBSERVER = "observer"
+
+
+class CellStatus(str, Enum):
+    """Cell status enumeration"""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+    DECOMMISSIONED = "decommissioned"
+
+
+class HandshakeState(str, Enum):
+    """Handshake state enumeration"""
+    UNINITIALIZED = "uninitialized"
+    IDENTITY_EXCHANGE = "identity_exchange"
+    CAPABILITY_NEGOTIATION = "capability_negotiation"
+    TRUST_ESTABLISHMENT = "trust_establishment"
+    CONFIRMED = "confirmed"
+    ACTIVE = "active"
+    FAILED_IDENTITY = "failed_identity"
+    FAILED_CAPABILITIES = "failed_capabilities"
+    FAILED_TRUST = "failed_trust"
+    SUSPENDED = "suspended"
+
+
+class FederateIdentityV1(BaseModel):
+    """Federate identity data model for V2 federation (additive to V1)"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    schema_version: str = Field(default="2.0.0", description="Schema version")
+    federate_id: str = Field(description="Unique federate identifier (cell_id)")
+    public_key: str = Field(description="Base64 encoded Ed25519 public key")
+    key_id: str = Field(description="Key identifier (hash of public key)")
+    certificate_chain: List[str] = Field(description="PE encoded X.509 certificate chain")
+    federation_role: FederationRole = Field(default=FederationRole.MEMBER, description="Federation role")
+    capabilities: List[str] = Field(description="Supported capabilities")
+    trust_score: float = Field(default=0.8, ge=0.0, le=1.0, description="Trust score")
+    last_seen: datetime = Field(description="Last activity timestamp")
+    status: CellStatus = Field(default=CellStatus.ACTIVE, description="Current status")
+    created_at: datetime = Field(description="Identity creation timestamp")
+    updated_at: datetime = Field(description="Last update timestamp")
+    
+    @field_validator('federate_id')
+    @classmethod
+    def validate_federate_id_format(cls, v):
+        """Validate federate_id format: cell-[region]-[cluster]-[node]"""
+        if not v.startswith('cell-'):
+            raise ValueError('federate_id must start with "cell-"')
+        parts = v.split('-')
+        if len(parts) < 4:
+            raise ValueError('federate_id must have format: cell-[region]-[cluster]-[node]')
+        return v
+    
+    @field_serializer('last_seen')
+    def serialize_last_seen(self, value: datetime) -> str:
+        return value.isoformat()
+    
+    @field_serializer('created_at')
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.isoformat()
+    
+    @field_serializer('updated_at')
+    def serialize_updated_at(self, value: datetime) -> str:
+        return value.isoformat()
+
+
+class FederateNonceV1(BaseModel):
+    """Nonce tracking for replay protection"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    schema_version: str = Field(default="2.0.0", description="Schema version")
+    nonce: str = Field(description="Cryptographic nonce")
+    federate_id: str = Field(description="Federate identifier")
+    created_at: datetime = Field(description="Nonce creation timestamp")
+    expires_at: datetime = Field(description="Nonce expiration timestamp")
+    used: bool = Field(default=False, description="Whether nonce has been used")
+    
+    @field_serializer('created_at')
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.isoformat()
+    
+    @field_serializer('expires_at')
+    def serialize_expires_at(self, value: datetime) -> str:
+        return value.isoformat().replace('+00:00', 'Z')  # Modified to include 'Z' at the end
+
+
+
+# V2 Federation Message Models (additive, behind feature flags)
+class SignatureAlgorithm(str, Enum):
+    """Supported signature algorithms"""
+    ED25519 = "ed25519"
+    RSA_PSS_SHA256 = "rsa-pss-sha256"
+
+
+class MessageType(str, Enum):
+    """Federation message types"""
+    IDENTITY_EXCHANGE = "identity_exchange"
+    CAPABILITY_NEGOTIATE = "capability_negotiate"
+    TRUST_ESTABLISH = "trust_establish"
+
+
+class VerificationFailureReason(str, Enum):
+    """Reasons for verification failure"""
+    INVALID_SIGNATURE = "invalid_signature"
+    KEY_MISMATCH = "key_mismatch"
+    NONCE_REUSE = "nonce_reuse"
+    TIMESTAMP_OUT_OF_BOUNDS = "timestamp_out_of_bounds"
+    UNKNOWN_KEY_ID = "unknown_key_id"
+    SCHEMA_VALIDATION_FAILED = "schema_validation_failed"
+    MISSING_SIGNATURE = "missing_signature"
+
+
+class SignatureInfoV1(BaseModel):
+    """Signature information for signed messages"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, frozen=True)
+    
+    alg: SignatureAlgorithm = Field(description="Signature algorithm")
+    key_id: Optional[str] = Field(description="Key identifier")
+    cert_fingerprint: Optional[str] = Field(description="Certificate fingerprint")
+    sig_b64: str = Field(description="Base64 encoded signature")
+
+
+class IdentityExchangePayloadV1(BaseModel):
+    """Identity exchange message payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, frozen=True)
+    
+    cell_public_key: str = Field(description="Base64 encoded Ed25519 public key")
+    certificate_chain: List[str] = Field(description="PE encoded X.509 certificate chain")
+    federation_role: str = Field(description="Federation role")
+    capabilities: List[str] = Field(description="Supported capabilities")
+    trust_score: float = Field(ge=0.0, le=1.0, description="Trust score")
+    cell_metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional cell metadata")
+
+
+class CapabilityNegotiatePayloadV1(BaseModel):
+    """Capability negotiation message payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, frozen=True)
+    
+    supported_capabilities: List[str] = Field(description="Supported capabilities")
+    required_capabilities: List[str] = Field(description="Required capabilities from peer")
+    priority: int = Field(ge=1, le=10, description="Negotiation priority")
+    capability_constraints: Dict[str, Any] = Field(default_factory=dict, description="Capability constraints")
+    negotiation_metadata: Dict[str, Any] = Field(default_factory=dict, description="Negotiation metadata")
+
+
+class TrustEstablishPayloadV1(BaseModel):
+    """Trust establishment message payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, frozen=True)
+    
+    trust_score: float = Field(ge=0.0, le=1.0, description="Proposed trust score")
+    trust_reasons: List[str] = Field(description="Reasons for trust score")
+    expiration: datetime = Field(description="Trust score expiration")
+    trust_policies: List[str] = Field(default_factory=list, description="Applicable trust policies")
+    trust_metadata: Dict[str, Any] = Field(default_factory=dict, description="Trust metadata")
+    
+    @field_serializer('expiration')
+    def serialize_expiration(self, value: datetime) -> str:
+        return value.isoformat().replace('+00:00', 'Z')
+
+
+# Additional V2 Federation Models for Store
+class FederateNonceV1(BaseModel):
+    """Nonce tracking for replay protection"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    nonce: str = Field(description="Cryptographic nonce")
+    federate_id: str = Field(description="Federate identifier")
+    created_at: datetime = Field(description="Creation timestamp")
+    expires_at: datetime = Field(description="Expiration timestamp")
+
+
+class HandshakeSessionV1(BaseModel):
+    """Handshake session tracking"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    federate_id: str = Field(description="Federate identifier")
+    correlation_id: str = Field(description="Handshake correlation ID")
+    state: HandshakeState = Field(description="Current handshake state")
+    created_at: datetime = Field(description="Session creation timestamp")
+    updated_at: datetime = Field(description="Last update timestamp")
+    expires_at: Optional[datetime] = Field(default=None, description="Session expiration")
+
+
+# V2 Coordination Visibility Models (additive)
+from enum import Enum
+
+class ObservationType(str, Enum):
+    """Enumeration of observation types"""
+    TELEMETRY_SUMMARY = "telemetry_summary"
+    THREAT_INTEL = "threat_intel"
+    ANOMALY_DETECTION = "anomaly_detection"
+    SYSTEM_HEALTH = "system_health"
+    NETWORK_ACTIVITY = "network_activity"
+    CUSTOM = "custom"
+
+
+class ObservationPayloadV1(BaseModel):
+    """Base class for observation payloads"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(description="Payload type identifier")
+    data: Dict[str, Any] = Field(description="Payload data")
+
+
+class TelemetrySummaryPayloadV1(ObservationPayloadV1):
+    """Telemetry summary observation payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(default="telemetry_summary", description="Payload type")
+    event_count: int = Field(description="Number of events summarized")
+    time_window_seconds: int = Field(description="Time window in seconds")
+    event_types: List[str] = Field(description="Event types included")
+    severity_distribution: Dict[str, int] = Field(description="Distribution of severities")
+
+
+class ThreatIntelPayloadV1(ObservationPayloadV1):
+    """Threat intelligence observation payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(default="threat_intel", description="Payload type")
+    ioc_count: int = Field(description="Number of indicators of compromise")
+    threat_types: List[str] = Field(description="Types of threats observed")
+    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in threat assessment")
+    sources: List[str] = Field(description="Threat intelligence sources")
+
+
+class AnomalyDetectionPayloadV1(ObservationPayloadV1):
+    """Anomaly detection observation payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(default="anomaly_detection", description="Payload type")
+    anomaly_score: float = Field(ge=0.0, le=1.0, description="Anomaly confidence score")
+    affected_entities: List[str] = Field(description="Entities affected by anomaly")
+    anomaly_type: str = Field(description="Type of anomaly detected")
+    baseline_deviation: float = Field(description="Deviation from baseline")
+
+
+class SystemHealthPayloadV1(ObservationPayloadV1):
+    """System health observation payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(default="system_health", description="Payload type")
+    cpu_utilization: float = Field(ge=0.0, le=100.0, description="CPU utilization percentage")
+    memory_utilization: float = Field(ge=0.0, le=100.0, description="Memory utilization percentage")
+    disk_utilization: float = Field(ge=0.0, le=100.0, description="Disk utilization percentage")
+    network_latency_ms: float = Field(description="Network latency in milliseconds")
+    service_status: Dict[str, str] = Field(description="Service status mapping")
+
+
+class NetworkActivityPayloadV1(ObservationPayloadV1):
+    """Network activity observation payload"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    payload_type: str = Field(default="network_activity", description="Payload type")
+    connection_count: int = Field(description="Number of connections observed")
+    bytes_transferred: int = Field(description="Bytes transferred")
+    top_protocols: List[str] = Field(description="Top protocols by volume")
+    suspicious_ips: List[str] = Field(description="Suspicious IP addresses detected")
+
+
+class ObservationV1(BaseModel):
+    """Canonical observation message from a federate"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    schema_version: str = Field(default="2.0.0", description="Schema version")
+    observation_id: str = Field(example="obs_01J...", description="Observation identifier")
+    source_federate_id: str = Field(description="Federate identifier that created this observation")
+    timestamp_utc: datetime = Field(description="Observation timestamp in UTC")
+    
+    @field_serializer('timestamp_utc')
+    def serialize_timestamp_utc(self, value: datetime) -> str:
+        """Serialize timestamp as ISO 8601 UTC"""
+        return value.isoformat().replace('+00:00', 'Z')
+    correlation_id: Optional[str] = Field(default=None, description="Correlation ID for linking to other events")
+    nonce: Optional[str] = Field(default=None, description="Cryptographic nonce for replay protection")
+    observation_type: ObservationType = Field(description="Type of observation")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence in observation accuracy")
+    evidence_refs: List[str] = Field(default_factory=list, description="References to evidence sources")
+    payload: ObservationPayloadV1 = Field(description="Typed observation payload")
+    signature: Optional[SignatureInfoV1] = Field(default=None, description="Signature block")
+    
+    def canonical_bytes(self) -> bytes:
+        """Return canonical byte representation for signing"""
+        # Create dict without signature for canonical representation
+        data = self.signed_payload_dict()
+        import json
+        return json.dumps(data, separators=(',', ':'), sort_keys=True).encode('utf-8')
+    
+    def signed_payload_dict(self) -> Dict[str, Any]:
+        """Return dictionary representation for signing (excluding signature)"""
+        data = self.model_dump(exclude={'signature'})
+        # Convert datetime to ISO format for serialization
+        data['timestamp_utc'] = self.timestamp_utc.isoformat()
+        # Handle nested payload serialization
+        if 'payload' in data:
+            data['payload'] = self.payload.model_dump()
+        return data
+    
+    @property
+    def federate_id(self) -> str:
+        """Alias for source_federate_id for compatibility with verification functions"""
+        return self.source_federate_id
+
+
+class BeliefV1(BaseModel):
+    """Canonical belief derived from observations"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    schema_version: str = Field(default="2.0.0", description="Schema version")
+    belief_id: str = Field(example="belief_01J...", description="Belief identifier")
+    belief_type: str = Field(description="Type of belief")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence in belief")
+    source_observations: List[str] = Field(description="List of observation IDs that contributed to this belief")
+    derived_at: datetime = Field(description="When belief was derived")
+    
+    @field_serializer('derived_at')
+    def serialize_derived_at(self, value: datetime) -> str:
+        """Serialize timestamp as ISO 8601 UTC"""
+        return value.isoformat().replace('+00:00', 'Z')
+    correlation_id: Optional[str] = Field(default=None, description="Correlation ID for linking")
+    evidence_summary: str = Field(description="Summary of evidence supporting this belief")
+    conflicts: List[str] = Field(default_factory=list, description="List of conflicting belief IDs")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+
+
+# Arbitration Models
+class ArbitrationStatus(str, Enum):
+    """Arbitration status"""
+    OPEN = "open"
+    RESOLVED = "resolved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+
+class ArbitrationConflictType(str, Enum):
+    """Types of conflicts that can be arbitrated"""
+    THREAT_CLASSIFICATION = "threat_classification"
+    SYSTEM_HEALTH = "system_health"
+    CONFIDENCE_DISPUTE = "confidence_dispute"
+    EVIDENCE_CONFLICT = "evidence_conflict"
+    POLICY_VIOLATION = "policy_violation"
+    TRUST_DISPUTE = "trust_dispute"
+
+
+class ArbitrationV1(BaseModel):
+    """Arbitration object for conflict resolution"""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    schema_version: str = Field(default="2.0.0", description="Schema version")
+    arbitration_id: str = Field(example="arb_01J...", description="Arbitration identifier")
+    created_at_utc: datetime = Field(description="When arbitration was created")
+    
+    @field_serializer('created_at_utc')
+    def serialize_created_at_utc(self, value: datetime) -> str:
+        """Serialize timestamp as ISO 8601 UTC"""
+        return value.isoformat().replace('+00:00', 'Z')
+    
+    status: ArbitrationStatus = Field(description="Current arbitration status")
+    conflict_type: ArbitrationConflictType = Field(description="Type of conflict")
+    subject_key: str = Field(description="Subject of the conflict")
+    conflict_key: str = Field(description="Deterministic conflict key")
+    
+    claims: List[Dict[str, Any]] = Field(description="Conflicting claims/beliefs")
+    evidence_refs: List[str] = Field(default_factory=list, description="Evidence references")
+    correlation_id: Optional[str] = Field(default=None, description="Correlation ID")
+    
+    conflicts_detected: List[Dict[str, Any]] = Field(default_factory=list, description="Detected conflicts")
+    
+    # Resolution fields
+    proposed_resolution: Optional[Dict[str, Any]] = Field(default=None, description="Proposed resolution")
+    decision: Optional[Dict[str, Any]] = Field(default=None, description="Final decision after approval")
+    approval_id: Optional[str] = Field(default=None, description="Approval request ID")
+    resolved_at_utc: Optional[datetime] = Field(default=None, description="When arbitration was resolved")
+    
+    @field_serializer('resolved_at_utc')
+    def serialize_resolved_at_utc(self, value: Optional[datetime]) -> Optional[str]:
+        """Serialize timestamp as ISO 8601 UTC"""
+        if value:
+            return value.isoformat().replace('+00:00', 'Z')
+        return None
+    
+    resolver_federate_id: Optional[str] = Field(default=None, description="Federate that resolved the conflict")
+    resolution_applied_at_utc: Optional[datetime] = Field(default=None, description="When resolution was applied")
+    
+    @field_serializer('resolution_applied_at_utc')
+    def serialize_resolution_applied_at_utc(self, value: Optional[datetime]) -> Optional[str]:
+        """Serialize timestamp as ISO 8601 UTC"""
+        if value:
+            return value.isoformat().replace('+00:00', 'Z')
+        return None
+    
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+
+
 # Export all models
 __all__ = [
+    # Core ADMO Models (V1)
     'TelemetryEventV1',
-    'SignalFactsV1', 
+    'SignalFactsV1',
     'BeliefV1',
     'LocalDecisionV1',
     'ExecutionIntentV1',
-    'AuditRecordV1'
+    'AuditRecordV1',
+    
+    # V2 Federation Models (additive)
+    'FederateIdentityV1',
+    'FederateNonceV1',
+    'SignatureInfoV1',
+    'IdentityExchangePayloadV1',
+    'CapabilityNegotiatePayloadV1',
+    'TrustEstablishPayloadV1',
+    'HandshakeSessionV1',
+    'FederationRole',
+    'CellStatus',
+    'HandshakeState',
+    'HandshakeResult',
+    'ObservationType',
+    'ObservationPayloadV1',
+    'TelemetrySummaryPayloadV1',
+    'ThreatIntelPayloadV1',
+    'AnomalyDetectionPayloadV1',
+    'SystemHealthPayloadV1',
+    'NetworkActivityPayloadV1',
+    'ObservationV1',
+    # V2 Arbitration Models (additive)
+    'ArbitrationStatus',
+    'ArbitrationConflictType',
+    'ArbitrationV1'
 ]
