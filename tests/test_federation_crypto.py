@@ -214,9 +214,17 @@ class TestProtocolEnforcement:
     
     def test_valid_signed_message_is_accepted(self, identity_store, key_pair, federate_identity):
         """Test that valid signed messages are accepted"""
+        import secrets
+        
+        # Clear any existing nonces to ensure clean state
+        identity_store._nonces.clear()
+        
+        # Generate unique nonce for this test
+        unique_nonce = f"test-nonce-{secrets.token_urlsafe(8)}"
+        
         message = create_identity_exchange_message(
             federate_id="cell-us-east-1-cluster-01-node-01",
-            nonce="test-nonce-123",
+            nonce=unique_nonce,
             correlation_id="test-correlation-456",
             cell_public_key=key_pair.public_key_b64,
             certificate_chain=["test-cert"],
@@ -291,9 +299,17 @@ class TestProtocolEnforcement:
     
     def test_nonce_reuse_is_rejected(self, identity_store, key_pair, federate_identity):
         """Test that nonce reuse is rejected"""
+        import secrets
+        
+        # Clear any existing nonces to ensure clean state
+        identity_store._nonces.clear()
+        
+        # Generate unique nonce for this test
+        unique_nonce = f"test-nonce-reuse-{secrets.token_urlsafe(8)}"
+        
         message = create_identity_exchange_message(
             federate_id="cell-us-east-1-cluster-01-node-01",
-            nonce="test-nonce-123",
+            nonce=unique_nonce,
             correlation_id="test-correlation-456",
             cell_public_key=key_pair.public_key_b64,
             certificate_chain=["test-cert"],
