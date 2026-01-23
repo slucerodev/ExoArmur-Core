@@ -15,6 +15,9 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'contracts'))
 from models_v1 import ExecutionIntentV1
 
+# Import canonical utilities for deterministic hashing
+from replay.canonical_utils import canonical_json, stable_hash
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,7 +33,7 @@ class IntentStore:
         logger.info("IntentStore initialized (in-memory)")
     
     def compute_intent_hash(self, intent: ExecutionIntentV1) -> str:
-        """Compute deterministic hash of intent (excluding volatile fields)"""
+        """Compute deterministic hash of intent using canonical utilities"""
         # Create canonical representation excluding timestamps and volatile fields
         intent_dict = intent.model_dump()
         
@@ -39,9 +42,9 @@ class IntentStore:
         for field in volatile_fields:
             intent_dict.pop(field, None)
         
-        # Sort keys and use compact JSON for deterministic hash
-        canonical_json = json.dumps(intent_dict, sort_keys=True, separators=(',', ':'))
-        return hashlib.sha256(canonical_json.encode('utf-8')).hexdigest()
+        # Use canonical utilities for deterministic hashing
+        canonical_representation = canonical_json(intent_dict)
+        return stable_hash(canonical_representation)
     
     def freeze_intent(self, approval_id: str, intent: ExecutionIntentV1) -> None:
         """Store frozen intent keyed by approval_id"""
