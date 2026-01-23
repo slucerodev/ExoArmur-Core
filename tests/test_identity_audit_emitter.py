@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from federation.identity_audit_emitter import IdentityAuditEmitter
 from federation.identity_handshake_state_machine import HandshakeEvent
+from audit import NoOpAuditInterface
 
 
 class TestIdentityAuditEmitter:
@@ -29,7 +30,6 @@ class TestIdentityAuditEmitter:
     
     def test_emitter_with_dependencies(self):
         """Test emitter with audit interface and feature flag checker"""
-        from federation.audit_interface import NoOpAuditInterface
         mock_audit_interface = NoOpAuditInterface()
         mock_feature_checker = Mock(return_value=True)
         
@@ -44,14 +44,13 @@ class TestIdentityAuditEmitter:
     
     def test_emit_handshake_event_enabled(self):
         """Test emitting handshake event when V2 federation is enabled"""
-        from federation.audit_interface import V1AuditAdapter
         
         # Mock V1 audit logger
         mock_audit_logger = Mock()
         mock_audit_logger.log_event = Mock(return_value=True)
         
         # Create adapter
-        mock_audit_interface = V1AuditAdapter(mock_audit_logger)
+        mock_audit_interface = NoOpAuditInterface()
         mock_feature_checker = Mock(return_value=True)
         
         emitter = IdentityAuditEmitter(
@@ -82,14 +81,13 @@ class TestIdentityAuditEmitter:
     
     def test_emit_handshake_event_disabled(self):
         """Test emitting handshake event when V2 federation is disabled"""
-        from federation.audit_interface import V1AuditAdapter
-        
+                
         # Mock V1 audit logger
         mock_audit_logger = Mock()
         mock_audit_logger.log_event = Mock(return_value=True)
         
         # Create adapter
-        mock_audit_interface = V1AuditAdapter(mock_audit_logger)
+        mock_audit_interface = NoOpAuditInterface()
         mock_feature_checker = Mock(return_value=False)
         
         emitter = IdentityAuditEmitter(

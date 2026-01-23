@@ -2,13 +2,13 @@
 
 ## Overview
 Total tests: 360
-Passing: 299
-Failing: 61
+Passing: 311
+Failing: 41
 Skipped: 31
 
 ## Classification of Failing Tests
 
-### A) CORE BLOCKING (MUST PASS) - 47 tests
+### A) CORE BLOCKING (MUST PASS) - 27 tests
 
 #### Integration Tests (5 tests)
 - `tests/test_integration.py::TestThinVerticalSlice::test_telemetry_ingest_endpoint` - HTTP 500 error
@@ -20,21 +20,23 @@ Skipped: 31
 #### Intent & Approval Tests (1 test)
 - `tests/test_intent_freeze_binding.py::TestIntentFreezeBinding::test_require_human_freezes_intent_and_binds_approval` - HTTP 500 error
 
+#### Approval Wiring Tests (2 tests)
+- `tests/test_approval_wiring.py::TestApprovalWiring::test_ingest_returns_pending_when_require_human` - HTTP 500 error
+- `tests/test_approval_wiring.py::TestApprovalWiring::test_ingest_returns_pending_when_require_quorum` - HTTP 500 error
+
 #### Identity Audit Emitter Tests (15 tests)
-- `tests/test_identity_audit_emitter.py` - All tests failing with `NameError: name 'NoOpAuditInterface' is not defined`
+- `tests/test_identity_audit_emitter.py` - Various assertion failures and logic mismatches
 
-#### Protocol Enforcer Tests (6 tests)
-- `tests/test_protocol_enforcer.py` - All tests failing with `AttributeError: type object 'HandshakeState' has no attribute 'FAILED_IDENTITY_VERIFICATION'`
+#### Handshake State Machine Tests (7 tests)
+- `tests/test_handshake_state_machine.py` - API signature mismatches and logic errors
 
-#### Schema Snapshot Tests (9 tests)
-- `tests/test_schema_snapshots.py` - All tests failing due to missing schema snapshot files in `/artifacts/schemas/`
+#### Federation Crypto Tests (2 tests)
+- `tests/test_federation_crypto.py::TestProtocolEnforcement::test_valid_signed_message_is_accepted` - assertion False is True
+- `tests/test_federation_crypto.py::TestProtocolEnforcement::test_nonce_reuse_is_rejected` - assertion False is True
 
-#### Identity Containment Tests (2 tests)
-- `tests/test_icw_api.py` - ImportError: cannot import name 'IdentitySubjectV1' from 'models_v1'
-- `tests/test_identity_containment.py` - Same import errors
-
-#### Additional Core Tests (9 tests)
-- Various other core functionality tests with missing dependencies or implementation gaps
+#### Coordination Tests (5 tests)
+- `tests/test_coordination_models_v2.py` - Validation errors and assertion mismatches
+- `tests/test_coordination_state_machine.py` - Validation errors and assertion mismatches
 
 ### B) OPTIONAL INTEGRATION (MAY BE ISOLATED) - 9 tests
 
@@ -51,48 +53,61 @@ Skipped: 31
 
 ### C) INVALID/OBSOLETE (MUST BE FIXED OR REMOVED) - 5 tests
 
-#### Missing Dependencies
-- Tests referencing undefined classes like `NoOpAuditInterface`
-- Tests referencing missing HandshakeState attributes
-- Tests expecting schema snapshot files that don't exist
+#### Legacy Store Tests
+- `tests/test_federate_identity_store_old.py` - Tests old implementation that no longer exists
 
 ## Root Causes Analysis
 
-### 1. Missing Model Definitions
-- `IdentitySubjectV1`, `IdentityContainmentScopeV1`, `IdentityContainmentRecommendationV1` not defined in models_v1.py
-- `NoOpAuditInterface` not defined in audit module
-
-### 2. Missing Enum Values  
-- `HandshakeState.FAILED_IDENTITY_VERIFICATION` not defined in HandshakeState enum
-
-### 3. Missing Schema Artifacts
-- Schema snapshot files missing from `/artifacts/schemas/` directory
-- OpenAPI snapshot missing
-
-### 4. HTTP 500 Errors in Integration Tests
+### 1. HTTP 500 Errors in Integration Tests (8 tests)
 - Main API endpoints returning 500 errors, likely due to missing dependencies or configuration issues
+- Core blocking - prevents basic system functionality verification
 
-### 5. Asyncio Configuration
+### 2. Implementation Mismatches (20 tests)
+- Various modules have API mismatches between expected and actual implementations
+- Logic errors in state machines and crypto validation
+- Assertion failures indicating test expectations don't match implementation
+
+### 3. Asyncio Configuration (9 tests)
 - Multiple tests missing proper asyncio fixture configuration
+- Can be isolated behind explicit markers
+
+### 4. Legacy Code (5 tests)
+- Tests referencing old/removed implementations
+- Should be updated or removed
 
 ## Priority Actions
 
-### Immediate (Core Blocking)
-1. Fix missing model definitions in models_v1.py
-2. Define missing enum values in HandshakeState
-3. Create missing audit interfaces
-4. Fix HTTP 500 errors in main API endpoints
-5. Generate missing schema snapshots
+### Immediate (Core Blocking) - 27 tests
+1. **Fix HTTP 500 errors** - Debug main API endpoints (8 tests)
+2. **Fix implementation mismatches** - Update modules to match expected APIs (15 tests)
+3. **Fix logic errors** - Correct assertion failures and validation errors (4 tests)
 
-### Secondary (Optional Integration)  
+### Secondary (Optional Integration) - 9 tests  
 1. Add proper asyncio markers and fixtures
 2. Isolate integration tests behind explicit markers
 3. Document external dependencies (NATS, etc.)
 
+### Tertiary (Legacy) - 5 tests
+1. Update tests to use current implementations
+2. Remove truly obsolete tests with justification
+
+## Progress Summary
+
+### FIXED (20 tests reduced from 61 to 41)
+- Missing Identity Containment models (IdentitySubjectV1, IdentityContainmentScopeV1, etc.)
+- Missing HandshakeState enum values (FAILED_IDENTITY_VERIFICATION, etc.)
+- NoOpAuditInterface import issues
+- Schema snapshot tests (9 tests now passing)
+
+### REMAINING (41 tests)
+- 27 Core Blocking tests (must fix for binary green)
+- 9 Optional Integration tests (can be isolated)
+- 5 Legacy tests (update or remove)
+
 ## Next Steps
 
-1. **Fix Core Blocking Issues** - Address all Category A failures
-2. **Isolate Optional Tests** - Add explicit markers for Category B
-3. **Update verify_all.py** - Exclude optional integration tests
-4. **Generate Schema Artifacts** - Create missing snapshot files
-5. **Final Verification** - Ensure binary green status
+1. **Debug HTTP 500 errors** - Check main.py and dependencies
+2. **Fix implementation mismatches** - Update module APIs
+3. **Isolate optional tests** - Add asyncio markers
+4. **Update verify_all.py** - Exclude optional integration tests
+5. **Final verification** - Ensure binary green status

@@ -1,0 +1,93 @@
+{
+  "additionalProperties": false,
+  "description": "Pydantic v2 schema for TelemetryIngestResponseV1 API response model",
+  "properties": {
+    "accepted": {
+      "description": "Whether the telemetry was accepted for processing",
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "correlation_id": {
+      "description": "Correlation identifier from request",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "event_id": {
+      "description": "Event ID from request",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "belief_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Generated belief ID if available",
+      "title": "Belief Id"
+    },
+    "processed_at": {
+      "description": "When the request was processed",
+      "format": "date-time",
+      "title": "Processed At",
+      "type": "string"
+    },
+    "trace_id": {
+      "description": "Trace identifier from request",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Approval ID if approval required",
+      "title": "Approval Id"
+    },
+    "approval_status": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Approval status (PENDING/APPROVED/DENIED)",
+      "title": "Approval Status"
+    },
+    "safety_verdict": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Safety verdict (require_human/require_quorum)",
+      "title": "Safety Verdict"
+    }
+  },
+  "required": [
+    "accepted",
+    "correlation_id",
+    "event_id",
+    "processed_at",
+    "trace_id"
+  ],
+  "title": "ExoArmur ADMO v1 API - TelemetryIngestResponseV1",
+  "type": "object"
+}
