@@ -147,8 +147,26 @@ class TestHandshakeStateMachine:
         federate_id = "cell-test-01"
         correlation_id = "corr-12345"
         
-        # Create and complete session
+        # Create and complete session through proper state transitions
         session = state_machine.create_session(federate_id, correlation_id)
+        
+        # Follow proper state transitions to reach CONFIRMED
+        state_machine.transition_state(
+            correlation_id,
+            HandshakeState.IDENTITY_EXCHANGE,
+            "test_message",
+            "test_reason",
+            {}
+        )
+        
+        state_machine.transition_state(
+            correlation_id,
+            HandshakeState.CAPABILITY_NEGOTIATION,
+            "test_message",
+            "test_reason",
+            {}
+        )
+        
         state_machine.transition_state(
             correlation_id,
             HandshakeState.CONFIRMED,

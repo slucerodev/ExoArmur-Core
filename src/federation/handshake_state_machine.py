@@ -293,6 +293,10 @@ class HandshakeStateMachine:
         session.state = to_state
         session.updated_at = now
         
+        # Lock correlation ID if transitioning to terminal state
+        if self.is_terminal_state(to_state):
+            self.lock_correlation_id(correlation_id)
+        
         # Record transition
         transition = HandshakeTransition(
             from_state=from_state,

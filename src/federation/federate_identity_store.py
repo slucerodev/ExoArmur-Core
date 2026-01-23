@@ -73,7 +73,7 @@ class FederateIdentityStore:
     
     def is_enabled(self) -> bool:
         """Check if V2 federation identity is enabled"""
-        return self._feature_flags.is_enabled('v2_federation_identity_enabled')
+        return self._feature_flags.is_enabled('v2_federation_enabled')
     
     def store_identity(self, identity: FederateIdentityV1) -> bool:
         """
