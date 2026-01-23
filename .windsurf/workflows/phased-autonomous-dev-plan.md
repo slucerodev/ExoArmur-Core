@@ -19,7 +19,7 @@ PRIMARY OUTCOME
 Deliver a Phase 3 organism that:
 - Is deterministic + replayable
 - Has federation identity + coordination visibility + arbitration (human override)
-- Has real defensive “teeth” (bounded, reversible actions) integrated via authority gates
+- Has real defensive capabilities (bounded, reversible actions) integrated via authority gates
 - Preserves all existing invariants and regression gates
 
 WORKFLOW OVERVIEW (DO THIS IN ORDER)
@@ -142,7 +142,7 @@ Definition of Done:
 - Disagreements never silently “average out”
 - Human override dominates and is auditable
 
-WORKFLOW 5 — PHASE 3: ORGANISM BEHAVIOR (REAL TEETH, BOUNDED)
+WORKFLOW 5 — PHASE 3: ORGANISM BEHAVIOR (DEFENSIVE CAPABILITIES, BOUNDED)
 Goal: Add defensive capabilities safely.
 
 Rules for Phase 3 capabilities:
@@ -154,16 +154,16 @@ Rules for Phase 3 capabilities:
 
 Implement Phase 3 in three tiers:
 
-Tier 3.1 Observational teeth:
+Tier 3.1 Observational capabilities:
 - correlate + de-duplicate + confidence scoring
 - evidence graph with deterministic scoring rules
-- “recommendations” output (no execution yet)
+- "recommendations" output (no execution yet)
 
-Tier 3.2 Advisory teeth:
+Tier 3.2 Advisory capabilities:
 - recommended actions with required authority level (A1/A2/A3)
 - generate frozen intents for recommended actions (but require approvals)
 
-Tier 3.3 Reversible action effectors (first bite):
+Tier 3.3 Reversible action effectors (first implementation):
 - quarantine with TTL
 - rate limit with TTL
 - suspend process with TTL (if applicable)
