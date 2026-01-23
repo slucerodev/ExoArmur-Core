@@ -1,0 +1,143 @@
+# ADMO v1 Policy Bundle Configuration
+#
+# Signed, tenant-scoped policy bundle consumed by cells. Policies define:
+# - what actions are permitted
+# - autonomy envelopes (A0-A3)
+# - quorum vs human approval requirements
+# - trust caps/floors
+# - kill switches
+# Bundles MUST be signed and verified before use.
+
+policy_bundle_v1:
+  schema_version: "1.0.0"
+  purpose: >
+    Signed, tenant-scoped policy bundle consumed by cells. Policies define:
+    - what actions are permitted
+    - autonomy envelopes (A0-A3)
+    - quorum vs human approval requirements
+    - trust caps/floors
+    - kill switches
+    Bundles MUST be signed and verified before use.
+
+  signing:
+    required: true
+    accepted_algorithms: ["ed25519", "rsa-pss-sha256"]
+    verification:
+      public_key_source: "trusted_keyring_per_tenant"
+      signature_covers:
+        - "bundle_metadata"
+        - "rego_modules"
+        - "data_json"
+      bundle_hash_sha256_required: true
+
+  bundle_metadata:
+    required_fields:
+      - bundle_id
+      - tenant_id
+      - issued_at
+      - expires_at
+      - version
+      - policy_engine
+      - bundle_hash_sha256
+      - signature
+    field_specs:
+      bundle_id: { type: "str", format: "ulid" }
+      tenant_id: { type: "str" }
+      issued_at: { type: "datetime_rfc3339" }
+      expires_at: { type: "datetime_rfc3339" }
+      version: { type: "str", example: "2026.01.20.1" }
+      policy_engine: { type: "str", enum: ["opa_rego"] }
+      bundle_hash_sha256: { type: "str", format: "sha256_hex" }
+      signature:
+        type: "object"
+        fields:
+          alg: { type: "str" }
+          key_id: { type: "str" }
+          sig: { type: "str" }
+
+  kill_switches:
+    required_fields:
+      - global_kill_switch
+      - per_tenant_kill_switch
+    semantics:
+      global_kill_switch:
+        description: "Disables ALL execution intents except A0 observe."
+        default: false
+      per_tenant_kill_switch:
+        description: "Disables ALL execution intents for tenant except A0 observe."
+        default: false
+      degraded_mode_behavior:
+        description: >
+          If policy cannot be verified/loaded, the cell MUST enter degraded mode
+          and follow severity ladder with execution restricted by safety gate rules.
+
+  autonomy_envelope:
+    description: >
+      Per-tenant allowed actions and their approval requirements. This is the
+      definitive authorization layer (policy). Safety still may deny.
+    action_classes:
+      A0_observe:
+        allowed: true
+        approval: "local"
+      A1_soft_containment:
+        allowed: true
+        approval: "local_if_policy_authorized"
+      A2_hard_containment:
+        allowed: true
+        approval: "local_or_quorum"
+      A3_irreversible:
+        allowed: true
+        approval: "quorum_or_human"
+
+  trust_governance:
+    description: >
+      Policy-level constraints on autonomy based on trust_score(emitter).
+      Safety gate will enforce these constraints.
+    defaults:
+      trust_score_floor_for_A2_local: 0.50
+      trust_score_floor_for_A3_local: 0.80
+      trust_score_floor_for_any_A2A3: 0.35
+    overrides:
+      allow_tenant_pin: true
+      allow_tenant_cap_max_autonomy_by_trust: true
+
+  rego_layout:
+    description: >
+      Bundle ships OPA Rego modules plus a data.json document containing parameters
+      (thresholds, opposition maps, allowlists, etc.).
+    required_modules:
+      - "exoarmur/policy/intent_allow.rego"
+      - "exoarmur/policy/approval_requirements.rego"
+      - "exoarmur/policy/kill_switch.rego"
+      - "exoarmur/policy/trust_caps.rego"
+    data_json_required_keys:
+      - "thresholds"
+      - "opposition_map"
+      - "allowlists"
+      - "denylists"
+      - "tenant_overrides"
+
+  policy_decision_contract:
+    output_fields_required:
+      - allowed
+      - reason
+      - policy_refs
+      - risk_score
+      - blast_radius
+      - required_approval
+    field_specs:
+      allowed: { type: "bool" }
+      reason: { type: "str" }
+      policy_refs: { type: "list[str]" }
+      risk_score: { type: "float", range: [0.0, 1.0] }
+      blast_radius: { type: "float", range: [0.0, 1.0] }
+      required_approval: { type: "str", enum: ["none","quorum","human"] }
+
+  minimum_examples:
+    example_intents:
+      - intent_type: "isolate_host"
+        action_class: "A1_soft_containment"
+      - intent_type: "block_domain"
+        action_class: "A2_hard_containment"
+      - intent_type: "disable_user"
+        action_class: "A3_irreversible"

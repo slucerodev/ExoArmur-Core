@@ -1,0 +1,136 @@
+# coordination.intent.broadcast.v2 Schema
+# "I intend to do Z"
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coordination Intent Broadcast v2",
+  "description": "Non-binding intent broadcast",
+  "type": "object",
+  
+  "required": [
+    "coordination_id",
+    "sender_cell_id",
+    "owner_cell_id",
+    "scope",
+    "issued_at",
+    "expires_at", 
+    "schema_version",
+    "coordination_type",
+    "intent_type",
+    "intent_data",
+    "priority",
+    "target_cells"
+  ],
+  
+  "properties": {
+    "coordination_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this coordination instance"
+    },
+    
+    "sender_cell_id": {
+      "type": "string",
+      "description": "Cell that sent this intent broadcast"
+    },
+    
+    "owner_cell_id": {
+      "type": "string",
+      "description": "Cell that owns this coordination"
+    },
+    
+    "scope": {
+      "$ref": "#/definitions/coordination_scope",
+      "description": "Scope and boundaries of coordination"
+    },
+    
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this intent was issued"
+    },
+    
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this intent expires (max 4h from issued_at)"
+    },
+    
+    "schema_version": {
+      "type": "string",
+      "enum": ["2.0"],
+      "description": "Protocol version"
+    },
+    
+    "coordination_type": {
+      "type": "string",
+      "enum": ["intent_broadcast"],
+      "description": "Message type identifier"
+    },
+    
+    "intent_type": {
+      "type": "string",
+      "description": "Type of intent being broadcast (descriptive only)"
+    },
+    
+    "intent_data": {
+      "type": "object",
+      "description": "Non-binding intent data",
+      "additionalProperties": true
+    },
+    
+    "priority": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Priority level (1=lowest, 10=highest, descriptive only)"
+    },
+    
+    "target_cells": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 50,
+      "description": "Target cells for intent (empty=broadcast to all)"
+    }
+  },
+  
+  "definitions": {
+    "coordination_scope": {
+      "type": "object",
+      "required": ["coordination_type", "affected_cells"],
+      "properties": {
+        "coordination_type": {
+          "type": "string",
+          "enum": [
+            "availability_announcement",
+            "capability_sharing",
+            "observation_sharing",
+            "intent_broadcast",
+            "temporary_coordination"
+          ]
+        },
+        "affected_cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "resource_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "geographic_scope": {
+          "type": "string"
+        },
+        "temporal_scope": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

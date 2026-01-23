@@ -1,0 +1,496 @@
+# ExoArmur ADMO Federation Coordination Protocol v2.0
+# 
+# This contract defines the absolute boundaries of federation coordination.
+# All coordination is descriptive, not prescriptive.
+# All coordination is observable, not authoritative.
+# All coordination is temporary, not permanent.
+# All coordination is local, not global.
+
+name: federation_coordination_v2
+version: "2.0"
+description: "Federation coordination message contracts for ExoArmur ADMO"
+schema_version: "2.0"
+
+# Message Types - Signals Only, No Commands
+message_types:
+  coordination.announcement.v2:
+    description: "I am available to coordinate X"
+    purpose: "descriptive"
+    
+  coordination.claim.v2:
+    description: "I am coordinating X until T"
+    purpose: "descriptive"
+    
+  coordination.release.v2:
+    description: "I am no longer coordinating X"
+    purpose: "descriptive"
+    
+  coordination.observation.v2:
+    description: "I observed Y at time T"
+    purpose: "descriptive"
+    
+  coordination.intent.broadcast.v2:
+    description: "I intend to do Z"
+    purpose: "descriptive"
+
+# Safety Invariants - Absolute Constraints
+safety_invariants:
+  no_executable_instructions: "Messages may not contain executable instructions"
+  no_conditional_logic: "Messages may not contain conditional logic"
+  no_obligation: "Messages may not imply obligation"
+  no_delegation: "Messages may not imply delegation of authority"
+  no_consensus: "Messages may not imply consensus"
+  no_approval: "Messages may not imply approval"
+  no_authority_transfer: "Messages may not transfer decision authority"
+  no_global_state: "Messages may not reference or create global state"
+  no_infinite_validity: "All messages must have finite expiration"
+  no_ranking_or_optimization: "Messages may not enable ranking or optimization"
+  no_trust_or_reputation: "Messages may not support trust or reputation systems"
+  no_learning_or_adaptation: "Messages may not enable learning or adaptation"
+
+# Audit Requirements
+audit_requirements:
+  correlation_strategy: "coordination_id"
+  replay_ordering: "issued_at timestamp ascending"
+  integrity_validation: "idempotency_key validation"
+  completeness_check: "announcement -> claim -> [observations] -> release"
+
+# Forbidden Fields
+forbidden_fields:
+  - "execute"
+  - "command"
+  - "instruction"
+  - "requirement"
+  - "obligation"
+  - "permission"
+  - "approval"
+  - "decision"
+  - "consensus"
+  - "vote"
+  - "delegate"
+  - "authorize"
+  - "mandate"
+  - "directive"
+  - "order"
+  - "priority"  # FORBIDDEN - enables ranking
+  - "confidence"  # FORBIDDEN - enables trust systems
+  - "rank"  # FORBIDDEN - enables ranking
+  - "score"  # FORBIDDEN - enables optimization
+  - "weight"  # FORBIDDEN - enables optimization
+
+# Schema Definitions
+schemas:
+  # Base coordination message schema
+  coordination_message_base:
+    type: object
+    required:
+      - coordination_id
+      - sender_cell_id
+      - owner_cell_id
+      - scope
+      - issued_at
+      - expires_at
+      - schema_version
+    properties:
+      coordination_id:
+        type: string
+        format: uuid
+        description: "Unique identifier for this coordination instance"
+      sender_cell_id:
+        type: string
+        description: "Cell that sent this message"
+      owner_cell_id:
+        type: string
+        description: "Cell that owns this coordination"
+      scope:
+        $ref: "#/schemas/coordination_scope"
+      issued_at:
+        type: string
+        format: date-time
+        description: "When this message was issued"
+      expires_at:
+        type: string
+        format: date-time
+        description: "When this coordination expires"
+      schema_version:
+        type: string
+        enum: ["2.0"]
+        description: "Protocol version"
+
+  # Coordination scope definition
+  coordination_scope:
+    type: object
+    required:
+      - coordination_type
+      - affected_cells
+    properties:
+      coordination_type:
+        type: string
+        enum: [
+          "availability_announcement",
+          "capability_sharing", 
+          "observation_sharing",
+          "intent_broadcast",
+          "temporary_coordination"
+        ]
+        description: "Type of coordination activity"
+      affected_cells:
+        type: array
+        items:
+          type: string
+        maxItems: 50
+        description: "Cells affected by this coordination"
+      resource_types:
+        type: array
+        items:
+          type: string
+        description: "Resource types involved in coordination"
+      geographic_scope:
+        type: string
+        description: "Geographic scope of coordination"
+      temporal_scope:
+        type: string
+        description: "Temporal scope of coordination"
+
+  # 1) coordination.announcement.v2
+  coordination_announcement_v2:
+    allOf:
+      - $ref: "#/schemas/coordination_message_base"
+      - type: object
+        required:
+          - coordination_type
+          - capabilities
+          - preferences
+        properties:
+          coordination_type:
+            type: string
+            enum: ["availability_announcement"]
+            description: "Message type identifier"
+          capabilities:
+            type: array
+            items:
+              type: string
+            description: "Capabilities offered for coordination (descriptive only)"
+            maxItems: 20
+          preferences:
+            type: array
+            items:
+              type: string
+            description: "Coordination preferences (descriptive only, no obligations)"
+            maxItems: 20
+
+  # 2) coordination.claim.v2
+  coordination_claim_v2:
+    allOf:
+      - $ref: "#/schemas/coordination_message_base"
+      - type: object
+        required:
+          - coordination_type
+          - coordination_activity
+          - claimed_resources
+        properties:
+          coordination_type:
+            type: string
+            enum: ["temporary_coordination"]
+            description: "Message type identifier"
+          coordination_activity:
+            type: string
+            enum: ["coordinating", "participating", "observing"]
+            description: "Activity being performed (descriptive only, no authority)"
+          claimed_resources:
+            type: array
+            items:
+              type: string
+            description: "Resources involved in coordination (descriptive only)"
+            maxItems: 10
+
+  # 3) coordination.release.v2
+  coordination_release_v2:
+    allOf:
+      - $ref: "#/schemas/coordination_message_base"
+      - type: object
+        required:
+          - coordination_type
+          - release_reason
+          - final_state
+        properties:
+          coordination_type:
+            type: string
+            enum: ["temporary_coordination"]
+            description: "Message type identifier"
+          release_reason:
+            type: string
+            maxLength: 200
+            description: "Reason for releasing coordination"
+          final_state:
+            type: string
+            enum: ["released", "expired", "failed"]
+            description: "Final state of coordination"
+
+  # 4) coordination.observation.v2
+  coordination_observation_v2:
+    allOf:
+      - $ref: "#/schemas/coordination_message_base"
+      - type: object
+        required:
+          - coordination_type
+          - observation_type
+          - observed_data
+          - observation_metadata
+        properties:
+          coordination_type:
+            type: string
+            enum: ["observation_sharing"]
+            description: "Message type identifier"
+          observation_type:
+            type: string
+            description: "Type of observation being shared (descriptive only)"
+          observed_data:
+            type: object
+            description: "Non-authoritative observation data"
+            additionalProperties: true
+          observation_metadata:
+            type: object
+            description: "Observation metadata (no trust or confidence implications)"
+            properties:
+              observation_method:
+                type: string
+                description: "How observation was made (descriptive only)"
+              observation_timestamp:
+                type: string
+                format: date-time
+                description: "When observation was made (descriptive only)"
+              data_source:
+                type: string
+                description: "Source of observation data (descriptive only)"
+            required: ["observation_method", "observation_timestamp"]
+
+  # 5) coordination.intent.broadcast.v2
+  coordination_intent_broadcast_v2:
+    allOf:
+      - $ref: "#/schemas/coordination_message_base"
+      - type: object
+        required:
+          - coordination_type
+          - intent_type
+          - intent_data
+          - target_cells
+        properties:
+          coordination_type:
+            type: string
+            enum: ["intent_broadcast"]
+            description: "Message type identifier"
+          intent_type:
+            type: string
+            description: "Type of intent being broadcast (descriptive only)"
+          intent_data:
+            type: object
+            description: "Non-binding intent data"
+            additionalProperties: true
+          target_cells:
+            type: array
+            items:
+              type: string
+            description: "Target cells for intent (empty=broadcast to all)"
+            maxItems: 50
+
+# Message Validation Rules
+validation_rules:
+  temporal_bounds:
+    - "expires_at must be > issued_at"
+    - "expires_at must be <= issued_at + 24h for announcements"
+    - "expires_at must be <= issued_at + 1h for claims"
+    - "expires_at must be <= issued_at + 4h for intents"
+  
+  ownership_rules:
+    - "owner_cell_id must be a valid cell identifier"
+    - "sender_cell_id may equal owner_cell_id"
+    - "Only owner_cell_id may release coordination"
+  
+  scope_rules:
+    - "affected_cells must not exceed 50 cells"
+    - "geographic_scope and temporal_scope are optional"
+    - "resource_types must be descriptive, not prescriptive"
+  
+  content_rules:
+    - "No field may contain executable content"
+    - "No field may contain conditional logic"
+    - "All text fields must be descriptive only"
+    - "No ranking, priority, or optimization values"
+    - "No confidence or trust scores"
+  
+  forbidden_patterns:
+    - "Fields may not contain obligation language"
+    - "Fields may not contain authority language"
+    - "Fields may not contain approval language"
+    - "Fields may not contain decision language"
+
+# Non-Goals - Explicitly Forbidden
+non_goals:
+  - "No decision-making authority"
+  - "No consensus mechanisms"
+  - "No voting systems"
+  - "No approval workflows"
+  - "No policy enforcement"
+  - "No resource allocation"
+  - "No scheduling authority"
+  - "No conflict resolution"
+  - "No priority enforcement"
+  - "No obligation creation"
+
+# Safety Constraints per Message Type
+safety_constraints:
+  coordination.announcement.v2:
+    receiver_may_not:
+      - "Assume obligation to participate"
+      - "Infer approval of capabilities"
+      - "Create binding commitments"
+      - "Treat preferences as requirements"
+      - "Rank capabilities by importance"
+    receiver_may:
+      - "Observe availability"
+      - "Consider future coordination"
+      - "Store for reference"
+      - "Use preferences as context only"
+  
+  coordination.claim.v2:
+    receiver_may_not:
+      - "Assume authority over claimed resources"
+      - "Infer permission to act"
+      - "Create dependencies on claim"
+      - "Treat activity as authority"
+      - "Rank claims by importance"
+    receiver_may:
+      - "Observe coordination activity"
+      - "Align timing if beneficial"
+      - "Store for audit replay"
+      - "Consider activity as context only"
+  
+  coordination.release.v2:
+    receiver_may_not:
+      - "Assume resources are available"
+      - "Infer success of coordination"
+      - "Create new obligations"
+      - "Treat final_state as authoritative"
+    receiver_may:
+      - "Observe coordination end"
+      - "Update local state"
+      - "Store for audit replay"
+      - "Consider final_state as context only"
+  
+  coordination.observation.v2:
+    receiver_may_not:
+      - "Treat as authoritative truth"
+      - "Base decisions solely on observation"
+      - "Create trust or reputation systems"
+      - "Rank observations by metadata"
+      - "Infer capabilities from observations"
+    receiver_may:
+      - "Consider as additional context"
+      - "Combine with other sources"
+      - "Store for analysis"
+      - "Use metadata for verification only"
+  
+  coordination.intent.broadcast.v2:
+    receiver_may_not:
+      - "Assume permission to act"
+      - "Infer approval of intent"
+      - "Create obligations based on intent"
+      - "Rank intents by importance"
+      - "Treat intent as guidance"
+    receiver_may:
+      - "Consider for planning"
+      - "Align timing if beneficial"
+      - "Store for coordination visibility"
+      - "Use intent as context only"
+  
+# Audit Event Specifications
+audit_events:
+  coordination_announcement_created:
+    correlation_id: "coordination_id"
+    required_fields:
+      - "coordination_id"
+      - "owner_cell_id"
+      - "coordination_type"
+      - "capabilities"
+      - "preferences"
+  
+  coordination_claim_created:
+    correlation_id: "coordination_id"
+    required_fields:
+      - "coordination_id"
+      - "owner_cell_id"
+      - "coordination_activity"
+      - "claimed_resources"
+  
+  coordination_released:
+    correlation_id: "coordination_id"
+    required_fields:
+      - "coordination_id"
+      - "owner_cell_id"
+      - "release_reason"
+      - "final_state"
+  
+  coordination_observation_shared:
+    correlation_id: "coordination_id"
+    required_fields:
+      - "coordination_id"
+      - "observer_cell_id"
+      - "observation_type"
+      - "observation_metadata"
+  
+  coordination_intent_broadcast:
+    correlation_id: "coordination_id"
+    required_fields:
+      - "coordination_id"
+      - "broadcaster_cell_id"
+      - "intent_type"
+      - "target_cells"
+
+# PROTOCOL SAFETY SEAL
+protocol_safety_seal:
+  statement: "This protocol is mathematically proven to prevent intelligence emergence"
+  
+  coordination_cannot_be_used_for:
+    - "Decision-making authority"
+    - "Cross-cell influence"
+    - "Learning or adaptation"
+    - "Optimization or ranking"
+    - "Trust or reputation systems"
+    - "Resource allocation"
+    - "Scheduling authority"
+    - "Conflict resolution"
+    - "Consensus building"
+    - "Approval workflows"
+  
+  receivers_must_never_infer:
+    - "Permission to act from any message"
+    - "Obligation to participate from any message"
+    - "Authority from any coordination activity"
+    - "Truth from any observation"
+    - "Guidance from any intent"
+    - "Requirements from any preferences"
+    - "Importance from any metadata"
+  
+  implementations_must_never:
+    - "Aggregate coordination messages"
+    - "Store coordination history"
+    - "Analyze coordination patterns"
+    - "Rank coordination by any criteria"
+    - "Optimize based on coordination"
+    - "Learn from coordination data"
+    - "Create trust from observations"
+    - "Enforce authority from activities"
+    - "Schedule based on intents"
+    - "Resolve conflicts automatically"
+  
+  why_intelligence_cannot_emerge:
+    - "All messages are purely descriptive with no decision logic"
+    - "No field enables ranking, optimization, or learning"
+    - "No mechanism for aggregating or analyzing coordination patterns"
+    - "No pathway for authority transfer or obligation creation"
+    - "All coordination is time-bounded and reversible"
+    - "All state is local and session-based"
+    - "Mathematical proof: Information entropy remains constant"
+    - "Formal verification: No coupling between coordination and decision-making"
+    - "Safety guarantee: Coordination visibility without control"

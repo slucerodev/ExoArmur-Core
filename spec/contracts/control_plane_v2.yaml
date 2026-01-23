@@ -1,0 +1,341 @@
+# ExoArmur ADMO V2 Control Plane Contract
+# Operator control plane API and human-in-the-loop interfaces
+
+control_plane_v2:
+  purpose: "Human operator control plane for ADMO federation management and approval workflows"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Control plane API endpoints
+  api_endpoints:
+    federation_management:
+      description: "Federation topology and membership management"
+      endpoints:
+        - path: "/api/v2/federation/status"
+          method: "GET"
+          description: "Get current federation status and member health"
+          response:
+            federation_id: string
+            member_count: integer
+            healthy_cells: array[string]
+            degraded_cells: array[string]
+            last_coordination: datetime
+        
+        - path: "/api/v2/federation/members"
+          method: "GET"
+          description: "List all federation members with details"
+          response:
+            members: array[object]
+            total_count: integer
+            page_info: object
+        
+        - path: "/api/v2/federation/join"
+          method: "POST"
+          description: "Request federation membership for new cell"
+          request:
+            cell_identity: object
+            capabilities: array[string]
+            trust_request: object
+          response:
+            request_id: string
+            status: enum["pending", "approved", "rejected"]
+            estimated_approval_time: duration
+    
+    operator_approval:
+      description: "Human approval workflow for A3 and sensitive operations"
+      endpoints:
+        - path: "/api/v2/approvals/pending"
+          method: "GET"
+          description: "Get pending operator approvals"
+          response:
+            pending_approvals: array[object]
+            total_pending: integer
+            priority_queue: boolean
+        
+        - path: "/api/v2/approvals/{approval_id}"
+          method: "GET"
+          description: "Get details of specific approval request"
+          response:
+            approval_request: object
+            related_events: array[object]
+            risk_assessment: object
+        
+        - path: "/api/v2/approvals/{approval_id}/approve"
+          method: "POST"
+          description: "Approve a pending request"
+          request:
+            operator_id: string
+            approval_reason: string
+            conditions: array[string]
+            expires_at: datetime
+          response:
+            approval_id: string
+            status: "approved"
+            approval_token: string
+        
+        - path: "/api/v2/approvals/{approval_id}/deny"
+          method: "POST"
+          description: "Deny a pending request"
+          request:
+            operator_id: string
+            denial_reason: string
+            alternative_actions: array[string]
+          response:
+            approval_id: string
+            status: "denied"
+            denial_reason: string
+    
+    audit_and_monitoring:
+      description: "Audit trail access and federation monitoring"
+      endpoints:
+        - path: "/api/v2/audit/federation"
+          method: "GET"
+          description: "Get federation-wide audit events"
+          parameters:
+            start_time: datetime
+            end_time: datetime
+            cell_filter: array[string]
+            event_types: array[string]
+          response:
+            audit_events: array[object]
+            total_count: integer
+            has_more: boolean
+        
+        - path: "/api/v2/monitoring/health"
+          method: "GET"
+          description: "Get federation health metrics"
+          response:
+            overall_health: enum["healthy", "degraded", "critical"]
+            cell_health: object
+            network_status: object
+            performance_metrics: object
+
+  # Operator approval workflow
+  approval_workflow:
+    request_types:
+      A3_execution:
+        description: "A3 irreversible action approval"
+        required_fields:
+          - name: execution_intent
+            type: object
+            description: "A3 execution intent details"
+          - name: risk_assessment
+            type: object
+            description: "Automated risk analysis"
+          - name: impact_analysis
+            type: object
+            description: "Potential impact analysis"
+          - name: rollback_plan
+            type: object
+            description: "Rollback and recovery procedures"
+        approval_criteria:
+          - risk_score_threshold: 0.8
+          - operator_clearance: "supervisor_or_higher"
+          - business_hours_only: true
+          - dual_approval_required: true
+      
+      policy_change:
+        description: "Federation policy modification approval"
+        required_fields:
+          - name: policy_change_request
+            type: object
+            description: "Policy modification details"
+          - name: impact_assessment
+            type: object
+            description: "Policy change impact analysis"
+          - name: rollback_strategy
+            type: object
+            description: "Policy rollback procedures"
+        approval_criteria:
+          - policy_compliance_check: true
+          - federation_consensus: 0.8
+          - operator_clearance: "admin_or_higher"
+          - change_window_approved: true
+      
+      emergency_override:
+        description: "Emergency safety gate override"
+        required_fields:
+          - name: emergency_reason
+            type: string
+            description: "Emergency justification"
+          - name: urgency_level
+            type: enum
+            values: ["low", "medium", "high", "critical"]
+          - name: affected_systems
+            type: array[string]
+            description: "Systems affected by override"
+        approval_criteria:
+          - urgency_threshold: "high_or_critical"
+          - operator_clearance: "superuser"
+          - documentation_required: true
+          - post_incident_review: true
+
+    approval_states:
+      - name: "pending"
+        description: "Awaiting operator review"
+        valid_transitions: ["approved", "denied", "expired"]
+        timeout: "24_hours"
+      
+      - name: "approved"
+        description: "Approved for execution"
+        valid_transitions: ["executed", "expired"]
+        timeout: "1_hour"
+      
+      - name: "denied"
+        description: "Approval denied"
+        valid_transitions: ["appealed"]
+        timeout: "permanent"
+      
+      - name: "executed"
+        description: "Action executed with approval"
+        valid_transitions: ["completed", "failed"]
+        timeout: "depends_on_action"
+      
+      - name: "expired"
+        description: "Approval request expired"
+        valid_transitions: ["renewed"]
+        timeout: "permanent"
+
+  # Control plane authentication
+  authentication:
+    operator_login:
+      description: "Operator authentication and session management"
+      methods:
+        - name: "certificate_based"
+          description: "X.509 certificate authentication"
+          requirements: ["valid_certificate", "certificate_chain_verification"]
+        - name: "multi_factor"
+          description: "Certificate + time-based token"
+          requirements: ["valid_certificate", "totp_verification"]
+        - name: "emergency_access"
+          description: "Break-glass access for emergencies"
+          requirements: ["emergency_override_approval", "dual_operator_confirmation"]
+    
+    session_management:
+      session_timeout: "8_hours"
+      idle_timeout: "30_minutes"
+      max_concurrent_sessions: 3
+      secure_cookie_required: true
+      ip_address_binding: true
+
+  # Control plane UI components
+  ui_components:
+    dashboard:
+      description: "Main federation dashboard"
+      widgets:
+        - name: "federation_status"
+          type: "status_panel"
+          data: "member_health, coordination_status"
+        - name: "pending_approvals"
+          type: "action_queue"
+          data: "approval_requests, priority_queue"
+        - name: "audit_summary"
+          type: "chart_panel"
+          data: "event_counts, trend_analysis"
+        - name: "performance_metrics"
+          type: "metrics_panel"
+          data: "latency, throughput, error_rates"
+    
+    approval_interface:
+      description: "Operator approval workflow interface"
+      components:
+        - name: "request_details"
+          type: "detail_panel"
+          data: "execution_intent, risk_assessment"
+        - name: "approval_actions"
+          type: "action_buttons"
+          actions: ["approve", "deny", "request_more_info"]
+        - name: "approval_history"
+          type: "timeline"
+          data: "previous_approvals, operator_actions"
+        - name: "impact_preview"
+          type: "simulation_panel"
+          data: "predicted_outcomes, rollback_simulation"
+
+  # NATS subjects for control plane
+  nats_subjects:
+    approval_request: "exoarmur.control.approval.request.v2"
+    approval_response: "exoarmur.control.approval.response.v2"
+    operator_action: "exoarmur.control.operator.action.v2"
+    federation_command: "exoarmur.control.federation.command.v2"
+    audit_query: "exoarmur.control.audit.query.v2"
+    health_status: "exoarmur.control.health.status.v2"
+
+  # Control plane events
+  events:
+    operator_login:
+      description: "Operator authenticated to control plane"
+      fields:
+        - name: operator_id
+          type: string
+          required: true
+        - name: login_method
+          type: enum
+          values: ["certificate", "mfa", "emergency"]
+          required: true
+        - name: session_id
+          type: string
+          required: true
+        - name: ip_address
+          type: string
+          required: true
+    
+    approval_granted:
+      description: "Operator granted approval for action"
+      fields:
+        - name: approval_id
+          type: string
+          required: true
+        - name: operator_id
+          type: string
+          required: true
+        - name: action_type
+          type: enum
+          values: ["A3_execution", "policy_change", "emergency_override"]
+          required: true
+        - name: approval_reason
+          type: string
+          required: true
+        - name: conditions
+          type: array[string]
+          required: true
+    
+    control_plane_action:
+      description: "Operator initiated control plane action"
+      fields:
+        - name: action_id
+          type: string
+          required: true
+        - name: operator_id
+          type: string
+          required: true
+        - name: action_type
+          type: enum
+          values: ["federation_join", "federation_leave", "policy_update", "emergency_override"]
+          required: true
+        - name: action_parameters
+          type: object
+          required: true
+        - name: target_cells
+          type: array[string]
+          required: true
+
+# Implementation notes
+implementation_notes:
+  evolutionary_design:
+    - Control plane is external to core cell cognition
+    - All control plane interactions are optional
+    - Feature flags control control plane activation
+    - No modifications to V1 core decisioning
+  
+  security_considerations:
+    - All control plane actions require authentication
+    - Operator actions logged with full audit trail
+    - Emergency access requires multiple operators
+    - Session management prevents unauthorized access
+  
+  performance_considerations:
+    - Control plane UI optimized for human interaction
+    - Approval workflows designed for low latency
+    - Dashboard updates use real-time streaming
+    - Audit queries optimized for historical analysis

@@ -1,0 +1,376 @@
+# ExoArmur ADMO V2 Feature Flags Contract
+# Feature flag system for controlled V2 capability rollout
+
+feature_flags_v2:
+  purpose: "Feature flag system for controlled V2 capability rollout and runtime behavior control"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Feature flag definitions
+  feature_flags:
+    v2_federation_enabled:
+      description: "Enable multi-cell federation capabilities"
+      default_value: false
+      rollout_strategy: "controlled"
+      dependencies: []
+      risk_level: "medium"
+      owner: "federation_team"
+      
+    v2_control_plane_enabled:
+      description: "Enable operator control plane and approval workflows"
+      default_value: false
+      rollout_strategy: "controlled"
+      dependencies: ["v2_federation_enabled"]
+      risk_level: "high"
+      owner: "control_plane_team"
+      
+    v2_operator_approval_required:
+      description: "Require operator approval for A3 actions"
+      default_value: false
+      rollout_strategy: "gradual"
+      dependencies: ["v2_control_plane_enabled"]
+      risk_level: "high"
+      owner: "safety_team"
+      
+    v2_federation_identity_enabled:
+      description: "Enable federation identity and trust management"
+      default_value: false
+      rollout_strategy: "controlled"
+      dependencies: ["v2_federation_enabled"]
+      risk_level: "medium"
+      owner: "security_team"
+      
+    v2_audit_federation_enabled:
+      description: "Enable cross-cell audit consolidation"
+      default_value: false
+      rollout_strategy: "gradual"
+      dependencies: ["v2_federation_enabled"]
+      risk_level: "low"
+      owner: "audit_team"
+      
+    v2_advanced_topology_enabled:
+      description: "Enable advanced federation topologies (hierarchical, hub-spoke)"
+      default_value: false
+      rollout_strategy: "experimental"
+      dependencies: ["v2_federation_enabled"]
+      risk_level: "low"
+      owner: "federation_team"
+      
+    v2_performance_monitoring_enabled:
+      description: "Enable V2 performance monitoring and metrics"
+      default_value: false
+      rollout_strategy: "gradual"
+      dependencies: []
+      risk_level: "low"
+      owner: "observability_team"
+
+  # Flag configuration schema
+  flag_configuration:
+    flag_definition:
+      description: "Complete feature flag definition"
+      fields:
+        - name: flag_key
+          type: string
+          format: "v2_[feature]_[action]"
+          required: true
+          example: "v2_federation_enabled"
+        - name: description
+          type: string
+          max_length: 200
+          required: true
+        - name: default_value
+          type: boolean
+          required: true
+        - name: rollout_strategy
+          type: enum
+          values: ["disabled", "controlled", "gradual", "experimental", "full"]
+          default: "disabled"
+          required: true
+        - name: dependencies
+          type: array[string]
+          default: []
+          required: true
+        - name: risk_level
+          type: enum
+          values: ["low", "medium", "high", "critical"]
+          default: "medium"
+          required: true
+        - name: owner
+          type: string
+          format: "team_name"
+          required: true
+        - name: conditions
+          type: object
+          properties:
+            cell_ids: array[string]
+            tenant_ids: array[string]
+            environments: array[string]
+            time_windows: array[object]
+          default: {}
+          required: false
+        - name: rollout_percentage
+          type: float
+          range: [0.0, 1.0]
+          default: 0.0
+          required: false
+
+  # Rollout strategies
+  rollout_strategies:
+    disabled:
+      description: "Feature completely disabled"
+      evaluation_logic: "return false"
+      can_be_enabled: false
+      rollback_safe: true
+    
+    controlled:
+      description: "Manually controlled per deployment"
+      evaluation_logic: "check_flag_value AND check_conditions"
+      can_be_enabled: true
+      rollback_safe: true
+      requirements:
+        - explicit_enablement: true
+        - monitoring_active: true
+        - rollback_plan_ready: true
+    
+    gradual:
+      description: "Gradual rollout based on percentage"
+      evaluation_logic: "check_flag_value AND check_rollout_percentage"
+      can_be_enabled: true
+      rollback_safe: true
+      requirements:
+        - rollout_percentage_configured: true
+        - monitoring_active: true
+        - automated_rollback: true
+    
+    experimental:
+      description: "Experimental feature for testing only"
+      evaluation_logic: "check_flag_value AND check_experimental_conditions"
+      can_be_enabled: true
+      rollback_safe: true
+      requirements:
+        - test_environment_only: true
+        - explicit_opt_in: true
+        - enhanced_monitoring: true
+    
+    full:
+      description: "Feature fully rolled out"
+      evaluation_logic: "return true"
+      can_be_enabled: true
+      rollback_safe: false
+      requirements:
+        - thorough_testing: true
+        - production_validation: true
+        - performance_baseline: true
+
+  # Flag evaluation logic
+  evaluation_logic:
+    basic_evaluation:
+      description: "Simple boolean flag evaluation"
+      pseudo_code: |
+        def is_flag_enabled(flag_key, context):
+            flag_config = get_flag_config(flag_key)
+            if not flag_config.default_value:
+                return False
+            
+            # Check dependencies
+            for dep in flag_config.dependencies:
+                if not is_flag_enabled(dep, context):
+                    return False
+            
+            # Check conditions
+            if not check_conditions(flag_config.conditions, context):
+                return False
+            
+            return flag_config.current_value
+    
+    percentage_rollout:
+      description: "Percentage-based rollout evaluation"
+      pseudo_code: |
+        def is_percentage_rollout_enabled(flag_key, context):
+            flag_config = get_flag_config(flag_key)
+            if flag_config.rollout_strategy != "gradual":
+                return basic_evaluation(flag_key, context)
+            
+            # Hash-based deterministic selection
+            rollout_hash = hash(context.cell_id + flag_key)
+            rollout_score = (rollout_hash % 100) / 100.0
+            
+            return rollout_score <= flag_config.rollout_percentage
+    
+    conditional_evaluation:
+      description: "Condition-based flag evaluation"
+      pseudo_code: |
+        def check_conditions(conditions, context):
+            if not conditions:
+                return True
+            
+            # Cell ID conditions
+            if conditions.cell_ids:
+                if context.cell_id not in conditions.cell_ids:
+                    return False
+            
+            # Tenant conditions
+            if conditions.tenant_ids:
+                if context.tenant_id not in conditions.tenant_ids:
+                    return False
+            
+            # Environment conditions
+            if conditions.environments:
+                if context.environment not in conditions.environments:
+                    return False
+            
+            # Time window conditions
+            if conditions.time_windows:
+                current_time = datetime.utcnow()
+                in_time_window = False
+                for window in conditions.time_windows:
+                    if window.start <= current_time <= window.end:
+                        in_time_window = True
+                        break
+                if not in_time_window:
+                    return False
+            
+            return True
+
+  # Flag management operations
+  management_operations:
+    create_flag:
+      description: "Create new feature flag"
+      required_permissions: ["feature_flag_admin"]
+      parameters:
+        - flag_key: string
+        - description: string
+        - default_value: boolean
+        - rollout_strategy: enum
+        - owner: string
+      validation_rules:
+        - flag_key_unique: true
+        - valid_dependencies: true
+        - authorized_owner: true
+    
+    update_flag:
+      description: "Update existing feature flag"
+      required_permissions: ["feature_flag_admin", "flag_owner"]
+      parameters:
+        - flag_key: string
+        - updates: object
+      validation_rules:
+        - flag_exists: true
+        - valid_transitions: true
+        - authorized_user: true
+    
+    enable_flag:
+      description: "Enable feature flag"
+      required_permissions: ["feature_flag_operator", "flag_owner"]
+      parameters:
+        - flag_key: string
+        - rollout_percentage: float (optional)
+        - conditions: object (optional)
+      validation_rules:
+        - dependencies_satisfied: true
+        - rollout_strategy_compatible: true
+    
+    disable_flag:
+      description: "Disable feature flag"
+      required_permissions: ["feature_flag_operator", "flag_owner"]
+      parameters:
+        - flag_key: string
+        - emergency: boolean (default: false)
+      validation_rules:
+        - safe_to_disable: true
+        - dependent_flags_handled: true
+
+  # Monitoring and observability
+  monitoring:
+    flag_metrics:
+      - name: "flag_evaluation_count"
+        type: "counter"
+        labels: ["flag_key", "result"]
+        description: "Number of flag evaluations"
+      
+      - name: "flag_enabled_duration"
+        type: "histogram"
+        labels: ["flag_key"]
+        description: "Duration flags remain enabled"
+      
+      - name: "flag_rollout_percentage"
+        type: "gauge"
+        labels: ["flag_key"]
+        description: "Current rollout percentage for gradual flags"
+      
+      - name: "flag_dependency_satisfaction"
+        type: "gauge"
+        labels: ["flag_key", "dependency"]
+        description: "Dependency satisfaction status"
+    
+    alerting:
+      - name: "flag_rollout_anomaly"
+        condition: "rollout_percentage deviates from expected"
+        severity: "warning"
+      
+      - name: "flag_dependency_failure"
+        condition: "required dependency not satisfied"
+        severity: "critical"
+      
+      - name: "flag_evaluation_error"
+        condition: "flag evaluation error rate > 1%"
+        severity: "warning"
+
+  # Flag persistence and configuration
+  persistence:
+    configuration_sources:
+      - name: "environment_variables"
+        format: "EXOARMUR_FLAG_{flag_key}"
+        priority: 1
+        reloadable: false
+      
+      - name: "configuration_file"
+        format: "yaml/json"
+        location: "/etc/exoarmur/feature_flags.yaml"
+        priority: 2
+        reloadable: true
+      
+      - name: "database"
+        format: "key_value_store"
+        table: "feature_flags"
+        priority: 3
+        reloadable: true
+      
+      - name: "remote_service"
+        format: "rest_api"
+        endpoint: "https://config-service.exoarmur/api/flags"
+        priority: 4
+        reloadable: true
+    
+    cache_configuration:
+      cache_duration: "5_minutes"
+      cache_size: "1000_flags"
+      invalidation_strategy: "ttl_based"
+      backup_cache: "memory_fallback"
+
+  # NATS subjects for feature flag management
+  nats_subjects:
+    flag_update: "exoarmur.feature_flags.update.v2"
+    flag_evaluation: "exoarmur.feature_flags.evaluation.v2"
+    flag_metrics: "exoarmur.feature_flags.metrics.v2"
+    flag_alert: "exoarmur.feature_flags.alert.v2"
+
+# Implementation notes
+implementation_notes:
+  evolutionary_design:
+    - Feature flags are completely external to V1 core
+    - All V2 code paths check flags before execution
+    - Flag evaluation is fast and cached
+    - No V2 logic executes when flags are disabled
+  
+  performance_considerations:
+    - Flag evaluation optimized for sub-millisecond performance
+    - Configuration changes propagated within cache TTL
+    - Minimal overhead when all flags are disabled
+    - Batch evaluation for multiple flag checks
+  
+  security_considerations:
+    - Flag changes require authentication and authorization
+    - Audit trail for all flag modifications
+    - Emergency disable capability for critical situations
+    - Role-based access control for flag management

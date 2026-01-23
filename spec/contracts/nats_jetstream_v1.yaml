@@ -1,0 +1,93 @@
+# ADMO v1 NATS JetStream Configuration
+# 
+# NATS is the organism bloodstream. JetStream provides durability, replay,
+# and consumer acknowledgements enabling partition recovery and audit
+# reconstruction.
+
+description: >
+  NATS JetStream configuration for ADMO v1 with subject taxonomy,
+  stream defaults, retention policies, and delivery semantics.
+
+durability_mode: jetstream
+delivery_semantics: at_least_once
+consumer_ack: explicit
+
+# Deduplication and idempotency configuration
+dedupe_and_idempotency:
+  dedupe_keys:
+    - "TelemetryEventV1.event_id"
+    - "BeliefV1.belief_id"
+    - "ExecutionIntentV1.idempotency_key"
+    - "AuditRecordV1.idempotency_key"
+  guidance: >
+    Consumers MUST be idempotent. Duplicate deliveries are expected.
+    Use dedupe keys and local caches/bloom filters to prevent inflation.
+
+# Subject taxonomy for ADMO v1
+subject_taxonomy:
+  base: "exoarmur"
+  subjects:
+    telemetry_ingest: "exoarmur.telemetry.ingest.v1"
+    facts_derived: "exoarmur.facts.derived.v1"
+    beliefs_emit: "exoarmur.beliefs.emit.v1"
+    beliefs_stream: "exoarmur.beliefs.stream.v1"
+    decisions_local: "exoarmur.decisions.local.v1"
+    intents_execute: "exoarmur.intents.execute.v1"
+    intents_result: "exoarmur.intents.result.v1"
+    audit_append: "exoarmur.audit.append.v1"
+    audit_stream: "exoarmur.audit.stream.v1"
+    trust_updates: "exoarmur.trust.update.v1"
+    deliberation_requests: "exoarmur.deliberation.request.v1"
+    deliberation_results: "exoarmur.deliberation.result.v1"
+
+# Stream defaults and retention policies
+stream_defaults:
+  stream_names:
+    beliefs: "EXOARMUR_BELIEFS_V1"
+    intents: "EXOARMUR_INTENTS_V1"
+    audit: "EXOARMUR_AUDIT_V1"
+    trust: "EXOARMUR_TRUST_V1"
+  
+  retention:
+    beliefs:
+      policy: limits
+      max_age_hours: 24
+      max_bytes: 2147483648  # 2GB
+    intents:
+      policy: interest
+      max_age_hours: 168     # 7 days
+      max_bytes: 2147483648  # 2GB
+    audit:
+      policy: limits
+      max_age_hours: 8760    # 1 year
+      max_bytes: 10737418240 # 10GB
+    trust:
+      policy: limits
+      max_age_hours: 8760    # 1 year
+      max_bytes: 1073741824  # 1GB
+
+  replay:
+    allowed: true
+    guidance: "Replays must not re-trigger side effects due to idempotency_key enforcement."
+
+# Consumer configuration
+consumer_defaults:
+  ack_policy: explicit
+  ack_wait: 30000  # 30 seconds
+  max_deliver: 3
+  backoff: [500, 1000, 2000]  # Exponential backoff in ms
+  replay_policy: instant
+
+# Quality of service
+qos:
+  max_message_size: 1048576  # 1MB
+  max_batch_size: 100
+  max_bytes: 10485760       # 10MB
+  max_waiting: 512
+
+# Security and authentication
+security:
+  require_tls: true
+  require_auth: true
+  nkeys_enabled: true
+  jwt_enabled: true

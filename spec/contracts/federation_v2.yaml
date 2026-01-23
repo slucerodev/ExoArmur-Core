@@ -1,0 +1,204 @@
+# ExoArmur ADMO V2 Federation Contract
+# Multi-cell federation protocol and coordination
+
+federation_v2:
+  purpose: "Multi-cell federation protocol for belief aggregation and quorum coordination"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Federation topology and membership
+  federation_topology:
+    description: "Federation network structure and member relationships"
+    fields:
+      - name: federation_id
+        type: string
+        format: "uuid_v4"
+        required: true
+      - name: topology_type
+        type: enum
+        values: ["mesh", "hub_spoke", "hierarchical"]
+        default: "mesh"
+        required: true
+      - name: member_cells
+        type: array
+        items:
+          type: object
+          properties:
+            cell_id: string
+            role: enum["member", "coordinator", "observer"]
+            trust_score: float
+            capabilities: array[string]
+        required: true
+      - name: coordination_protocol
+        type: enum
+        values: ["raft", "pbft", "simple_quorum"]
+        default: "simple_quorum"
+        required: true
+
+  # Cross-cell belief aggregation
+  belief_aggregation:
+    description: "Protocol for aggregating beliefs across federation members"
+    fields:
+      - name: aggregation_strategy
+        type: enum
+        values: ["quorum", "weighted_average", "highest_confidence"]
+        default: "quorum"
+        required: true
+      - name: deduplication_method
+        type: enum
+        values: ["correlation_id", "belief_hash", "semantic_similarity"]
+        default: "correlation_id"
+        required: true
+      - name: aggregation_window
+        type: duration
+        default: "30_seconds"
+        required: true
+      - name: minimum_participants
+        type: integer
+        minimum: 2
+        default: 3
+        required: true
+
+  # Federation quorum computation
+  quorum_computation:
+    description: "Cross-cell quorum and collective confidence computation"
+    fields:
+      - name: quorum_threshold
+        type: float
+        range: [0.0, 1.0]
+        default: 0.67
+        required: true
+      - name: confidence_aggregation
+        type: enum
+        values: ["average", "weighted", "minimum"]
+        default: "weighted"
+        required: true
+      - name: trust_weighting
+        type: boolean
+        default: true
+        required: true
+      - name: timeout_duration
+        type: duration
+        default: "60_seconds"
+        required: true
+
+  # Federation message types
+  message_types:
+    belief_propagation:
+      type: "federation.belief.propagate.v2"
+      fields:
+        - name: source_cell_id
+          type: string
+          required: true
+        - name: belief_payload
+          type: object
+          required: true
+        - name: propagation_timestamp
+          type: datetime
+          required: true
+        - name: ttl
+          type: integer
+          default: 300
+          required: true
+    
+    quorum_request:
+      type: "federation.quorum.request.v2"
+      fields:
+        - name: request_id
+          type: string
+          required: true
+        - name: correlation_id
+          type: string
+          required: true
+        - name: required_cells
+          type: array[string]
+          required: true
+        - name: timeout_ms
+          type: integer
+          default: 30000
+          required: true
+    
+    quorum_response:
+      type: "federation.quorum.response.v2"
+      fields:
+        - name: request_id
+          type: string
+          required: true
+        - name: responding_cell_id
+          type: string
+          required: true
+        - name: belief_contributions
+          type: array[object]
+          required: true
+        - name: local_confidence
+          type: float
+          required: true
+
+  # NATS subjects for federation
+  nats_subjects:
+    belief_propagation: "exoarmur.federation.belief.propagate.v2"
+    quorum_request: "exoarmur.federation.quorum.request.v2"
+    quorum_response: "exoarmur.federation.quorum.response.v2"
+    membership_update: "exoarmur.federation.membership.update.v2"
+    coordination_heartbeat: "exoarmur.federation.heartbeat.v2"
+
+  # Federation lifecycle
+  lifecycle_events:
+    federation_form:
+      description: "Formation of new federation"
+      preconditions: ["minimum_3_cells", "identity_verified", "capabilities_negotiated"]
+      postconditions: ["federation_id_assigned", "coordination_established", "heartbeat_active"]
+    
+    cell_join:
+      description: "Cell joins existing federation"
+      preconditions: ["valid_identity", "trust_score_minimum", "capability_match"]
+      postconditions: ["membership_granted", "belief_sync_initiated", "quorum_participation"]
+    
+    cell_leave:
+      description: "Cell leaves federation gracefully"
+      preconditions: ["no_pending_quorum", "audit_sync_complete"]
+      postconditions: ["membership_revoked", "connections_closed", "final_audit_submitted"]
+    
+    federation_merge:
+      description: "Two federations merge"
+      preconditions: ["compatible_topologies", "mutual_trust", "policy_alignment"]
+      postconditions: ["unified_federation_id", "merged_membership", "coordinated_quorum"]
+
+  # Error handling and recovery
+  error_handling:
+    partition_tolerance:
+      description: "Behavior during network partitions"
+      strategies:
+        - name: "continue_local_operation"
+          description: "Continue local operation with buffered beliefs"
+        - name: "graceful_degradation"
+          description: "Reduce quorum requirements during partition"
+        - name: "partition_recovery"
+          description: "Reconciliation and belief sync after partition heals"
+    
+    trust_decay:
+      description: "Trust score management during failures"
+      decay_rate: 0.05_per_failure
+      recovery_rate: 0.1_per_success
+      minimum_threshold: 0.3
+      suspension_threshold: 0.1
+
+# Implementation notes
+implementation_notes:
+  evolutionary_design:
+    - Federation layer wraps core cell behavior
+    - No modifications to V1 core cognition
+    - All federation logic is additive and optional
+    - Feature flags control federation activation
+  
+  performance_considerations:
+    - Belief aggregation optimized for low latency
+    - Quorum computation bounded by timeout
+    - Federation heartbeat minimized
+    - Buffer management during partitions
+  
+  security_considerations:
+    - All federation messages authenticated
+    - Trust scores based on behavior and identity
+    - Partition tolerance prevents split-brain
+    - Audit trail spans federation boundaries

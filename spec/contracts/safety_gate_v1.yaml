@@ -1,0 +1,144 @@
+# ADMO v1 Safety Gate Configuration
+#
+# Deterministic safety gate enforced inside every cell. Safety gate applies:
+# - severity ladder safe defaults
+# - local vs collective threshold checks
+# - trust-based autonomy constraints
+# - policy verification requirements
+# - human/quorum escalation requirements
+# Safety verdicts override decision engine outputs (LAW-05).
+
+safety_gate_v1:
+  schema_version: "1.0.0"
+  purpose: >
+    Deterministic safety gate enforced inside every cell. Safety gate applies:
+    - severity ladder safe defaults
+    - local vs collective threshold checks
+    - trust-based autonomy constraints
+    - policy verification requirements
+    - human/quorum escalation requirements
+    Safety verdicts override decision engine outputs (LAW-05).
+
+  required_inputs:
+    - intent: "ExecutionIntentV1-like"
+    - local_decision: "LocalDecisionV1-like (optional)"
+    - collective_state:
+        fields:
+          aggregate_score: "float 0..1"
+          quorum_count: "int"
+          conflict_detected: "bool"
+    - policy_state:
+        fields:
+          policy_verified: "bool"
+          kill_switch_global: "bool"
+          kill_switch_tenant: "bool"
+          required_approval: "none|quorum|human"
+    - trust_state:
+        fields:
+          emitter_trust_score: "float 0..1"
+    - environment_state:
+        fields:
+          degraded_mode: "bool"
+
+  severity_ladder:
+    low:
+      default_behavior: "A0_observe"
+      notes: "No execution side effects unless explicitly allowed."
+    medium:
+      default_behavior: "A1_soft_containment_or_observe"
+      notes: "Prefer reversible actions; escalate if uncertain."
+    high:
+      default_behavior: "A2_or_escalate"
+      notes: "Execute only if thresholds met and policy verified; otherwise escalate."
+    critical:
+      default_behavior: "A2_or_A3_with_strict_gates"
+      notes: "A3 generally requires quorum or human approval."
+
+  gating_rules:
+    ordering:
+      - "Kill switches"
+      - "Policy verification"
+      - "Conflict constraints"
+      - "Trust constraints"
+      - "Threshold checks"
+      - "Approval gates"
+      - "Final allow/deny"
+
+    kill_switches:
+      - if: "policy_state.kill_switch_global == true"
+        verdict: "deny"
+        rationale: "Global kill switch engaged; only A0 observe permitted."
+      - if: "policy_state.kill_switch_tenant == true"
+        verdict: "deny"
+        rationale: "Tenant kill switch engaged; only A0 observe permitted."
+
+    policy_verification:
+      - if: "policy_state.policy_verified == false"
+        verdict: "require_quorum"
+        rationale: "Policy not verified; degrade and require escalation for non-A0."
+
+    conflicts:
+      - if: "collective_state.conflict_detected == true AND intent.action_class == 'A3_irreversible'"
+        verdict: "require_human"
+        rationale: "Conflict detected; prohibit A3 without human approval."
+      - if: "collective_state.conflict_detected == true AND intent.action_class in ['A1_soft_containment','A2_hard_containment']"
+        verdict: "allow_if_reversible_else_require_quorum"
+        rationale: "Conflict detected; allow only reversible containment if policy allows."
+
+    trust_constraints:
+      - if: "trust_state.emitter_trust_score < 0.35 AND intent.action_class in ['A2_hard_containment','A3_irreversible']"
+        verdict: "require_human"
+        rationale: "Trust too low for A2/A3 execution."
+      - if: "trust_state.emitter_trust_score < 0.50 AND intent.action_class == 'A2_hard_containment'"
+        verdict: "require_quorum"
+        rationale: "Trust below floor for local A2; require quorum."
+      - if: "trust_state.emitter_trust_score < 0.80 AND intent.action_class == 'A3_irreversible'"
+        verdict: "require_human"
+        rationale: "Trust below floor for local A3; require human approval."
+
+    threshold_checks:
+      A1_soft_containment:
+        local_confidence_min: 0.80
+        allow_if: "intent.local_confidence >= 0.80"
+      A2_hard_containment:
+        local_confidence_min: 0.90
+        collective_min:
+          quorum: 2
+          aggregate_score: 0.85
+        allow_if: >
+          (intent.local_confidence >= 0.90) OR
+          (collective_state.quorum_count >= 2 AND collective_state.aggregate_score >= 0.85)
+      A3_irreversible:
+        local_confidence_min: 0.97
+        collective_min:
+          quorum: 3
+          aggregate_score: 0.92
+        allow_if: >
+          (intent.local_confidence >= 0.97) AND
+          ((collective_state.quorum_count >= 3 AND collective_state.aggregate_score >= 0.92) OR
+           policy_state.required_approval == 'human')
+
+    approval_gates:
+      - if: "policy_state.required_approval == 'quorum' AND collective_state.quorum_count < 3"
+        verdict: "require_quorum"
+        rationale: "Policy requires quorum; insufficient quorum."
+      - if: "policy_state.required_approval == 'human'"
+        verdict: "require_human"
+        rationale: "Policy requires human approval."
+
+    degraded_mode:
+      - if: "environment_state.degraded_mode == true AND intent.action_class in ['A2_hard_containment','A3_irreversible']"
+        verdict: "require_quorum"
+        rationale: "Degraded mode; restrict to safer behaviors unless escalated."
+
+  safety_verdict_contract:
+    verdict_enum: ["allow","deny","require_quorum","require_human"]
+    required_fields:
+      - verdict
+      - rationale
+      - rule_ids
+    rule_id_format: "SG-###"
+    example:
+      verdict: "require_quorum"
+      rationale: "Trust below floor for local A2; require quorum."
+      rule_ids: ["SG-201","SG-301"]

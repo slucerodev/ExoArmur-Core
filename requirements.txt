@@ -1,0 +1,24 @@
+# ExoArmur ADMO Workflow 1 Dependencies
+
+# Core web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Pydantic for data validation
+pydantic==2.5.0
+
+# NATS JetStream for messaging
+nats-py==2.7.0
+
+# Testing framework
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Development tools
+black==23.11.0
+isort==5.12.0
+mypy==1.7.1
+
+# Logging and utilities
+python-json-logger==2.0.7

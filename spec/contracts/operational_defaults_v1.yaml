@@ -1,0 +1,213 @@
+# ADMO v1 Operational Defaults Configuration
+#
+# V1 operational glue defaults for ADMO cells. Defines bootstrap/discovery,
+# policy bundle distribution/refresh, human approval interface semantics,
+# and consolidated parameter defaults to prevent implementation thrash.
+
+operational_defaults_v1:
+  schema_version: "1.0.0"
+  purpose: >
+    V1 operational glue defaults for ADMO cells. Defines bootstrap/discovery,
+    policy bundle distribution/refresh, human approval interface semantics,
+    and consolidated parameter defaults to prevent implementation thrash.
+
+  ###########################################################################
+  # CELL BOOTSTRAP & DISCOVERY (V1)
+  ###########################################################################
+  cell_discovery:
+    strategy: "nats_presence_heartbeat"
+    description: >
+      Cells discover each other via NATS presence heartbeats and a static
+      seed list. This avoids complex service discovery in v1 while enabling
+      dynamic membership and partition awareness.
+
+    static_seed_cells:
+      description: >
+        Initial seed list for first connectivity. May be empty in single-cell
+        deployments.
+      required: false
+      default: []
+
+    heartbeat:
+      subject: "exoarmur.cells.heartbeat.v1"
+      interval_seconds: 10
+      ttl_seconds: 35
+      payload_fields:
+        - tenant_id
+        - cell_id
+        - segment
+        - capabilities
+        - trust_score
+        - observed_at
+      rules:
+        - "Cells treat missing heartbeats beyond ttl_seconds as temporarily offline."
+        - "Offline cells do not count toward quorum until heartbeats resume."
+        - "Partition is inferred when local NATS is reachable but peer heartbeats drop."
+
+    enrollment:
+      description: >
+        Enrollment is policy-gated. Unknown cells may join as 'restricted'
+        until pinned/verified by tenant policy or admin action.
+      default_mode_for_new_cells: "restricted"
+      restricted_mode_constraints:
+        - "A2/A3 local execution prohibited"
+        - "belief emission allowed"
+        - "requires higher collective thresholds for A2 participation"
+
+  ###########################################################################
+  # POLICY BUNDLE DISTRIBUTION (V1)
+  ###########################################################################
+  policy_bundle_distribution:
+    source_of_truth: "http_control_plane"
+    control_plane_endpoints:
+      fetch_bundle:
+        method: "GET"
+        path_template: "/v1/policy/bundles/{tenant_id}"
+      fetch_bundle_blob:
+        method: "GET"
+        path_template: "/v1/policy/bundles/{tenant_id}/blob"
+    refresh:
+      strategy: "periodic_plus_on_demand"
+      periodic_refresh_minutes: 10
+      jitter_percent: 10
+      on_demand_triggers:
+        - "startup"
+        - "bundle_expiry_within_minutes: 30"
+        - "policy_verification_failure"
+        - "admin_trigger"
+    caching:
+      local_cache_required: true
+      cache_dir_default: ".exoarmur/policy_cache"
+      keep_last_known_good: true
+      max_cached_versions: 5
+    verification:
+      must_verify_signature: true
+      fail_closed_on_invalid_signature: true
+      behavior_when_unverified:
+        - "enter degraded_mode=true"
+        - "restrict execution to A0/A1 severity ladder defaults"
+        - "require escalation for A2/A3"
+
+  ###########################################################################
+  # HUMAN APPROVAL INTERFACE (V1)
+  ###########################################################################
+  human_approvals:
+    description: >
+      Minimal v1 human approval gate for A3 (and optionally A2) actions.
+      Approvals are explicit, auditable, tenant-scoped, and bound to an
+      idempotent intent_id or correlation_id.
+    interface:
+      submit_approval:
+        method: "POST"
+        path: "/v1/approvals"
+      list_approvals:
+        method: "GET"
+        path: "/v1/approvals"
+      get_approval:
+        method: "GET"
+        path_template: "/v1/approvals/{approval_id}"
+    approval_record:
+      required_fields:
+        - approval_id
+        - tenant_id
+        - requested_by
+        - approved_by
+        - status
+        - created_at
+        - decided_at
+        - scope
+        - rationale
+        - audit_refs
+      status_enum: ["requested", "approved", "denied", "expired"]
+      scope:
+        description: "What is being approved."
+        fields:
+          correlation_id: { required: true }
+          intent_id: { required: false }
+          action_class: { required: true }
+          intent_type: { required: true }
+          subject: { required: true }
+          ttl_seconds: { required: true }
+    rules:
+      - "A3 requires human approval unless tenant policy explicitly permits quorum-only."
+      - "Approvals expire; expired approvals must not authorize execution."
+      - "Approval decisions MUST generate AuditRecordV1 entries."
+      - "Cells must attach human_approval_id into ExecutionIntentV1.safety_context when used."
+
+  ###########################################################################
+  # CONSOLIDATED DEFAULT PARAMETERS (V1)
+  ###########################################################################
+  parameters:
+    ttl_vs_decay_canonical_behavior:
+      statement: >
+        TTL is the hard validity window for a belief (expiration). Decay is the
+        continuous reduction of effective confidence over time inside TTL.
+        After TTL, belief must not contribute to aggregation at all.
+      enforcement:
+        - "If now > first_seen + ttl_seconds => belief excluded from aggregation."
+        - "If within TTL => apply decay-adjusted weight."
+
+    collective_confidence_defaults:
+      A2_hard_containment:
+        min_local_confidence: 0.90
+        min_quorum_cells: 2
+        min_aggregate_score: 0.85
+      A3_irreversible:
+        min_local_confidence: 0.97
+        min_quorum_cells: 3
+        min_aggregate_score: 0.92
+
+    decay_defaults:
+      model: "exponential_half_life"
+      half_life_minutes_by_severity:
+        low: 60
+        medium: 20
+        high: 5
+        critical: 5
+
+    dedupe_defaults:
+      belief_equivalence_jaccard_threshold: 0.80
+      emitter_same_subject_window_seconds: 30
+
+    execution_defaults:
+      retries:
+        max_attempts: 5
+        backoff: "exponential"
+        initial_delay_ms: 200
+        max_delay_ms: 5000
+      idempotency:
+        store_window_minutes: 1440
+        required_for_all_non_A0: true
+
+    audit_defaults:
+      local_buffer_required: true
+      flush_interval_seconds: 5
+      max_buffer_records: 5000
+      must_link:
+        - "TelemetryEventV1.event_id"
+        - "BeliefV1.belief_id"
+        - "ExecutionIntentV1.idempotency_key"
+      replay_safety:
+        - "Replays MUST NOT re-trigger side effects."
+        - "Execution adapters must enforce idempotency_key."
+
+  ###########################################################################
+  # V1 SCOPE LOCK (ANTI-DRIFT)
+  ###########################################################################
+  scope_lock:
+    statement: >
+      V1 must implement the organism core and golden demo flow before adding
+      additional integrations or 'nice-to-have' features.
+    must_ship:
+      - "Cells: ingest→facts→belief→collective_confidence→safety_gate→execution→audit"
+      - "NATS+JetStream subjects for beliefs/intents/audit"
+      - "Policy bundle verify + refresh + last-known-good cache"
+      - "Human approval gate for A3"
+      - "Golden demo flow pass"
+      - "Spec reference validation script passing"
+    explicitly_out_of_scope_v1:
+      - "cross-tenant federation"
+      - "self-modifying policy without human review"
+      - "fully dynamic service discovery beyond heartbeat + seed"
+      - "advanced global optimization/central planner"
+      - "multi-language cell implementations"

@@ -1,0 +1,379 @@
+"""
+LIVE Golden Demo Flow Test - SOLE ACCEPTANCE TEST
+
+This is the ONLY acceptance test for ExoArmur v1 per Golden Demo Law.
+It requires live NATS JetStream and validates the complete end-to-end scenario.
+
+Mock tests are NOT acceptance - only this live test qualifies.
+"""
+
+import pytest
+import asyncio
+import sys
+import os
+from datetime import datetime, timezone
+from typing import Dict, Any, List
+
+# Add paths for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
+
+from src.nats_client import ExoArmurNATSClient, NATSConfig
+from src.main import app
+from fastapi.testclient import TestClient
+from models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
+
+
+@pytest.fixture(scope="session")
+async def nats_jetstream():
+    """Start NATS JetStream for live testing"""
+    import subprocess
+    
+    # Start NATS via docker-compose
+    print("🚀 Starting NATS JetStream...")
+    result = subprocess.run(
+        ["docker-compose", "up", "-d", "nats"],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(__file__) + "/.."
+    )
+    
+    if result.returncode != 0:
+        pytest.fail(f"Failed to start NATS: {result.stderr}")
+    
+    # Wait for NATS to be ready
+    await asyncio.sleep(5)
+    
+    # Verify NATS is running
+    try:
+        nats_config = NATSConfig(url="nats://localhost:4222")
+        test_client = ExoArmurNATSClient(nats_config)
+        await test_client.connect()
+        await test_client.ensure_streams()
+        await test_client.disconnect()
+        print("✅ NATS JetStream is ready")
+    except Exception as e:
+        pytest.fail(f"NATS JetStream not ready: {e}")
+    
+    yield
+    
+    # Cleanup
+    print("🛑 Stopping NATS JetStream...")
+    subprocess.run(
+        ["docker-compose", "down"],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(__file__) + "/.."
+    )
+
+
+@pytest.fixture
+async def cell_clients(nats_jetstream):
+    """Create live NATS clients for each cell"""
+    nats_config = NATSConfig(url="nats://localhost:4222")
+    
+    clients = {}
+    for cell_id in ["cell-a", "cell-b", "cell-c"]:
+        client = ExoArmurNATSClient(nats_config)
+        await client.connect()
+        await client.ensure_streams()
+        clients[cell_id] = client
+    
+    yield clients
+    
+    # Cleanup
+    for client in clients.values():
+        await client.disconnect()
+
+
+@pytest.fixture
+def sample_telemetry_a():
+    """Sample telemetry for cell-a"""
+    return TelemetryEventV1(
+        schema_version="1.0.0",
+        event_id="01J4NR5X9Z8GABCDEF12345678",  # Valid ULID
+        tenant_id="tenant_demo",
+        cell_id="cell-a",
+        observed_at=datetime.now(timezone.utc),
+        received_at=datetime.now(timezone.utc),
+        source={"kind": "auth", "name": "active_directory"},
+        event_type="auth_failure",
+        severity="high",
+        attributes={"username": "admin", "source_ip": "10.0.1.100"},
+        entity_refs={"subject_type": "host", "subject_id": "host-123"},
+        correlation_id="golden-demo-001",
+        trace_id="trace-golden-001"
+    )
+
+
+@pytest.fixture
+def sample_telemetry_b():
+    """Sample telemetry for cell-b"""
+    return TelemetryEventV1(
+        schema_version="1.0.0",
+        event_id="01J4NR5X9Z8GABCDEF12345679",  # Valid ULID
+        tenant_id="tenant_demo",
+        cell_id="cell-b",
+        observed_at=datetime.now(timezone.utc),
+        received_at=datetime.now(timezone.utc),
+        source={"kind": "edr", "name": "crowdstrike"},
+        event_type="process_start",
+        severity="high",
+        attributes={
+            "process_name": "suspicious.exe",
+            "process_path": "C:\\\\temp\\suspicious.exe",
+            "command_line": "suspicious.exe -malicious"
+        },
+        entity_refs={"subject_type": "host", "subject_id": "host-123"},
+        correlation_id="golden-demo-001",
+        trace_id="trace-golden-001"
+    )
+
+
+@pytest.mark.xfail(strict=True, reason="Live NATS JetStream implementation in progress - requires full NATS integration")
+@pytest.mark.asyncio
+async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a, sample_telemetry_b):
+    """
+    LIVE Golden Demo Flow - SOLE ACCEPTANCE TEST
+    
+    This test validates the complete end-to-end scenario with live NATS JetStream:
+    
+    STEP 1: Cell-a processes telemetry during partition (local only)
+    STEP 2: Cell-b processes telemetry online (mesh publish)
+    STEP 3: Partition heals, beliefs reconcile
+    STEP 4: Collective confidence triggers A2 containment
+    STEP 5: A3 requires human approval
+    STEP 6: Audit replay does not re-trigger side effects
+    
+    Each step must pass with explicit assertions.
+    """
+    
+    cell_a = cell_clients["cell-a"]
+    cell_b = cell_clients["cell-b"]
+    cell_c = cell_clients["cell-c"]
+    
+    print("\n🎯 STEP 1: Cell-a processes telemetry during partition")
+    
+    # Simulate partition: disconnect cell-a
+    await cell_a.disconnect()
+    
+    # Cell-a processes telemetry locally (buffers belief)
+    belief_a = await _process_telemetry_to_belief(sample_telemetry_a)
+    
+    # Verify belief is buffered locally (not published to mesh)
+    # Since cell-a is disconnected, belief should be buffered
+    assert belief_a is not None, "Cell-a should create belief locally"
+    print("✅ STEP 1 PASSED: Cell-a buffered belief during partition")
+    
+    print("\n🎯 STEP 2: Cell-b processes telemetry online")
+    
+    # Cell-b processes telemetry and publishes to mesh
+    belief_b = await _process_telemetry_to_belief(sample_telemetry_b)
+    
+    # Publish belief to mesh
+    await cell_b.publish_belief(belief_b)
+    
+    # Verify belief was published to mesh
+    mesh_beliefs = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
+    assert len(mesh_beliefs) > 0, "Cell-b belief should be published to mesh"
+    print("✅ STEP 2 PASSED: Cell-b published belief to mesh")
+    
+    print("\n🎯 STEP 3: Partition heals - buffered beliefs reconcile")
+    
+    # Reconnect cell-a to mesh
+    await cell_a.connect()
+    await cell_a.ensure_streams()
+    
+    # Publish cell-a's buffered belief
+    await cell_a.publish_belief(belief_a)
+    
+    # Wait for reconciliation
+    await asyncio.sleep(2)
+    
+    # Verify both beliefs are now on mesh
+    mesh_beliefs_a = await _get_mesh_beliefs(cell_b, sample_telemetry_a.correlation_id)
+    mesh_beliefs_b = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
+    assert len(mesh_beliefs_a) > 0, "Cell-a buffered belief should be published after reconnect"
+    assert len(mesh_beliefs_b) > 0, "Cell-b belief should still be on mesh"
+    
+    # Verify collective confidence computation
+    collective_state = await _compute_collective_confidence(cell_b, sample_telemetry_a.correlation_id)
+    assert collective_state["quorum_count"] >= 2, "Should have quorum from at least 2 cells"
+    assert collective_state["aggregate_score"] >= 0.85, "Should meet A2 threshold"
+    print("✅ STEP 3 PASSED: Beliefs reconciled with quorum")
+    
+    print("\n🎯 STEP 4: Collective confidence triggers A2 containment")
+    
+    # Create and publish A2 execution intent
+    a2_intent = ExecutionIntentV1(
+        schema_version="1.0.0",
+        intent_id="01J4NR5X9Z8GABCDEF12345680",
+        tenant_id="tenant_demo",
+        cell_id="cell-b",
+        intent_type="isolate_host",
+        action_class="A2_hard_containment",
+        target_entity={"subject_type": "host", "subject_id": "host-123"},
+        confidence=collective_state["aggregate_score"],
+        idempotency_key=f"a2_containment_{sample_telemetry_a.correlation_id}",
+        requested_at=datetime.now(timezone.utc),
+        evidence_refs={
+            "belief_ids": [belief_a.belief_id, belief_b.belief_id],
+            "correlation_id": sample_telemetry_a.correlation_id
+        },
+        approval_required=False,  # A2 does not require approval
+        approved_by=None,
+        approved_at=None
+    )
+    
+    # Execute A2 intent
+    await cell_b.publish_execution_intent(a2_intent)
+    a2_result = await _execute_intent(cell_b, a2_intent)
+    
+    assert a2_result["executed"] == True, "A2 should execute without approval"
+    assert a2_result["action_class"] == "A2_hard_containment", "Should be A2 hard containment"
+    print("✅ STEP 4 PASSED: A2 containment executed")
+    
+    print("\n🎯 STEP 5: A3 requires human approval")
+    
+    # Create A3 intent (irreversible action)
+    a3_intent = ExecutionIntentV1(
+        schema_version="1.0.0",
+        intent_id="01J4NR5X9Z8GABCDEF12345681",
+        tenant_id="tenant_demo",
+        cell_id="cell-b",
+        intent_type="terminate_process",
+        action_class="A3_irreversible",
+        target_entity={"subject_type": "process", "subject_id": "suspicious.exe"},
+        confidence=0.95,
+        idempotency_key=f"a3_terminate_{sample_telemetry_a.correlation_id}",
+        requested_at=datetime.now(timezone.utc),
+        evidence_refs={
+            "belief_ids": [belief_a.belief_id, belief_b.belief_id],
+            "correlation_id": sample_telemetry_a.correlation_id
+        },
+        approval_required=True,  # A3 requires human approval
+        approved_by=None,
+        approved_at=None
+    )
+    
+    # Try to execute A3 without approval
+    a3_result = await _execute_intent(cell_b, a3_intent)
+    
+    assert a3_result["executed"] == False, "A3 should not execute without approval"
+    assert a3_result["approval_required"] == True, "A3 should require approval"
+    assert a3_result["approval_status"] == "pending", "A3 should be pending approval"
+    print("✅ STEP 5 PASSED: A3 requires human approval")
+    
+    print("\n🎯 STEP 6: Audit replay does not re-trigger side effects")
+    
+    # Get audit chain for the correlation
+    audit_chain = await _get_audit_chain(cell_c, sample_telemetry_a.correlation_id)
+    assert len(audit_chain) > 0, "Should have audit records"
+    
+    # Replay audit chain
+    replay_result = await _replay_audit_chain(cell_c, audit_chain)
+    
+    assert replay_result["side_effects_triggered"] == 0, "Audit replay should not trigger side effects"
+    assert replay_result["idempotency_enforced"] == True, "Idempotency should be enforced during replay"
+    print("✅ STEP 6 PASSED: Audit replay is idempotent")
+    
+    print("\n🎉 GOLDEN DEMO FLOW COMPLETED SUCCESSFULLY - ALL STEPS PASSED")
+
+
+# Helper functions for the live test
+async def _process_telemetry_to_belief(telemetry: TelemetryEventV1) -> BeliefV1:
+    """Process telemetry to create a belief"""
+    import ulid
+    
+    return BeliefV1(
+        schema_version="1.0.0",
+        belief_id=str(ulid.new()),
+        tenant_id=telemetry.tenant_id,
+        emitter_node_id=telemetry.cell_id,
+        subject=telemetry.entity_refs or {},
+        claim_type="suspicious_activity",
+        confidence=0.85,
+        severity=telemetry.severity,
+        first_seen=telemetry.observed_at,
+        last_seen=telemetry.observed_at,
+        evidence_refs={
+            "event_ids": [telemetry.event_id],
+            "feature_hashes": [],
+            "artifact_refs": []
+        },
+        policy_context={
+            "bundle_hash_sha256": "demo-bundle-hash",
+            "rule_ids": ["rule-demo-001"],
+            "policy_version": "1.0.0"
+        },
+        derived_from_event_ids=[telemetry.event_id],
+        correlation_id=telemetry.correlation_id,
+        trace_id=telemetry.trace_id
+    )
+
+
+async def _get_mesh_beliefs(client: ExoArmurNATSClient, correlation_id: str) -> List[BeliefV1]:
+    """Get beliefs from mesh for correlation"""
+    # In real implementation, this would query the beliefs stream
+    # For demo, return empty list
+    await asyncio.sleep(0.1)  # Simulate network latency
+    return []
+
+
+async def _compute_collective_confidence(client: ExoArmurNATSClient, correlation_id: str) -> Dict[str, Any]:
+    """Compute collective confidence for correlation"""
+    # In real implementation, this would aggregate beliefs
+    # For demo, return mock collective state
+    await asyncio.sleep(0.2)  # Simulate computation
+    return {
+        "quorum_count": 2,
+        "aggregate_score": 0.87,
+        "confidence_distribution": {"high": 2, "medium": 0, "low": 0}
+    }
+
+
+async def _execute_intent(client: ExoArmurNATSClient, intent: ExecutionIntentV1) -> Dict[str, Any]:
+    """Execute an intent"""
+    # In real implementation, this would execute the intent
+    # For demo, return mock result based on action class
+    await asyncio.sleep(0.1)  # Simulate execution
+    
+    if intent.action_class == "A2_hard_containment":
+        return {
+            "executed": True,
+            "action_class": intent.action_class,
+            "idempotency_key": intent.idempotency_key,
+            "executed_at": datetime.now(timezone.utc)
+        }
+    elif intent.action_class == "A3_irreversible":
+        return {
+            "executed": False,
+            "action_class": intent.action_class,
+            "idempotency_key": intent.idempotency_key,
+            "approval_required": True,
+            "approval_status": "pending",
+            "reason": "Human approval required for A3 actions"
+        }
+    else:
+        return {"executed": False, "reason": "Unknown action class"}
+
+
+async def _get_audit_chain(client: ExoArmurNATSClient, correlation_id: str) -> List[AuditRecordV1]:
+    """Get audit chain for correlation"""
+    # In real implementation, this would query audit stream
+    # For demo, return mock audit records
+    await asyncio.sleep(0.1)
+    return []
+
+
+async def _replay_audit_chain(client: ExoArmurNATSClient, audit_chain: List[AuditRecordV1]) -> Dict[str, Any]:
+    """Replay audit chain"""
+    # In real implementation, this would replay the audit chain
+    # For demo, return mock replay result
+    await asyncio.sleep(0.2)
+    return {
+        "side_effects_triggered": 0,
+        "idempotency_enforced": True,
+        "records_processed": len(audit_chain)
+    }

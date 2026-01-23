@@ -1,0 +1,356 @@
+# ExoArmur ADMO V2 Operator Approval Contract
+# Human approval workflows for sensitive ADMO operations
+
+operator_approval_v2:
+  purpose: "Human operator approval workflows for A3 actions and sensitive federation operations"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Approval request types
+  approval_request_types:
+    A3_irreversible_action:
+      description: "Approval for A3 irreversible actions (process termination, data destruction)"
+      required_fields:
+        - name: execution_intent
+          type: object
+          description: "A3 execution intent with full context"
+          required_subfields:
+            - intent_id: string
+            - action_class: "A3_irreversible"
+            - target_entity: object
+            - confidence: float
+            - evidence_refs: object
+        - name: risk_assessment
+          type: object
+          description: "Automated risk analysis and scoring"
+          required_subfields:
+            - risk_score: float
+            - risk_factors: array[string]
+            - potential_impact: object
+            - mitigation_options: array[string]
+        - name: human_readable_summary
+          type: string
+          description: "Plain language summary for operator review"
+          required: true
+        - name: rollback_plan
+          type: object
+          description: "Detailed rollback and recovery procedures"
+          required_subfields:
+            - rollback_available: boolean
+            - rollback_procedures: array[string]
+            - data_backup_status: string
+            - recovery_time_estimate: duration
+      approval_criteria:
+        minimum_risk_score: 0.7
+        required_clearance: "supervisor_or_higher"
+        business_hours_only: true
+        dual_approval_required: true
+        documentation_complete: true
+    
+    federation_policy_change:
+      description: "Approval for federation policy modifications"
+      required_fields:
+        - name: policy_change_request
+          type: object
+          description: "Detailed policy modification request"
+          required_subfields:
+            - policy_id: string
+            - current_version: string
+            - proposed_changes: object
+            - change_rationale: string
+        - name: impact_analysis
+          type: object
+          description: "Analysis of policy change impact across federation"
+          required_subfields:
+            - affected_cells: array[string]
+            - compatibility_impact: string
+            - performance_impact: object
+            - security_impact: object
+        - name: testing_validation
+          type: object
+          description: "Test results for proposed policy changes"
+          required_subfields:
+            - test_coverage: float
+            - test_results: array[object]
+            - validation_status: enum["passed", "failed", "partial"]
+      approval_criteria:
+        test_coverage_threshold: 0.9
+        federation_consensus: 0.8
+        required_clearance: "admin_or_higher"
+        change_window_approved: true
+        rollback_plan_verified: true
+    
+    emergency_safety_override:
+      description: "Emergency override of safety gates for critical situations"
+      required_fields:
+        - name: emergency_declaration
+          type: object
+          description: "Emergency situation declaration"
+          required_subfields:
+            - emergency_type: enum["security_breach", "system_failure", "data_corruption", "time_critical"]
+            - urgency_level: enum["high", "critical"]
+            - affected_systems: array[string]
+            - business_impact: string
+        - name: override_justification
+          type: string
+          description: "Detailed justification for safety gate override"
+          required: true
+        - name: alternative_exhausted
+          type: boolean
+          description: "Confirmation that all alternatives have been exhausted"
+          required: true
+        - name: post_override_plan
+          type: object
+          description: "Post-override recovery and review procedures"
+          required_subfields:
+            - recovery_procedures: array[string]
+            - incident_review_required: boolean
+            - documentation_requirements: array[string]
+      approval_criteria:
+        urgency_threshold: "critical"
+        required_clearance: "superuser"
+        dual_operator_confirmation: true
+        incident_commander_approval: true
+        post_incident_review: true
+
+  # Approval workflow states
+  workflow_states:
+    pending_review:
+      description: "Approval request awaiting operator review"
+      entry_conditions:
+        - request_submitted: true
+        - initial_validation: "passed"
+        - operator_notification: "sent"
+      exit_conditions:
+        - operator_review_completed: true
+        - timeout_reached: boolean
+      timeout_duration: "24_hours"
+      allowed_actions: ["approve", "deny", "request_more_info", "escalate"]
+    
+    information_requested:
+      description: "Additional information requested from requestor"
+      entry_conditions:
+        - operator_action: "request_more_info"
+        - information_requirements: "specified"
+      exit_conditions:
+        - information_provided: true
+        - timeout_reached: boolean
+      timeout_duration: "48_hours"
+      allowed_actions: ["approve", "deny", "close"]
+    
+    escalated:
+      description: "Request escalated to higher authority"
+      entry_conditions:
+        - operator_action: "escalate"
+        - escalation_reason: "documented"
+      exit_conditions:
+        - escalated_approval: boolean
+        - escalation_timeout: boolean
+      timeout_duration: "72_hours"
+      allowed_actions: ["approve", "deny", "de_escalate"]
+    
+    approved:
+      description: "Approval granted, ready for execution"
+      entry_conditions:
+        - operator_approval: "granted"
+        - approval_conditions: "met"
+      exit_conditions:
+        - execution_completed: boolean
+        - approval_expired: boolean
+      timeout_duration: "1_hour"
+      allowed_actions: ["execute", "extend_approval", "cancel"]
+    
+    denied:
+      description: "Approval denied"
+      entry_conditions:
+        - operator_denial: "confirmed"
+        - denial_reason: "documented"
+      exit_conditions:
+        - appeal_filed: boolean
+        - denial_final: boolean
+      timeout_duration: "permanent"
+      allowed_actions: ["acknowledge", "appeal"]
+    
+    expired:
+      description: "Approval request expired"
+      entry_conditions:
+        - timeout_reached: true
+        - no_operator_action: true
+      exit_conditions:
+        - request_renewed: boolean
+        - expired_final: boolean
+      timeout_duration: "permanent"
+      allowed_actions: ["renew", "archive"]
+
+  # Operator roles and permissions
+  operator_roles:
+    operator:
+      description: "Standard operator with basic approval authority"
+      permissions:
+        - view_pending_approvals
+        - approve_A3_low_risk
+        - deny_requests
+        - request_information
+      clearance_level: "operator"
+      max_approval_risk: 0.6
+    
+    supervisor:
+      description: "Supervisor with enhanced approval authority"
+      permissions:
+        - all_operator_permissions
+        - approve_A3_medium_risk
+        - approve_policy_changes_low_impact
+        - escalate_requests
+      clearance_level: "supervisor"
+      max_approval_risk: 0.8
+    
+    admin:
+      description: "Administrator with full approval authority"
+      permissions:
+        - all_supervisor_permissions
+        - approve_A3_high_risk
+        - approve_policy_changes_high_impact
+        - manage_operator_accounts
+        - emergency_override_level_1
+      clearance_level: "admin"
+      max_approval_risk: 0.9
+    
+    superuser:
+      description: "Superuser with emergency override authority"
+      permissions:
+        - all_admin_permissions
+        - emergency_override_level_2
+        - approve_any_risk_level
+        - bypass_business_hours_restriction
+      clearance_level: "superuser"
+      max_approval_risk: 1.0
+
+  # Approval decision factors
+  decision_factors:
+    risk_assessment:
+      weight: 0.4
+      description: "Automated risk analysis score"
+      evaluation_criteria:
+        - potential_damage_severity
+        - likelihood_of_occurrence
+        - affected_system_criticality
+        - data_sensitivity_level
+    
+    business_impact:
+      weight: 0.3
+      description: "Business operation impact analysis"
+      evaluation_criteria:
+        - revenue_impact
+        - customer_impact
+        - service_disruption_duration
+        - compliance_implications
+    
+    technical_feasibility:
+      weight: 0.2
+      description: "Technical implementation considerations"
+      evaluation_criteria:
+        - implementation_complexity
+        - resource_requirements
+        - rollback_capability
+        - testing_adequacy
+    
+    regulatory_compliance:
+      weight: 0.1
+      description: "Regulatory and compliance requirements"
+      evaluation_criteria:
+        - legal_requirements
+        - industry_standards
+        - audit_requirements
+        - documentation_standards
+
+  # Approval notifications
+  notifications:
+    request_submitted:
+      description: "New approval request submitted"
+      recipients: ["eligible_operators", "requesting_system"]
+      channels: ["email", "dashboard", "mobile_push"]
+      content:
+        - request_summary
+        - urgency_level
+        - review_deadline
+        - required_actions
+    
+    approval_granted:
+      description: "Approval granted by operator"
+      recipients: ["requesting_system", "execution_engine", "audit_system"]
+      channels: ["system_event", "audit_log", "dashboard"]
+      content:
+        - approval_details
+        - approval_conditions
+        - execution_authorization
+        - audit_token
+    
+    approval_denied:
+      description: "Approval denied by operator"
+      recipients: ["requesting_system", "requestor", "audit_system"]
+      channels: ["system_event", "audit_log", "email"]
+      content:
+        - denial_reason
+        - alternative_suggestions
+        - appeal_process
+        - denial_timestamp
+    
+    expiration_warning:
+      description: "Approval request approaching expiration"
+      recipients: ["eligible_operators", "requesting_system"]
+      channels: ["email", "dashboard"]
+      content:
+        - time_remaining
+        - expiration_consequences
+        - extension_options
+
+  # NATS subjects for operator approval
+  nats_subjects:
+    approval_request: "exoarmur.operator.approval.request.v2"
+    approval_response: "exoarmur.operator.approval.response.v2"
+    approval_notification: "exoarmur.operator.notification.v2"
+    escalation_request: "exoarmur.operator.escalation.v2"
+    approval_query: "exoarmur.operator.query.v2"
+    operator_action: "exoarmur.operator.action.v2"
+
+  # Audit requirements
+  audit_requirements:
+    mandatory_events:
+      - approval_request_submitted
+      - operator_login
+      - approval_review_started
+      - approval_granted
+      - approval_denied
+      - approval_expired
+      - escalation_initiated
+      - emergency_override_granted
+    
+    audit_data_retention: "7_years"
+    audit_integrity: "cryptographic_hash_chain"
+    audit_access_control: "role_based_with_approval"
+    
+    compliance_standards:
+      - SOX_compliance: true
+      - ISO_27001: true
+      - GDPR_compliance: true
+      - industry_specific: true
+
+# Implementation notes
+implementation_notes:
+  evolutionary_design:
+    - Operator approval system is external to core cell
+    - All approval workflows are optional and feature-flagged
+    - No modifications to V1 safety gate logic
+    - Approval decisions injected via existing arbitration interface
+  
+  security_considerations:
+    - Multi-factor authentication for high-risk approvals
+    - Dual operator confirmation for critical actions
+    - Emergency override requires multiple superusers
+    - All approval actions fully audited and traceable
+  
+  performance_considerations:
+    - Approval notifications optimized for timely response
+    - Dashboard updates use real-time streaming
+    - Audit queries optimized for historical analysis
+    - Approval workflow designed for human interaction speeds
