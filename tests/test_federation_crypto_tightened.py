@@ -372,8 +372,8 @@ class TestFeatureFlagIsolation:
     def test_no_import_time_flag_evaluation(self):
         """Test that handlers don't change behavior based on import order"""
         # Create stores with different flag configurations
-        enabled_flags = MockFeatureFlags(v2_federation_identity_enabled=True)
-        disabled_flags = MockFeatureFlags(v2_federation_identity_enabled=False)
+        enabled_flags = MockFeatureFlags(v2_federation_enabled=True)
+        disabled_flags = MockFeatureFlags(v2_federation_enabled=False)
         
         store_enabled = FederateIdentityStore(feature_flags=enabled_flags)
         store_disabled = FederateIdentityStore(feature_flags=disabled_flags)

@@ -19,9 +19,9 @@ from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellSta
 class MockFeatureFlags:
     """Mock feature flags for testing"""
     
-    def __init__(self, v2_federation_identity_enabled: bool = False):
+    def __init__(self, v2_federation_enabled: bool = False):
         self._flags = {
-            'v2_federation_identity_enabled': v2_federation_identity_enabled
+            'v2_federation_enabled': v2_federation_enabled
         }
     
     def is_enabled(self, flag_key: str) -> bool:
@@ -37,13 +37,13 @@ def fixed_clock() -> FixedClock:
 @pytest.fixture
 def mock_feature_flags_enabled() -> MockFeatureFlags:
     """Mock feature flags with V2 federation identity enabled"""
-    return MockFeatureFlags(v2_federation_identity_enabled=True)
+    return MockFeatureFlags(v2_federation_enabled=True)
 
 
 @pytest.fixture
 def mock_feature_flags_disabled() -> MockFeatureFlags:
     """Mock feature flags with V2 federation identity disabled"""
-    return MockFeatureFlags(v2_federation_identity_enabled=False)
+    return MockFeatureFlags(v2_federation_enabled=False)
 
 
 @pytest.fixture
