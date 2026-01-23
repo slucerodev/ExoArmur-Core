@@ -1,12 +1,12 @@
 """
-Audit Module - Audit Record Generation
-
-Emits AuditRecordV1 at each major step with linking IDs.
+Audit logging components
 """
 
 from .audit_logger import AuditLogger
+from datetime import datetime
+from typing import Dict, Any
 
-# No-op audit interface for testing
+
 class NoOpAuditInterface:
     """No-op audit interface for testing scenarios"""
     
@@ -21,5 +21,18 @@ class NoOpAuditInterface:
     def validate_audit_integrity(self, correlation_id: str = None):
         """No-op audit integrity validation"""
         return True, "No-op audit interface"
+    
+    def log_event(self, event_type: str, correlation_id: str, data: Dict[str, Any], recorded_at: datetime) -> bool:
+        """No-op audit event logging for federation interface compatibility"""
+        return True
 
-__all__ = ['AuditLogger', 'NoOpAuditInterface']
+
+class FederationAuditInterface:
+    """Audit interface compatible with federation components"""
+    
+    def log_event(self, event_type: str, correlation_id: str, data: Dict[str, Any], recorded_at: datetime) -> bool:
+        """Audit event logging for federation interface compatibility"""
+        return True
+
+
+__all__ = ['AuditLogger', 'NoOpAuditInterface', 'FederationAuditInterface']

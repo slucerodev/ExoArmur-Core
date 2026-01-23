@@ -45,12 +45,9 @@ class TestIdentityAuditEmitter:
     def test_emit_handshake_event_enabled(self):
         """Test emitting handshake event when V2 federation is enabled"""
         
-        # Mock V1 audit logger
-        mock_audit_logger = Mock()
-        mock_audit_logger.log_event = Mock(return_value=True)
-        
-        # Create adapter
-        mock_audit_interface = NoOpAuditInterface()
+        # Mock audit interface
+        mock_audit_interface = Mock()
+        mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=True)
         
         emitter = IdentityAuditEmitter(
@@ -69,13 +66,13 @@ class TestIdentityAuditEmitter:
         result = emitter.emit_handshake_event(event)
         
         assert result is True
-        mock_audit_logger.log_event.assert_called_once()
+        mock_audit_interface.log_event.assert_called_once()
         
-        # Check audit logger call arguments
-        call_args = mock_audit_logger.log_event.call_args
+        # Check audit interface call arguments
+        call_args = mock_audit_interface.log_event.call_args
         assert call_args[1]["event_type"] == "federation.identity.handshake_initiated"
         assert call_args[1]["correlation_id"] == "session-123"
-        assert "data" in call_args[1]["data"]
+        assert "data" in call_args[1]
         assert call_args[1]["data"]["federation_version"] == "2.0"
         assert call_args[1]["data"]["component"] == "federation_identity"
     

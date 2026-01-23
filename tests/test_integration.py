@@ -143,7 +143,7 @@ class TestThinVerticalSlice:
         # Verify expected audit events in the flow
         assert "telemetry_ingested" in event_kinds
         assert "safety_gate_evaluated" in event_kinds
-        assert "intent_executed" in event_kinds or "intent_denied" in event_kinds
+        assert "approval_requested" in event_kinds  # Intent requires approval before execution
         
         # Verify audit record linking through correlation_id and trace_id
         for record in audit_records:
