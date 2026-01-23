@@ -16,7 +16,11 @@ from .crypto import (
 from .clock import Clock, SystemClock
 from .messages import FederationSignedMessage
 from .federate_identity_store import FederateIdentityStore
-from .models.federation_identity_v2 import HandshakeState
+
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'contracts'))
+from models_v1 import HandshakeState
 
 logger = logging.getLogger(__name__)
 

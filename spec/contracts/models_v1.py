@@ -335,8 +335,14 @@ class HandshakeState(str, Enum):
     CONFIRMED = "confirmed"
     ACTIVE = "active"
     FAILED_IDENTITY = "failed_identity"
+    FAILED_IDENTITY_VERIFICATION = "failed_identity_verification"
     FAILED_CAPABILITIES = "failed_capabilities"
     FAILED_TRUST = "failed_trust"
+    FAILED_PROTOCOL_VIOLATION = "failed_protocol_violation"
+    FAILED_TIMEOUT = "failed_timeout"
+    FAILED_NONCE_REUSE = "failed_nonce_reuse"
+    FAILED_TIMESTAMP_SKEW = "failed_timestamp_skew"
+    FAILED_SIGNATURE = "failed_signature"
     SUSPENDED = "suspended"
 
 
@@ -711,6 +717,119 @@ class ArbitrationV1(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
+# Identity Containment Models (V3 additive)
+class IdentitySubjectV1(BaseModel):
+    """Identity subject for containment operations"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    subject_id: str = Field(description="Unique identifier for the identity subject")
+    subject_type: str = Field(description="Type of subject (user, host, service, etc.)")
+    tenant_id: str = Field(description="Tenant identifier")
+    containment_scope: str = Field(default="none", description="Current containment scope")
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0, description="Risk assessment score")
+    last_activity_utc: datetime = Field(description="Last activity timestamp")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional subject metadata")
+
+
+class IdentityContainmentScopeV1(BaseModel):
+    """Identity containment scope definition"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    scope_id: str = Field(description="Unique scope identifier")
+    scope_type: str = Field(description="Type of containment (quarantine, monitoring, etc.)")
+    severity_level: str = Field(description="Severity level (low, medium, high, critical)")
+    ttl_seconds: int = Field(gt=0, description="Time-to-live in seconds")
+    auto_expire: bool = Field(default=True, description="Whether scope auto-expires")
+    requires_approval: bool = Field(default=True, description="Whether approval is required")
+    approval_level: str = Field(default="A2", description="Required approval level")
+    effectors: List[str] = Field(default_factory=list, description="List of effectors to apply")
+    conditions: Dict[str, Any] = Field(default_factory=dict, description="Scope conditions")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional scope metadata")
+
+
+class IdentityContainmentRecommendationV1(BaseModel):
+    """Identity containment recommendation"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    recommendation_id: str = Field(description="Unique recommendation identifier")
+    subject_id: str = Field(description="Subject this recommendation applies to")
+    scope: IdentityContainmentScopeV1 = Field(description="Recommended containment scope")
+    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in recommendation")
+    risk_assessment: Dict[str, Any] = Field(default_factory=dict, description="Risk assessment details")
+    evidence_refs: List[str] = Field(default_factory=list, description="References to supporting evidence")
+    recommended_by: str = Field(description="What generated the recommendation")
+    generated_at_utc: datetime = Field(description="When recommendation was generated")
+    expires_at_utc: datetime = Field(description="When recommendation expires")
+    status: str = Field(default="pending", description="Recommendation status")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional recommendation metadata")
+
+
+class IdentityContainmentIntentV1(BaseModel):
+    """Identity containment intent for execution"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    intent_id: str = Field(description="Unique intent identifier")
+    recommendation_id: str = Field(description="Source recommendation ID")
+    subject_id: str = Field(description="Subject this intent applies to")
+    scope: IdentityContainmentScopeV1 = Field(description="Containment scope to apply")
+    intent_type: str = Field(description="Type of intent (apply, revert, modify)")
+    approval_status: str = Field(default="pending", description="Approval status")
+    approval_id: Optional[str] = Field(default=None, description="Approval ID if approved")
+    approval_level: str = Field(default="A2", description="Required approval level")
+    requested_by: str = Field(description="Who requested the intent")
+    created_at_utc: datetime = Field(description="When intent was created")
+    expires_at_utc: datetime = Field(description="When intent expires")
+    execution_status: str = Field(default="pending", description="Execution status")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional intent metadata")
+
+
+class IdentityContainmentAppliedRecordV1(BaseModel):
+    """Record of containment scope being applied"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    record_id: str = Field(description="Unique record identifier")
+    intent_id: str = Field(description="Intent that was applied")
+    subject_id: str = Field(description="Subject containment was applied to")
+    scope_id: str = Field(description="Scope that was applied")
+    applied_at_utc: datetime = Field(description="When containment was applied")
+    applied_by: str = Field(description="What applied the containment")
+    effectors_used: List[str] = Field(default_factory=list, description="Effectors that were used")
+    ttl_seconds: int = Field(description="TTL for the containment")
+    expires_at_utc: datetime = Field(description="When containment expires")
+    status: str = Field(default="active", description="Current status")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional record metadata")
+
+
+class IdentityContainmentRevertedRecordV1(BaseModel):
+    """Record of containment scope being reverted"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    record_id: str = Field(description="Unique record identifier")
+    applied_record_id: str = Field(description="Applied record being reverted")
+    intent_id: str = Field(description="Intent that triggered reversion")
+    subject_id: str = Field(description="Subject containment was reverted for")
+    reverted_at_utc: datetime = Field(description="When containment was reverted")
+    reverted_by: str = Field(description="What reverted the containment")
+    reason: str = Field(description="Reason for reversion")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional record metadata")
+
+
+class IdentityContainmentStatusV1(str, Enum):
+    """Identity containment status enumeration"""
+    PENDING = "pending"
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    REVERTED = "reverted"
+    FAILED = "failed"
+    SUSPENDED = "suspended"
+
+
 # Export all models
 __all__ = [
     # Core ADMO Models (V1)
@@ -744,5 +863,13 @@ __all__ = [
     # V2 Arbitration Models (additive)
     'ArbitrationStatus',
     'ArbitrationConflictType',
-    'ArbitrationV1'
+    'ArbitrationV1',
+    # V3 Identity Containment Models (additive)
+    'IdentitySubjectV1',
+    'IdentityContainmentScopeV1', 
+    'IdentityContainmentRecommendationV1',
+    'IdentityContainmentIntentV1',
+    'IdentityContainmentAppliedRecordV1',
+    'IdentityContainmentRevertedRecordV1',
+    'IdentityContainmentStatusV1'
 ]

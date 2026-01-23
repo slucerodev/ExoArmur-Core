@@ -8,6 +8,11 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock, patch
 from typing import List
+import sys
+import os
+
+# Add src to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from spec.contracts.models_v1 import (
     IdentitySubjectV1,
