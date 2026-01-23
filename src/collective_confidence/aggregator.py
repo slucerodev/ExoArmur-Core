@@ -35,8 +35,9 @@ class CollectiveConfidenceAggregator:
         """Add belief to aggregation cache"""
         logger.info(f"Adding belief {belief.belief_id} to aggregation")
         
-        # Group beliefs by subject for aggregation
-        subject_key = f"{belief.subject['subject_type']}:{belief.subject['subject_id']}"
+        # Group beliefs by type and correlation for aggregation
+        # Using belief_type and correlation_id since subject field was removed
+        subject_key = f"{belief.belief_type}:{belief.correlation_id or 'unknown'}"
         if subject_key not in self.belief_cache:
             self.belief_cache[subject_key] = []
         
@@ -44,7 +45,7 @@ class CollectiveConfidenceAggregator:
     
     def compute_collective_state(self, belief: BeliefV1) -> CollectiveState:
         """Compute collective confidence state for a belief"""
-        subject_key = f"{belief.subject['subject_type']}:{belief.subject['subject_id']}"
+        subject_key = f"{belief.belief_type}:{belief.correlation_id or 'unknown'}"
         related_beliefs = self.belief_cache.get(subject_key, [])
         
         # Simple aggregation logic
@@ -59,9 +60,10 @@ class CollectiveConfidenceAggregator:
         aggregate_score = sum(b.confidence for b in related_beliefs) / len(related_beliefs)
         quorum_count = len(related_beliefs)
         
-        # Simple conflict detection: varying severity levels
-        severities = [b.severity for b in related_beliefs]
-        conflict_detected = len(set(severities)) > 1
+        # Simple conflict detection: varying confidence levels
+        # Using confidence instead of severity since severity field was removed
+        confidence_variance = max(b.confidence for b in related_beliefs) - min(b.confidence for b in related_beliefs)
+        conflict_detected = confidence_variance > 0.3  # Threshold for conflict detection
         
         return CollectiveState(
             aggregate_score=aggregate_score,

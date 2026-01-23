@@ -26,25 +26,13 @@ class BeliefGenerator:
         logger.info(f"Generating belief from decision {decision.decision_id}")
         
         belief = BeliefV1(
-            schema_version="1.0.0",
             belief_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
-            tenant_id=decision.tenant_id,
-            emitter_node_id=decision.cell_id,
-            subject=decision.subject,
-            claim_type="process_anomaly",  # TODO: derive from decision
+            belief_type="process_anomaly",  # TODO: derive from decision
             confidence=decision.confidence,
-            severity=decision.severity,
-            evidence_refs=decision.evidence_refs,
-            policy_context={
-                "bundle_hash_sha256": "abc123...",  # TODO: get actual bundle
-                "rule_ids": ["rule-1"],
-                "trust_score_at_emit": 0.85
-            },
-            ttl_seconds=3600,
-            first_seen=datetime.utcnow(),
-            last_seen=datetime.utcnow(),
+            source_observations=[decision.decision_id],  # Link to the decision
+            derived_at=datetime.utcnow(),
             correlation_id=decision.correlation_id,
-            trace_id=decision.trace_id
+            evidence_summary=f"Belief derived from local decision {decision.decision_id} with confidence {decision.confidence}"
         )
         
         return belief
