@@ -10,6 +10,7 @@ from unittest.mock import Mock
 from src.federation.federate_identity_store import FederateIdentityStore
 from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 from src.federation.clock import FixedClock
+from tests.federation_fixtures import MockFeatureFlags
 
 
 class TestFederateIdentityStore:
@@ -22,8 +23,9 @@ class TestFederateIdentityStore:
     
     @pytest.fixture
     def identity_store(self):
-        """Identity store for testing"""
-        return FederateIdentityStore()
+        """Identity store for testing with V2 federation enabled"""
+        mock_flags = MockFeatureFlags(v2_federation_enabled=True)
+        return FederateIdentityStore(feature_flags=mock_flags)
     
     def test_store_and_retrieve_identity(self, identity_store):
         """Test storing and retrieving federate identity"""

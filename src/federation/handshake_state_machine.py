@@ -158,7 +158,16 @@ class HandshakeStateMachine:
         Returns:
             Active correlation ID or None if no active session
         """
-        return self._correlation_ids.get(federate_id)
+        correlation_id = self._correlation_ids.get(federate_id)
+        if not correlation_id:
+            return None
+        
+        # Check if session is still active (not in terminal state)
+        session = self.get_session(correlation_id)
+        if not session or self.is_terminal_state(session.state):
+            return None
+        
+        return correlation_id
     
     def is_correlation_id_available(self, correlation_id: str) -> bool:
         """
@@ -172,7 +181,15 @@ class HandshakeStateMachine:
         """
         # Check if correlation ID is in use
         if correlation_id in self._sessions:
-            return False
+            # Check if session is in terminal state - if so, clean it up
+            session = self._sessions[correlation_id]
+            if self.is_terminal_state(session.state):
+                del self._sessions[correlation_id]
+                # Also clean up federate mapping
+                if session.federate_id in self._correlation_ids and self._correlation_ids[session.federate_id] == correlation_id:
+                    del self._correlation_ids[session.federate_id]
+            else:
+                return False
         
         # Check if correlation ID is locked (recently used)
         lock_expiry = self._locked_correlation_ids.get(correlation_id)
@@ -319,7 +336,7 @@ class HandshakeStateMachine:
         correlation_id: str,
         failure_state: HandshakeState,
         reason_code: str,
-        audit_event: Dict[str, Any]
+        audit_event: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Fail a handshake session with terminal failure state
@@ -328,11 +345,14 @@ class HandshakeStateMachine:
             correlation_id: Correlation identifier
             failure_state: Terminal failure state
             reason_code: Reason for failure
-            audit_event: Audit event data
+            audit_event: Optional audit event data
             
         Returns:
             True if failure succeeded, False otherwise
         """
+        if audit_event is None:
+            audit_event = {}
+        
         return self.transition_state(
             correlation_id=correlation_id,
             to_state=failure_state,
@@ -341,7 +361,7 @@ class HandshakeStateMachine:
             audit_event=audit_event
         )
     
-    def increment_retry(self, correlation_id: str) -> Tuple[bool, int]:
+    def increment_retry(self, correlation_id: str) -> bool:
         """
         Increment retry count for a session
         
@@ -349,11 +369,11 @@ class HandshakeStateMachine:
             correlation_id: Correlation identifier
             
         Returns:
-            Tuple of (success, new_retry_count)
+            True if retry incremented, False if max retries exceeded
         """
         session = self.get_session(correlation_id)
         if not session:
-            return False, 0
+            return False
         
         # Track retry count in session metadata
         if not hasattr(session, '_retry_count'):
@@ -363,10 +383,10 @@ class HandshakeStateMachine:
         
         if current_retry_count >= self.config.max_retry_attempts:
             logger.warning(f"Max retries exceeded for {correlation_id}")
-            return False, current_retry_count
+            return False
         
         session._retry_count = current_retry_count + 1
-        return True, session._retry_count
+        return True
     
     def calculate_retry_delay(self, retry_count: int) -> timedelta:
         """
@@ -378,6 +398,7 @@ class HandshakeStateMachine:
         Returns:
             Delay duration
         """
+        # First retry (retry_count=1) should be 1 second, so use retry_count-1
         delay = self.config.base_retry_delay * (2 ** (retry_count - 1)) if retry_count > 0 else self.config.base_retry_delay
         return min(delay, self.config.max_retry_delay)
     

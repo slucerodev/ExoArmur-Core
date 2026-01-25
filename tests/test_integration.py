@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
+from src.clock import utc_now
+
 # Import the main app
 from src.main import app, initialize_components
 from models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
@@ -178,8 +180,8 @@ class TestThinVerticalSlice:
                 event_id=f"01J4NR5X9Z8GABCDEF1234567{severities.index(severity)}",
                 tenant_id="tenant-acme",
                 cell_id="cell-okc-01",
-                observed_at=datetime.utcnow(),
-                received_at=datetime.utcnow(),
+                observed_at=utc_now(),
+                received_at=utc_now(),
                 source={"kind": "edr", "name": "test"},
                 event_type="process_start",
                 severity=severity,

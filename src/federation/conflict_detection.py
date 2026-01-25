@@ -7,10 +7,11 @@ Detects deterministic conflicts between beliefs and observations.
 import hashlib
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Dict, List, Optional, Set, Tuple, Any, Union
 
 from spec.contracts.models_v1 import (
     BeliefV1,
+    BeliefTelemetryV1,
     ObservationV1,
     ObservationType,
     ArbitrationV1,
@@ -40,7 +41,7 @@ class ConflictDetectionService:
         self.clock = clock
         self.feature_flag_enabled = feature_flag_enabled
     
-    def detect_belief_conflicts(self, beliefs: List[BeliefV1]) -> List[ArbitrationV1]:
+    def detect_belief_conflicts(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> List[ArbitrationV1]:
         """
         Detect conflicts between beliefs and create arbitration objects
         
@@ -79,7 +80,7 @@ class ConflictDetectionService:
         
         return arbitrations
     
-    def _group_beliefs_by_conflict(self, beliefs: List[BeliefV1]) -> Dict[str, List[BeliefV1]]:
+    def _group_beliefs_by_conflict(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> Dict[str, List[Union[BeliefV1, BeliefTelemetryV1]]]:
         """Group beliefs by conflict key for conflict detection"""
         groups = {}
         
@@ -91,7 +92,7 @@ class ConflictDetectionService:
         
         return groups
     
-    def _generate_conflict_key(self, belief: BeliefV1) -> str:
+    def _generate_conflict_key(self, belief: Union[BeliefV1, BeliefTelemetryV1]) -> str:
         """
         Generate deterministic conflict key for a belief
         
@@ -101,11 +102,22 @@ class ConflictDetectionService:
         subject_key = self._extract_subject_key(belief)
         
         # Generate time window (hourly)
-        time_window = self._get_time_window(belief.derived_at)
+        if hasattr(belief, 'first_seen'):
+            time_window = self._get_time_window(belief.first_seen)
+        else:
+            # BeliefV1 uses derived_at
+            time_window = self._get_time_window(belief.derived_at)
+        
+        # Get belief type/claim type
+        if hasattr(belief, 'belief_type'):
+            belief_type = belief.belief_type
+        else:
+            # BeliefTelemetryV1 uses claim_type
+            belief_type = belief.claim_type
         
         # Create deterministic conflict key
         key_parts = [
-            belief.belief_type,
+            belief_type,
             subject_key,
             time_window
         ]
@@ -115,26 +127,30 @@ class ConflictDetectionService:
         # Create hash for consistent length
         return hashlib.sha256(conflict_key.encode()).hexdigest()[:16]
     
-    def _extract_subject_key(self, belief: BeliefV1) -> str:
+    def _extract_subject_key(self, belief: Union[BeliefV1, BeliefTelemetryV1]) -> str:
         """Extract subject key from belief"""
-        # Try to get subject from metadata
-        if "subject" in belief.metadata:
-            return str(belief.metadata["subject"])
+        # For BeliefTelemetryV1, try to get subject from subject field
+        if hasattr(belief, 'subject'):
+            if "subject_id" in belief.subject:
+                return str(belief.subject["subject_id"])
+            if "subject_type" in belief.subject:
+                return str(belief.subject["subject_type"])
         
-        # Try to get from evidence summary
-        if belief.evidence_summary:
-            # Extract first few words as subject
-            words = belief.evidence_summary.split()[:3]
-            return "_".join(words)
+        # For BeliefV1, try to get from metadata or evidence_summary
+        if hasattr(belief, 'metadata'):
+            if "subject" in belief.metadata:
+                return str(belief.metadata["subject"])
+            if "subject_id" in belief.metadata:
+                return str(belief.metadata["subject_id"])
         
-        # Default to belief type
-        return belief.belief_type
+        # Fallback to correlation_id
+        return belief.correlation_id
     
     def _get_time_window(self, timestamp: datetime) -> str:
         """Get hourly time window for conflict grouping"""
         return timestamp.strftime("%Y-%m-%d-%H")
     
-    def _detect_incompatible_claims(self, beliefs: List[BeliefV1]) -> List[Dict[str, Any]]:
+    def _detect_incompatible_claims(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> List[Dict[str, Any]]:
         """
         Detect incompatible claims between beliefs
         
@@ -162,18 +178,24 @@ class ConflictDetectionService:
                 "beliefs": [b.belief_id for b in beliefs]
             })
         
-        # Check for specific belief type conflicts
-        belief_type = beliefs[0].belief_type
-        if belief_type.startswith("derived_from_THREAT_INTEL"):
+        # Check for specific claim type conflicts
+        # Handle both belief_type (BeliefV1) and claim_type (BeliefTelemetryV1)
+        claim_type = None
+        if hasattr(beliefs[0], 'belief_type'):
+            claim_type = beliefs[0].belief_type
+        elif hasattr(beliefs[0], 'claim_type'):
+            claim_type = beliefs[0].claim_type
+        
+        if claim_type and claim_type.startswith("threat_"):
             threats_conflicts = self._detect_threat_intel_conflicts(beliefs)
             conflicts.extend(threats_conflicts)
-        elif belief_type.startswith("derived_from_SYSTEM_HEALTH"):
+        elif claim_type and claim_type.startswith("health_"):
             health_conflicts = self._detect_system_health_conflicts(beliefs)
             conflicts.extend(health_conflicts)
         
         return conflicts
     
-    def _has_conflicting_confidence(self, beliefs: List[BeliefV1]) -> bool:
+    def _has_conflicting_confidence(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> bool:
         """Check if beliefs have conflicting confidence levels"""
         confidences = [b.confidence for b in beliefs]
         max_conf = max(confidences)
@@ -182,10 +204,19 @@ class ConflictDetectionService:
         # Consider it conflicting if confidence differs by more than 0.3
         return (max_conf - min_conf) > 0.3
     
-    def _has_conflicting_evidence(self, beliefs: List[BeliefV1]) -> bool:
+    def _has_conflicting_evidence(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> bool:
         """Check if beliefs have conflicting evidence"""
-        # Check for conflicting source observations
-        source_sets = [set(b.source_observations) for b in beliefs]
+        # Check for conflicting evidence references
+        source_sets = []
+        for belief in beliefs:
+            # Handle different evidence field structures
+            if hasattr(belief, 'evidence_refs'):
+                # BeliefTelemetryV1
+                event_ids = belief.evidence_refs.get("event_ids", [])
+                source_sets.append(set(event_ids))
+            elif hasattr(belief, 'source_observations'):
+                # BeliefV1
+                source_sets.append(set(belief.source_observations))
         
         # If beliefs have completely different sources, might indicate conflict
         all_sources = set()
@@ -195,15 +226,21 @@ class ConflictDetectionService:
         # If no overlap in sources and multiple beliefs, potential conflict
         return len(all_sources) > len(source_sets[0]) and len(source_sets) > 1
     
-    def _detect_threat_intel_conflicts(self, beliefs: List[BeliefV1]) -> List[Dict[str, Any]]:
+    def _detect_threat_intel_conflicts(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> List[Dict[str, Any]]:
         """Detect conflicts in threat intelligence beliefs"""
         conflicts = []
         
         # Check for conflicting threat classifications
         threat_classifications = {}
         for belief in beliefs:
-            if "threat_type" in belief.metadata:
+            # Try to get threat_type from policy_context or metadata
+            threat_type = None
+            if hasattr(belief, 'policy_context') and "threat_type" in belief.policy_context:
+                threat_type = belief.policy_context["threat_type"]
+            elif hasattr(belief, 'metadata') and "threat_type" in belief.metadata:
                 threat_type = belief.metadata["threat_type"]
+            
+            if threat_type:
                 if threat_type not in threat_classifications:
                     threat_classifications[threat_type] = []
                 threat_classifications[threat_type].append(belief)
@@ -218,15 +255,22 @@ class ConflictDetectionService:
         
         return conflicts
     
-    def _detect_system_health_conflicts(self, beliefs: List[BeliefV1]) -> List[Dict[str, Any]]:
+    def _detect_system_health_conflicts(self, beliefs: List[Union[BeliefV1, BeliefTelemetryV1]]) -> List[Dict[str, Any]]:
         """Detect conflicts in system health beliefs"""
         conflicts = []
         
         # Check for conflicting health scores
         health_scores = []
         for belief in beliefs:
-            if "health_score" in belief.metadata:
-                health_scores.append(belief.metadata["health_score"])
+            # Try to get health_score from policy_context or metadata
+            health_score = None
+            if hasattr(belief, 'policy_context') and "health_score" in belief.policy_context:
+                health_score = belief.policy_context["health_score"]
+            elif hasattr(belief, 'metadata') and "health_score" in belief.metadata:
+                health_score = belief.metadata["health_score"]
+            
+            if health_score is not None:
+                health_scores.append(health_score)
         
         if len(health_scores) > 1:
             max_score = max(health_scores)
@@ -245,7 +289,7 @@ class ConflictDetectionService:
     def _create_arbitration_from_conflict(
         self,
         conflict_key: str,
-        beliefs: List[BeliefV1],
+        beliefs: List[Union[BeliefV1, BeliefTelemetryV1]],
         conflicts: List[Dict[str, Any]]
     ) -> ArbitrationV1:
         """Create arbitration object from detected conflict"""
@@ -259,7 +303,9 @@ class ConflictDetectionService:
         # Collect evidence references
         evidence_refs = []
         for belief in beliefs:
-            evidence_refs.extend(belief.source_observations)
+            # Extract event_ids from evidence_refs
+            event_ids = belief.evidence_refs.get("event_ids", [])
+            evidence_refs.extend(event_ids)
         
         # Get correlation ID if present
         correlation_id = beliefs[0].correlation_id
@@ -274,10 +320,10 @@ class ConflictDetectionService:
             claims=[
                 {
                     "belief_id": belief.belief_id,
-                    "belief_type": belief.belief_type,
+                    "claim_type": belief.claim_type,
                     "confidence": belief.confidence,
-                    "evidence_summary": belief.evidence_summary,
-                    "metadata": belief.metadata
+                    "evidence_refs": belief.evidence_refs,
+                    "policy_context": belief.policy_context
                 }
                 for belief in beliefs
             ],

@@ -39,7 +39,7 @@ from contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 class TestOperatorApprovalV2Acceptance:
     """V2 Operator Approval Acceptance Test Suite"""
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 operator approval"""
         flags = get_feature_flags()
@@ -53,27 +53,31 @@ class TestOperatorApprovalV2Acceptance:
         
         return flags
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def approval_service(self):
         """Operator approval service for testing"""
         # Create approval service with enabled=True to trigger NotImplementedError
         config = ApprovalConfig(enabled=True)
         service = ApprovalService(config)
-        await service.initialize()  # This will raise NotImplementedError
         
-        return service
+        yield service
+        
+        # Cleanup
+        await service.shutdown()
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def control_api(self):
         """Control plane API for testing"""
         # Create control API with enabled=True to trigger NotImplementedError
         config = ControlAPIConfig(enabled=True)
         api = ControlAPI(config)
-        await api.startup()  # This will raise NotImplementedError
         
-        return api
+        yield api
+        
+        # Cleanup
+        await api.shutdown()
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def sample_operators(self):
         """Sample operators for testing"""
         operators = {
@@ -99,7 +103,7 @@ class TestOperatorApprovalV2Acceptance:
         
         return operators
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def sample_a3_requests(self):
         """Sample A3 execution requests for approval"""
         requests = []
@@ -288,7 +292,7 @@ if __name__ == "__main__":
 class TestOperatorApprovalV2Compatibility:
     """V2 Operator Approval Compatibility Test Suite (separate from xfail tests)"""
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 operator approval"""
         flags = get_feature_flags()

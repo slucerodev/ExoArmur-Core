@@ -92,16 +92,9 @@ class FederateIdentityStore:
             federate_id = identity.federate_id
             now = datetime.now(timezone.utc)
             
-            if federate_id in self._identities:
-                # Update existing identity
-                existing = self._identities[federate_id]
-                existing.updated_at = now
-                existing.last_seen = now
-                logger.info(f"Updated federate identity: {federate_id}")
-            else:
-                # Create new identity
-                self._identities[federate_id] = identity
-                logger.info(f"Stored new federate identity: {federate_id}")
+            # Always replace the identity entirely (contract-true behavior)
+            self._identities[federate_id] = identity
+            logger.info(f"Stored federate identity: {federate_id}")
             
             return True
     
@@ -153,9 +146,13 @@ class FederateIdentityStore:
         
         with self._lock:
             if federate_id in self._identities:
-                # Clean up associated sessions and nonces
-                identity = self._identities[federate_id]
-                for session_id in identity.handshake_sessions:
+                # Clean up associated sessions (tracked separately)
+                sessions_to_remove = []
+                for session_id, session in self._active_sessions.items():
+                    if session.initiator_cell_id == federate_id or hasattr(session, 'responder_cell_id') and session.responder_cell_id == federate_id:
+                        sessions_to_remove.append(session_id)
+                
+                for session_id in sessions_to_remove:
                     self._active_sessions.pop(session_id, None)
                 
                 # Remove nonces for this federate
@@ -169,6 +166,18 @@ class FederateIdentityStore:
                 logger.info(f"Removed federate identity: {federate_id}")
                 return True
             return False
+    
+    def delete_identity(self, federate_id: str) -> bool:
+        """
+        Delete a federate identity (alias for remove_identity)
+        
+        Args:
+            federate_id: Federate identifier to delete
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        return self.remove_identity(federate_id)
     
     def create_handshake_session(self, session_id: str, initiator_cell_id: str, 
                                 responder_cell_id: str) -> Optional[HandshakeSessionV1]:
@@ -212,9 +221,8 @@ class FederateIdentityStore:
             # Store session
             self._active_sessions[session_id] = session
             
-            # Add to both identities
-            self._identities[initiator_cell_id].handshake_sessions[session_id] = session
-            self._identities[responder_cell_id].handshake_sessions[session_id] = session
+            # Note: Sessions are tracked in _active_sessions, not in identity objects
+            # This avoids modifying the immutable FederateIdentityV1 contract
             
             logger.info(f"Created handshake session: {session_id} between {initiator_cell_id} and {responder_cell_id}")
             return session
@@ -286,15 +294,7 @@ class FederateIdentityStore:
             
             for session_id in expired_sessions:
                 session = self._active_sessions.pop(session_id, None)
-                if session:
-                    # Remove from identities
-                    initiator_identity = self._identities.get(session.initiator_cell_id)
-                    if initiator_identity:
-                        initiator_identity.handshake_sessions.pop(session_id, None)
-                    
-                    responder_identity = self._identities.get(session.responder_cell_id)
-                    if responder_identity:
-                        responder_identity.handshake_sessions.pop(session_id, None)
+                # Sessions are tracked separately from identities
             
             logger.info(f"Cleaned up {len(expired_sessions)} expired handshake sessions")
             return len(expired_sessions)
@@ -325,14 +325,7 @@ class FederateIdentityStore:
                 expires_at=expires_at
             )
             
-            # Add to federate's nonce history
-            if federate_id in self._identities:
-                identity = self._identities[federate_id]
-                identity.nonce_history.append(nonce)
-                
-                # Limit nonce history size
-                if len(identity.nonce_history) > self._max_nonce_history:
-                    identity.nonce_history = identity.nonce_history[-self._max_nonce_history:]
+            # Nonce history is tracked separately, not in identity objects
         
         return nonce
     
@@ -485,6 +478,35 @@ class FederateIdentityStore:
                 'active_sessions': len(self._active_sessions),
                 'active_nonces': len(self._nonces),
                 'enabled': self.is_enabled()
+            }
+    
+    def get_statistics(self) -> Dict[str, any]:
+        """
+        Get detailed store statistics
+        
+        Returns:
+            Dictionary with detailed store statistics
+        """
+        with self._lock:
+            identities = list(self._identities.values())
+            
+            # Count by role
+            roles = {}
+            for identity in identities:
+                role = identity.federation_role.value if hasattr(identity.federation_role, 'value') else str(identity.federation_role)
+                roles[role] = roles.get(role, 0) + 1
+            
+            # Count by status
+            status_counts = {}
+            for identity in identities:
+                status = identity.status.value if hasattr(identity.status, 'value') else str(identity.status)
+                status_counts[status] = status_counts.get(status, 0) + 1
+            
+            return {
+                "total_identities": len(identities),
+                "federate_ids": [identity.federate_id for identity in identities],
+                "roles": roles,
+                "status_counts": status_counts
             }
 
 

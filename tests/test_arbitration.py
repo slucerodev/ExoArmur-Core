@@ -7,10 +7,17 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from spec.contracts.models_v1 import (
+    TelemetryEventV1,
+    SignalFactsV1,
+    BeliefV1,
+    BeliefTelemetryV1,
+    LocalDecisionV1,
+    ExecutionIntentV1,
+    AuditRecordV1,
     ArbitrationV1,
     ArbitrationStatus,
     ArbitrationConflictType,
-    BeliefV1,
+    FederateIdentityV1,
     ObservationV1,
     ObservationType,
     TelemetrySummaryPayloadV1
@@ -73,34 +80,43 @@ def conflict_detection_service(arbitration_store, audit_service, fixed_clock):
 @pytest.fixture
 def sample_beliefs(fixed_clock):
     """Sample beliefs for testing"""
-    belief1 = BeliefV1(
-        belief_id="belief-1",
-        belief_type="derived_from_THREAT_INTEL",
+    # Create beliefs at the same time for conflict grouping
+    base_time = fixed_clock.now()
+    
+    belief1 = BeliefTelemetryV1(
+        schema_version="1.0.0",
+        belief_id="01J4NR5X9Z8GABCDEF12345678",
+        tenant_id="tenant-1",
+        emitter_node_id="node-1",
+        subject={"subject_type": "network_segment", "subject_id": "network_segment_A"},
+        claim_type="threat_detected",
         confidence=0.8,
-        source_observations=["obs-1", "obs-2"],
-        derived_at=fixed_clock.now(),
+        severity="high",
+        evidence_refs={"event_ids": ["obs-1", "obs-2"]},
+        policy_context={"threat_type": "malware"},
+        ttl_seconds=3600,
+        first_seen=base_time,
+        last_seen=base_time,
         correlation_id="corr-123",
-        evidence_summary="Threat detected from network traffic",
-        conflicts=[],
-        metadata={
-            "threat_type": "malware",
-            "subject": "network_segment_A"
-        }
+        trace_id="trace-123"
     )
     
-    belief2 = BeliefV1(
-        belief_id="belief-2",
-        belief_type="derived_from_THREAT_INTEL",
+    belief2 = BeliefTelemetryV1(
+        schema_version="1.0.0",
+        belief_id="01J4NR5X9Z8GABCDEF12345679",
+        tenant_id="tenant-1", 
+        emitter_node_id="node-2",
+        subject={"subject_type": "network_segment", "subject_id": "network_segment_A"},
+        claim_type="threat_detected",  # Same claim type for conflict grouping
         confidence=0.3,
-        source_observations=["obs-3", "obs-4"],
-        derived_at=fixed_clock.now(),
+        severity="low",
+        evidence_refs={"event_ids": ["obs-3", "obs-4"]},
+        policy_context={"threat_type": "benign"},  # Different threat type for conflict
+        ttl_seconds=3600,
+        first_seen=base_time,  # Same time for conflict grouping
+        last_seen=base_time,
         correlation_id="corr-123",
-        evidence_summary="No threat detected from network traffic",
-        conflicts=[],
-        metadata={
-            "threat_type": "benign",
-            "subject": "network_segment_A"
-        }
+        trace_id="trace-123"
     )
     
     return [belief1, belief2]
@@ -205,6 +221,7 @@ def test_resolution_applies_after_approval_and_updates_beliefs(
     """Test that resolution applies after approval and updates beliefs"""
     # Create conflicting beliefs
     belief1 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-resolve-1",
         belief_type="derived_from_THREAT_INTEL",
         confidence=0.8,
@@ -212,7 +229,6 @@ def test_resolution_applies_after_approval_and_updates_beliefs(
         derived_at=fixed_clock.now(),
         correlation_id="corr-resolve",
         evidence_summary="Threat detected",
-        conflicts=[],
         metadata={"threat_type": "malware", "subject": "host_A"}
     )
     
@@ -327,27 +343,27 @@ def test_replay_reproduces_post_resolution_belief_state(
     """Test that replay reproduces post-resolution belief state"""
     # Create initial belief state
     belief1 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-replay-1",
-        belief_type="derived_from_SYSTEM_HEALTH",
+        belief_type="derived_from_HEALTH_MONITOR",
         confidence=0.4,
         source_observations=["obs-1"],
         derived_at=fixed_clock.now(),
         correlation_id="corr-replay",
-        evidence_summary="System health degraded",
-        conflicts=[],
-        metadata={"health_score": 0.4, "subject": "system_A"}
+        evidence_summary="System health monitoring",
+        metadata={"health_score": 0.4, "subject": "system-001"}
     )
     
     belief2 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-replay-2",
-        belief_type="derived_from_SYSTEM_HEALTH",
+        belief_type="derived_from_HEALTH_MONITOR",
         confidence=0.8,
         source_observations=["obs-2"],
         derived_at=fixed_clock.now(),
         correlation_id="corr-replay",
-        evidence_summary="System health healthy",
-        conflicts=[],
-        metadata={"health_score": 0.8, "subject": "system_A"}
+        evidence_summary="System health monitoring",
+        metadata={"health_score": 0.8, "subject": "system-001"}
     )
     
     # Store beliefs

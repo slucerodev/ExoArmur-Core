@@ -14,6 +14,7 @@ import uuid
 from spec.contracts.models_v1 import (
     ObservationV1,
     BeliefV1,
+    BeliefTelemetryV1,
     ObservationType
 )
 from src.federation.conflict_detection import ConflictDetectionService
@@ -193,16 +194,26 @@ class BeliefAggregationService:
             # Create belief with deterministic ID
             belief_id = self._generate_belief_id(observations)
             
+            # Extract deterministic derived_at from observations (max timestamp)
+            derived_at = max(obs.timestamp_utc for obs in observations)
+            
+            # Create sorted list of source observations
+            source_observations = sorted([obs.observation_id for obs in observations])
+            
+            # Create deterministic evidence summary
+            evidence_summary = f"Aggregated from {len(observations)} {obs_type} observations"
+            
             belief = BeliefV1(
+                schema_version="1.0.0",
                 belief_id=belief_id,
                 belief_type=f"derived_from_{obs_type}",
                 confidence=belief_data["confidence"],
-                source_observations=[obs.observation_id for obs in observations],
-                derived_at=self.clock.now(),
-                correlation_id=observations[0].correlation_id,
-                evidence_summary=belief_data["evidence_summary"],
-                conflicts=belief_data.get("conflicts", []),
-                metadata=belief_data.get("metadata", {})
+                source_observations=source_observations,
+                derived_at=derived_at,
+                correlation_id=observations[0].correlation_id or "no-correlation",
+                evidence_summary=evidence_summary,
+                metadata=belief_data.get("metadata", {}),
+                conflicts=[]  # No conflicts in aggregated beliefs
             )
             
             return belief
@@ -222,8 +233,17 @@ class BeliefAggregationService:
             for obs in sorted_obs
         )
         
-        hash_digest = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
-        return f"belief_{hash_digest}"
+        hash_digest = hashlib.sha256(hash_input.encode()).hexdigest()
+        # Generate a valid ULID format (26 chars, Crockford base32)
+        ulid_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+        # Convert first 14 chars of hash to valid ULID chars to make 26 total
+        ulid_part = ""
+        for i in range(14):
+            char_index = int(hash_digest[i*2:i*2+2], 16) % len(ulid_chars)
+            ulid_part += ulid_chars[char_index]
+        
+        # Return exactly 26 characters
+        return f"01J4NR5X9Z8G{ulid_part}"
     
     def _aggregate_telemetry_summary(self, observations: List[ObservationV1]) -> Dict[str, Any]:
         """Aggregate telemetry summary observations"""

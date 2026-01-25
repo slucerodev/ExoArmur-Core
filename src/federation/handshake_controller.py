@@ -278,7 +278,7 @@ class HandshakeController:
         
         # Check if we should retry
         if self._should_retry_verification(failure_reason):
-            retry_success, retry_count = self.state_machine.increment_retry(correlation_id)
+            retry_success = self.state_machine.increment_retry(correlation_id)
             if not retry_success:
                 # Max retries exceeded
                 return self._fail_handshake(
@@ -287,7 +287,9 @@ class HandshakeController:
                     HandshakeTransitionReason.RETRY_EXHAUSTED
                 )
             
-            # Calculate retry delay
+            # Get retry count from session for delay calculation
+            session = self.state_machine.get_session(correlation_id)
+            retry_count = session._retry_count if hasattr(session, '_retry_count') else 0
             retry_delay = self.state_machine.calculate_retry_delay(retry_count)
             
             # Record retry audit event

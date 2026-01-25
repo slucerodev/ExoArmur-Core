@@ -1,11 +1,15 @@
 """
-Tests for V2 Federation Identity Audit Emitter
-Validate audit event emission and V1 integration
+Tests for Identity Audit Emitter
+Tests audit event emission for federation identity handshake
 """
 
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import Mock, MagicMock
+import asyncio
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Dict, Any
+from unittest.mock import Mock, patch
+
+pytestmark = pytest.mark.sensitive
 
 import sys
 import os

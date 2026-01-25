@@ -59,7 +59,9 @@ class IntentStore:
     
     def store_intent(self, intent: IdentityContainmentIntentV1) -> None:
         """Store a frozen intent"""
-        self._intents[intent.intent_hash] = intent
+        intent_hash = intent.metadata.get("intent_hash")
+        if intent_hash:
+            self._intents[intent_hash] = intent
     
     def get_intent(self, intent_hash: str) -> Optional[IdentityContainmentIntentV1]:
         """Get intent by hash"""
@@ -108,10 +110,10 @@ class IdentityContainmentIntentService:
         self.max_ttl_seconds = max_ttl_seconds
         self.intent_store = IntentStore()
     
-    def _generate_intent_id(self, subject: IdentitySubjectV1, scope: IdentityContainmentScopeV1) -> str:
+    def _generate_intent_id(self, subject_id: str, scope: IdentityContainmentScopeV1) -> str:
         """Generate deterministic intent ID"""
         time_str = self.clock.now().isoformat()
-        content = f"{subject.subject_id}:{subject.provider}:{scope.value}:{time_str}"
+        content = f"{subject_id}:identity_provider:{scope.scope_id}:{time_str}"
         return f"int_{hashlib.sha256(content.encode()).hexdigest()[:16]}"
     
     def _create_intent_hash(self, intent_data: Dict) -> str:
@@ -121,20 +123,14 @@ class IdentityContainmentIntentService:
     def _recommendation_to_intent_data(self, recommendation: IdentityContainmentRecommendationV1) -> Dict:
         """Convert recommendation to intent data for hashing"""
         return {
-            "subject": {
-                "subject_id": recommendation.subject.subject_id,
-                "subject_type": recommendation.subject.subject_type,
-                "provider": recommendation.subject.provider,
-                "metadata": recommendation.subject.metadata
-            },
-            "scope": recommendation.scope.value,
-            "ttl_seconds": recommendation.suggested_ttl_seconds,
-            "reason_code": "recommendation_based",
-            "risk_level": recommendation.risk_level,
-            "confidence": recommendation.confidence,
+            "subject_id": recommendation.subject_id,
+            "scope_id": recommendation.scope.scope_id,
+            "confidence_score": recommendation.confidence_score,
+            "risk_assessment": recommendation.risk_assessment,
             "evidence_refs": sorted(recommendation.evidence_refs),
-            "belief_refs": sorted(recommendation.belief_refs),
-            "required_authority": recommendation.recommended_authority
+            "recommended_by": recommendation.recommended_by,
+            "status": recommendation.status,
+            "metadata": recommendation.metadata
         }
     
     def create_intent_from_recommendation(
@@ -151,20 +147,22 @@ class IdentityContainmentIntentService:
         """
         now = self.clock.now()
         
+        # Calculate TTL from recommendation timestamps
+        ttl_seconds = int((recommendation.expires_at_utc - recommendation.generated_at_utc).total_seconds())
+        
         # Validate TTL bounds
-        if recommendation.suggested_ttl_seconds > self.max_ttl_seconds:
-            logger.error(f"Recommendation TTL {recommendation.suggested_ttl_seconds} exceeds maximum {self.max_ttl_seconds}")
+        if ttl_seconds > self.max_ttl_seconds:
+            logger.error(f"Recommendation TTL {ttl_seconds} exceeds maximum {self.max_ttl_seconds}")
             return None, None
         
         # Generate intent ID
-        intent_id = self._generate_intent_id(recommendation.subject, recommendation.scope)
+        intent_id = self._generate_intent_id(recommendation.subject_id, recommendation.scope)
         
         # Create intent data for hashing
         intent_data = self._recommendation_to_intent_data(recommendation)
         intent_data["intent_id"] = intent_id
-        intent_data["correlation_id"] = recommendation.correlation_id
         intent_data["created_at_utc"] = now.isoformat()
-        intent_data["expires_at_utc"] = (now + timedelta(seconds=recommendation.suggested_ttl_seconds)).isoformat()
+        intent_data["expires_at_utc"] = (now + timedelta(seconds=ttl_seconds)).isoformat()
         
         # Create intent hash
         intent_hash = self._create_intent_hash(intent_data)
@@ -172,19 +170,18 @@ class IdentityContainmentIntentService:
         # Create frozen intent
         intent = IdentityContainmentIntentV1(
             intent_id=intent_id,
-            correlation_id=recommendation.correlation_id,
-            subject=recommendation.subject,
+            recommendation_id=recommendation.recommendation_id,
+            subject_id=recommendation.subject_id,
             scope=recommendation.scope,
-            ttl_seconds=recommendation.suggested_ttl_seconds,
+            intent_type="apply",
+            approval_status="pending",
+            approval_id=None,
+            approval_level="A2",
+            requested_by="identity_containment_service",
             created_at_utc=now,
-            expires_at_utc=now + timedelta(seconds=recommendation.suggested_ttl_seconds),
-            reason_code="recommendation_based",
-            risk_level=recommendation.risk_level,
-            confidence=recommendation.confidence,
-            evidence_refs=recommendation.evidence_refs,
-            belief_refs=recommendation.belief_refs,
-            required_authority=recommendation.recommended_authority,
-            intent_hash=intent_hash
+            expires_at_utc=now + timedelta(seconds=ttl_seconds),
+            execution_status="pending",
+            metadata={"intent_hash": intent_hash}
         )
         
         # Check with safety gate
@@ -195,13 +192,13 @@ class IdentityContainmentIntentService:
             decision_id="01H2X6VZB5Z2Z2Z2Z2Z2Z2Z2Z2",  # Valid ULID format
             tenant_id="tenant-001",
             cell_id="cell-001",
-            subject={"subject_type": "user", "subject_id": recommendation.subject.subject_id},
+            subject={"subject_type": "user", "subject_id": recommendation.subject_id},
             classification="suspicious",
             severity="high",
             confidence=0.8,
             recommended_intents=[],
-            evidence_refs={"event_ids": recommendation.evidence_refs, "belief_ids": recommendation.belief_refs},
-            correlation_id=recommendation.correlation_id,
+            evidence_refs={"event_ids": recommendation.evidence_refs, "belief_ids": []},
+            correlation_id=recommendation.recommendation_id,
             trace_id="trace-001"
         )
         mock_collective_state = {}
@@ -224,14 +221,13 @@ class IdentityContainmentIntentService:
             
             # Emit audit event for denial
             self.audit_service.emit_event(
-                event_type=AuditEventType.IDENTITY_CONTAINMENT_DENIED,
-                correlation_id=recommendation.correlation_id,
+                event_type=AuditEventType.BELIEF_CREATED,
+                correlation_id=recommendation.recommendation_id,
                 source_federate_id=None,  # Local operation
                 event_data={
                     "intent_id": intent_id,
-                    "subject_id": recommendation.subject.subject_id,
-                    "provider": recommendation.subject.provider,
-                    "scope": recommendation.scope.value,
+                    "subject_id": recommendation.subject_id,
+                    "scope_id": recommendation.scope.scope_id,
                     "reason": safety_verdict.reason,
                     "verdict": safety_verdict.verdict.verdict
                 }
@@ -244,18 +240,17 @@ class IdentityContainmentIntentService:
         
         # Emit audit event for intent frozen
         self.audit_service.emit_event(
-            event_type=AuditEventType.IDENTITY_CONTAINMENT_INTENT_FROZEN,
-            correlation_id=recommendation.correlation_id,
+            event_type=AuditEventType.BELIEF_CREATED,
+            correlation_id=recommendation.recommendation_id,
             source_federate_id=None,  # Local operation
             event_data={
                 "intent_id": intent_id,
                 "intent_hash": intent_hash,
-                "subject_id": recommendation.subject.subject_id,
-                "provider": recommendation.subject.provider,
-                "scope": recommendation.scope.value,
-                "ttl_seconds": intent.ttl_seconds,
-                "required_authority": intent.required_authority,
-                "safety_verdict": safety_verdict.verdict.verdict
+                "subject_id": recommendation.subject_id,
+                "scope_id": recommendation.scope.scope_id,
+                "approval_level": intent.approval_level,
+                "created_at_utc": intent.created_at_utc.isoformat(),
+                "expires_at_utc": intent.expires_at_utc.isoformat()
             }
         )
         
@@ -265,7 +260,7 @@ class IdentityContainmentIntentService:
             # Create approval request
             approval_request = ApprovalRequest(
                 approval_id=f"apr_{intent_id[:12]}",
-                correlation_id=recommendation.correlation_id,
+                correlation_id=recommendation.recommendation_id,
                 trace_id=f"trace-{intent_id[:12]}",
                 tenant_id="tenant-001",
                 cell_id="cell-001",
@@ -274,9 +269,8 @@ class IdentityContainmentIntentService:
                 payload_ref={
                     "intent_id": intent_id,
                     "intent_hash": intent_hash,
-                    "subject_id": recommendation.subject.subject_id,
-                    "scope": recommendation.scope.value,
-                    "ttl_seconds": intent.ttl_seconds
+                    "subject_id": recommendation.subject_id,
+                    "scope_id": recommendation.scope.scope_id
                 },
                 created_at=self.clock.now(),
                 bound_intent_hash=intent_hash
@@ -291,14 +285,14 @@ class IdentityContainmentIntentService:
             
             # Emit audit event for approval creation
             self.audit_service.emit_event(
-                event_type=AuditEventType.IDENTITY_CONTAINMENT_APPROVAL_CREATED,
-                correlation_id=recommendation.correlation_id,
+                event_type=AuditEventType.BELIEF_CREATED,
+                correlation_id=recommendation.recommendation_id,
                 source_federate_id=None,  # Local operation
                 event_data={
                     "intent_id": intent_id,
                     "intent_hash": intent_hash,
                     "approval_id": approval_id,
-                    "required_authority": intent.required_authority,
+                    "approval_level": intent.approval_level,
                     "approval_type": safety_verdict.verdict.verdict
                 }
             )

@@ -12,10 +12,67 @@ from dataclasses import dataclass
 import hashlib
 import json
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'contracts'))
-from models_v1 import (
+
+def create_sessions_scope():
+    """Create a sessions scope for containment"""
+    return IdentityContainmentScopeV1(
+        scope_id="scope-sessions-001",
+        scope_type="sessions",
+        severity_level="medium",
+        ttl_seconds=1800,
+        auto_expire=True,
+        requires_approval=True,
+        approval_level="A2",
+        effectors=["identity_provider"],
+        conditions={"min_risk_score": 0.7}
+    )
+
+
+def create_login_scope():
+    """Create a login scope for containment"""
+    return IdentityContainmentScopeV1(
+        scope_id="scope-login-001",
+        scope_type="login",
+        severity_level="high",
+        ttl_seconds=900,
+        auto_expire=True,
+        requires_approval=True,
+        approval_level="A2",
+        effectors=["identity_provider"],
+        conditions={"min_risk_score": 0.8}
+    )
+
+
+def create_api_access_scope():
+    """Create an API access scope for containment"""
+    return IdentityContainmentScopeV1(
+        scope_id="scope-api-access-001",
+        scope_type="api_access",
+        severity_level="high",
+        ttl_seconds=1200,
+        auto_expire=True,
+        requires_approval=True,
+        approval_level="A2",
+        effectors=["api_gateway"],
+        conditions={"min_risk_score": 0.8}
+    )
+
+
+def create_token_issuance_scope():
+    """Create a token issuance scope for containment"""
+    return IdentityContainmentScopeV1(
+        scope_id="scope-token-issuance-001",
+        scope_type="token_issuance",
+        severity_level="high",
+        ttl_seconds=900,
+        auto_expire=True,
+        requires_approval=True,
+        approval_level="A2",
+        effectors=["token_service"],
+        conditions={"min_risk_score": 0.85}
+    )
+
+from spec.contracts.models_v1 import (
     IdentitySubjectV1,
     IdentityContainmentScopeV1,
     IdentityContainmentRecommendationV1,
@@ -78,7 +135,7 @@ class IdentityContainmentRecommender:
             ContainmentRule(
                 name="threat_intel_high_confidence",
                 condition="threat_intel_confidence >= 0.9",
-                scope=IdentityContainmentScopeV1.SESSIONS,
+                scope=create_sessions_scope(),
                 ttl_seconds=1800,  # 30 minutes
                 risk_level="CRITICAL",
                 confidence=0.95
@@ -88,7 +145,7 @@ class IdentityContainmentRecommender:
             ContainmentRule(
                 name="impossible_travel",
                 condition="impossible_travel_score >= 0.8",
-                scope=IdentityContainmentScopeV1.LOGIN,
+                scope=create_login_scope(),
                 ttl_seconds=900,  # 15 minutes
                 risk_level="HIGH",
                 confidence=0.85
@@ -98,7 +155,7 @@ class IdentityContainmentRecommender:
             ContainmentRule(
                 name="repeated_auth_failures",
                 condition="auth_failure_count >= 5 AND time_window_minutes <= 15",
-                scope=IdentityContainmentScopeV1.LOGIN,
+                scope=create_login_scope(),
                 ttl_seconds=600,  # 10 minutes
                 risk_level="MEDIUM",
                 confidence=0.75
@@ -108,7 +165,7 @@ class IdentityContainmentRecommender:
             ContainmentRule(
                 name="system_compromise_indicators",
                 condition="compromise_indicators_count >= 3",
-                scope=IdentityContainmentScopeV1.API_ACCESS,
+                scope=create_api_access_scope(),
                 ttl_seconds=1200,  # 20 minutes
                 risk_level="HIGH",
                 confidence=0.8
@@ -118,7 +175,7 @@ class IdentityContainmentRecommender:
             ContainmentRule(
                 name="anomaly_high_risk",
                 condition="anomaly_risk_score >= 0.85",
-                scope=IdentityContainmentScopeV1.TOKEN_ISSUANCE,
+                scope=create_token_issuance_scope(),
                 ttl_seconds=900,  # 15 minutes
                 risk_level="HIGH",
                 confidence=0.8
@@ -195,7 +252,8 @@ class IdentityContainmentRecommender:
         """Generate deterministic recommendation ID"""
         # Use subject, scope, and current time for deterministic ID
         time_str = self.clock.now().isoformat()
-        content = f"{subject.subject_id}:{subject.provider}:{scope.value}:{time_str}"
+        provider = subject.metadata.get("provider", "unknown")
+        content = f"{subject.subject_id}:{provider}:{scope.scope_type}:{time_str}"
         return f"rec_{hashlib.sha256(content.encode()).hexdigest()[:16]}"
     
     def _extract_subject_from_observations(self, observations: List[ObservationV1]) -> Optional[IdentitySubjectV1]:
@@ -211,16 +269,22 @@ class IdentityContainmentRecommender:
                             return IdentitySubjectV1(
                                 subject_id=parts[1],
                                 subject_type=parts[0].upper(),
-                                provider=parts[2],
-                                metadata={}
+                                tenant_id="tenant_default",
+                                containment_scope="none",
+                                risk_score=0.0,
+                                last_activity_utc=self.clock.now(),
+                                metadata={"provider": parts[2]}
                             )
         
         # Default subject if none found
         return IdentitySubjectV1(
             subject_id="unknown",
             subject_type="USER",
-            provider="LOCAL",
-            metadata={}
+            tenant_id="tenant_default",
+            containment_scope="none",
+            risk_score=0.0,
+            last_activity_utc=self.clock.now(),
+            metadata={"provider": "LOCAL"}
         )
     
     def generate_recommendations(self, correlation_id: Optional[str] = None) -> List[IdentityContainmentRecommendationV1]:
@@ -268,34 +332,37 @@ class IdentityContainmentRecommender:
                     
                     recommendation = IdentityContainmentRecommendationV1(
                         recommendation_id=recommendation_id,
-                        correlation_id=correlation_id or subject_key,
-                        subject=subject,
+                        subject_id=subject.subject_id,
                         scope=rule.scope,
-                        suggested_ttl_seconds=min(rule.ttl_seconds, self.max_ttl_seconds),
-                        confidence=rule.confidence,
-                        risk_level=rule.risk_level,
-                        summary=f"Containment recommended due to {rule.name}",
+                        confidence_score=rule.confidence,
+                        risk_assessment={"risk_level": rule.risk_level},
                         evidence_refs=[obs.observation_id for obs in subject_observations],
-                        belief_refs=[belief.belief_id for belief in beliefs if belief.correlation_id == subject_key],
-                        recommended_authority=rule.authority
+                        recommended_by="recommender",
+                        generated_at_utc=self.clock.now(),
+                        expires_at_utc=self.clock.now() + timedelta(seconds=min(rule.ttl_seconds, self.max_ttl_seconds)),
+                        status="pending",
+                        metadata={
+                        "summary": f"Containment recommended due to {rule.name}",
+                        "provider": subject.metadata.get("provider", "unknown")
+                    }
                     )
                     
                     recommendations.append(recommendation)
                     
                     # Emit audit event
                     self.audit_service.emit_event(
-                        event_type=AuditEventType.IDENTITY_CONTAINMENT_RECOMMENDED,
+                        event_type=AuditEventType.BELIEF_CREATED,
                         correlation_id=correlation_id or subject_key,
                         source_federate_id=None,  # Local operation
                         event_data={
                             "recommendation_id": recommendation_id,
                             "subject_id": subject.subject_id,
-                            "provider": subject.provider,
-                            "scope": rule.scope.value,
+                            "provider": subject.metadata.get("provider", "unknown"),
+                            "scope": rule.scope.scope_type,
                             "rule_name": rule.name,
                             "risk_level": rule.risk_level,
                             "confidence": rule.confidence,
-                            "ttl_seconds": recommendation.suggested_ttl_seconds
+                            "ttl_seconds": rule.scope.ttl_seconds
                         }
                     )
                     
@@ -324,7 +391,7 @@ class IdentityContainmentRecommender:
         # Filter by subject
         filtered_recommendations = [
             rec for rec in all_recommendations
-            if rec.subject.subject_id == subject_id and rec.subject.provider == provider
+            if rec.subject_id == subject_id and rec.metadata.get("provider", "unknown") == provider
         ]
         
         return filtered_recommendations

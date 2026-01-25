@@ -11,11 +11,15 @@ from collections import OrderedDict
 import uuid
 
 from spec.contracts.models_v1 import (
-    ObservationV1,
     BeliefV1,
+    BeliefTelemetryV1,
+    ObservationV1,
+    TelemetryEventV1,
+    SignalFactsV1,
     FederateIdentityV1,
     HandshakeState
 )
+from typing import Union
 from .clock import Clock
 
 logger = logging.getLogger(__name__)
@@ -43,7 +47,7 @@ class ObservationStore:
         
         # Use OrderedDict for deterministic ordering by timestamp
         self._observations: OrderedDict[str, ObservationV1] = OrderedDict()
-        self._beliefs: OrderedDict[str, BeliefV1] = OrderedDict()
+        self._beliefs: OrderedDict[str, Union[BeliefTelemetryV1, BeliefV1]] = OrderedDict()
         
         # Indexes for efficient lookup
         self._observations_by_federate: Dict[str, List[str]] = {}
@@ -146,7 +150,7 @@ class ObservationStore:
         
         return observations
     
-    def store_belief(self, belief: BeliefV1) -> bool:
+    def store_belief(self, belief: Union[BeliefTelemetryV1, BeliefV1]) -> bool:
         """
         Store a belief with deterministic ordering
         
@@ -174,7 +178,7 @@ class ObservationStore:
         logger.info(f"Stored belief {belief.belief_id}")
         return True
     
-    def get_belief(self, belief_id: str) -> Optional[BeliefV1]:
+    def get_belief(self, belief_id: str) -> Optional[Union[BeliefTelemetryV1, BeliefV1]]:
         """Get a specific belief by ID"""
         return self._beliefs.get(belief_id)
     
@@ -184,7 +188,7 @@ class ObservationStore:
         belief_type: Optional[str] = None,
         limit: Optional[int] = None,
         since: Optional[datetime] = None
-    ) -> List[BeliefV1]:
+    ) -> List[Union[BeliefTelemetryV1, BeliefV1]]:
         """
         List beliefs with optional filters
         
@@ -208,14 +212,38 @@ class ObservationStore:
         
         # Apply filters
         for belief in candidates:
-            if belief_type and belief.belief_type != belief_type:
-                continue
-            if since and belief.derived_at < since:
-                continue
+            # Filter by belief_type (only for BeliefV1)
+            if belief_type:
+                if hasattr(belief, 'belief_type'):
+                    if belief.belief_type != belief_type:
+                        continue
+                else:
+                    # BeliefTelemetryV1 doesn't have belief_type, skip if filtering by type
+                    continue
+            # Filter by timestamp (different fields for different belief types)
+            if since:
+                if hasattr(belief, 'derived_at'):
+                    # BeliefV1
+                    if belief.derived_at < since:
+                        continue
+                elif hasattr(belief, 'first_seen'):
+                    # BeliefTelemetryV1
+                    if belief.first_seen < since:
+                        continue
+                else:
+                    continue
             beliefs.append(belief)
         
-        # Sort by timestamp (deterministic)
-        beliefs.sort(key=lambda x: x.derived_at)
+        # Sort by timestamp (deterministic - different fields for different belief types)
+        def get_timestamp(belief):
+            if hasattr(belief, 'derived_at'):
+                return belief.derived_at
+            elif hasattr(belief, 'first_seen'):
+                return belief.first_seen
+            else:
+                return datetime.min
+        
+        beliefs.sort(key=get_timestamp)
         
         # Apply limit
         if limit:

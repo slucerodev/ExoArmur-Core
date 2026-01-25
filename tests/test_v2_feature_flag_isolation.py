@@ -32,7 +32,7 @@ from control_plane.operator_interface import OperatorInterface, OperatorConfig
 class TestV2FeatureFlagIsolation:
     """V2 Feature Flag Isolation Test Suite"""
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     def v2_objects_disabled(self):
         """Create V2 objects with enabled=False"""
         objects = {}

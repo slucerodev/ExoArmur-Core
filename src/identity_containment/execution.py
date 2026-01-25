@@ -82,8 +82,13 @@ class IdentityContainmentExecutor:
             return None
         
         # Verify approval binding
-        if not self.intent_service.verify_approval_binding(approval_id, intent.intent_hash):
-            logger.error(f"Approval {approval_id} not bound to intent {intent.intent_hash}")
+        intent_hash = intent.metadata.get("intent_hash")
+        if not intent_hash:
+            logger.error(f"Intent {intent.intent_id} has no intent_hash in metadata")
+            return None
+            
+        if not self.intent_service.verify_approval_binding(approval_id, intent_hash):
+            logger.error(f"Approval {approval_id} not bound to intent {intent.intent_id}")
             return None
         
         # Verify intent not expired

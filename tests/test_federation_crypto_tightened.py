@@ -6,6 +6,8 @@ Tests V2 federation crypto verification with deterministic time and isolated sta
 import pytest
 from datetime import datetime, timezone, timedelta
 
+pytestmark = pytest.mark.sensitive
+
 from src.federation.crypto import (
     FederateKeyPair,
     sign_message,

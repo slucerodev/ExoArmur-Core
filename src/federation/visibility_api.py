@@ -216,17 +216,33 @@ class VisibilityAPI:
                 # Convert to response format
                 belief_infos = []
                 for belief in beliefs:
-                    info = BeliefInfo(
-                        belief_id=belief.belief_id,
-                        belief_type=belief.belief_type,
-                        confidence=belief.confidence,
-                        source_observations=belief.source_observations,
-                        derived_at=belief.derived_at,
-                        correlation_id=belief.correlation_id,
-                        evidence_summary=belief.evidence_summary,
-                        conflicts=belief.conflicts,
-                        metadata=belief.metadata
-                    )
+                    # Handle both BeliefTelemetryV1 and BeliefV1
+                    if hasattr(belief, 'belief_type'):
+                        # BeliefV1
+                        info = BeliefInfo(
+                            belief_id=belief.belief_id,
+                            belief_type=belief.belief_type,
+                            confidence=belief.confidence,
+                            source_observations=belief.source_observations,
+                            derived_at=belief.derived_at,
+                            correlation_id=belief.correlation_id,
+                            evidence_summary=belief.evidence_summary,
+                            conflicts=getattr(belief, 'conflicts', []),
+                            metadata=getattr(belief, 'metadata', {})
+                        )
+                    else:
+                        # BeliefTelemetryV1 - convert to BeliefInfo format
+                        info = BeliefInfo(
+                            belief_id=belief.belief_id,
+                            belief_type=belief.claim_type,  # Map claim_type to belief_type
+                            confidence=belief.confidence,
+                            source_observations=list(belief.evidence_refs.get('event_ids', [])),  # Convert evidence_refs
+                            derived_at=belief.first_seen,  # Use first_seen as derived_at
+                            correlation_id=belief.correlation_id,
+                            evidence_summary=f"Claim: {belief.claim_type}",  # Generate summary
+                            conflicts=[],  # BeliefTelemetryV1 doesn't have conflicts
+                            metadata={}  # BeliefTelemetryV1 doesn't have metadata
+                        )
                     belief_infos.append(info)
                 
                 return belief_infos

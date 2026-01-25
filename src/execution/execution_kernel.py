@@ -10,6 +10,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'contracts'))
 from models_v1 import LocalDecisionV1, ExecutionIntentV1
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ class ExecutionKernel:
             subject=local_decision.subject,
             intent_type="isolate_host",  # TODO: derive from decision
             action_class=action_class,
-            requested_at=datetime.utcnow(),
+            requested_at=utc_now(),
             parameters={"isolation_type": "network"},  # TODO: derive from decision
             policy_context={
                 "bundle_hash_sha256": "abc123...",  # TODO: get actual bundle

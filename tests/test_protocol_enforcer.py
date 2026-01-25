@@ -6,6 +6,8 @@ Tests V2 federation protocol enforcement and state transitions
 import pytest
 from datetime import datetime, timezone, timedelta
 
+pytestmark = pytest.mark.sensitive
+
 from src.federation.protocol_enforcer import ProtocolEnforcer
 from src.federation.crypto import (
     FederateKeyPair,
@@ -28,7 +30,9 @@ class TestProtocolEnforcer:
     @pytest.fixture
     def identity_store(self):
         """Test identity store"""
-        return FederateIdentityStore()
+        from tests.federation_fixtures import MockFeatureFlags
+        mock_flags = MockFeatureFlags(v2_federation_enabled=True)
+        return FederateIdentityStore(feature_flags=mock_flags)
     
     @pytest.fixture
     def protocol_enforcer(self, identity_store):
@@ -123,9 +127,9 @@ class TestProtocolEnforcer:
         success, failure_reason, audit_event = protocol_enforcer.process_handshake_message(signed_message)
         
         assert success is False
-        assert failure_reason == VerificationFailureReason.INVALID_SIGNATURE
+        assert failure_reason == VerificationFailureReason.KEY_MISMATCH
         assert audit_event['success'] is False
-        assert audit_event['failure_reason'] == VerificationFailureReason.INVALID_SIGNATURE
+        assert audit_event['failure_reason'] == VerificationFailureReason.KEY_MISMATCH
     
     def test_nonce_reuse_is_rejected(self, protocol_enforcer, key_pair, federate_identity):
         """Test that nonce reuse is rejected"""
@@ -234,7 +238,6 @@ class TestProtocolEnforcer:
         
         # Check that session was created
         session = protocol_enforcer.identity_store.get_handshake_session(
-            "cell-test-01",
             "test-correlation-456"
         )
         

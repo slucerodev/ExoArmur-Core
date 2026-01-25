@@ -16,10 +16,10 @@ class TelemetryEventV1(BaseModel):
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
-    event_id: str = Field(example="01J...", description="ULID event identifier")
-    tenant_id: str = Field(example="tenant_acme", description="Tenant identifier")
-    cell_id: str = Field(example="cell-okc-01", description="Cell identifier")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
+    event_id: str = Field(json_schema_extra={"example": "01J..."}, description="ULID event identifier")
+    tenant_id: str = Field(json_schema_extra={"example": "tenant_acme"}, description="Tenant identifier")
+    cell_id: str = Field(json_schema_extra={"example": "cell-okc-01"}, description="Cell identifier")
     observed_at: datetime = Field(description="When the event occurred")
     received_at: datetime = Field(description="When the event was received")
     source: Dict[str, Any] = Field(
@@ -31,7 +31,7 @@ class TelemetryEventV1(BaseModel):
             "sensor_id": "sensor-123"
         }]
     )
-    event_type: str = Field(example="process_start", description="Event type")
+    event_type: str = Field(json_schema_extra={"example": "process_start"}, description="Event type")
     severity: Literal["low", "medium", "high", "critical"] = Field(description="Severity level")
     attributes: Dict[str, Any] = Field(
         description="Unstructured vendor fields. Must be JSON-serializable and bounded by max_event_bytes."
@@ -65,9 +65,9 @@ class SignalFactsV1(BaseModel):
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
     facts_id: str = Field(description="ULID facts identifier")
-    derived_from_event_ids: List[str] = Field(min_items=1, description="Source event IDs")
+    derived_from_event_ids: List[str] = Field(min_length=1, description="Source event IDs")
     tenant_id: str = Field(description="Tenant identifier")
     cell_id: str = Field(description="Cell identifier")
     subject: Dict[str, Any] = Field(
@@ -96,12 +96,12 @@ class SignalFactsV1(BaseModel):
         return v
 
 
-class BeliefV1(BaseModel):
+class BeliefTelemetryV1(BaseModel):
     """Evidence-backed claim emitted by a cell and propagated through the mesh."""
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
     belief_id: str = Field(description="ULID belief identifier")
     tenant_id: str = Field(description="Tenant identifier")
     emitter_node_id: str = Field(description="Node ID of the emitter")
@@ -112,7 +112,7 @@ class BeliefV1(BaseModel):
             "subject_id": "host-123"
         }]
     )
-    claim_type: str = Field(example="c2_beaconing", description="Type of claim")
+    claim_type: str = Field(json_schema_extra={"example": "c2_beaconing"}, description="Type of claim")
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence score")
     severity: Literal["low", "medium", "high", "critical"] = Field(description="Severity level")
     evidence_refs: Dict[str, Any] = Field(
@@ -159,7 +159,7 @@ class LocalDecisionV1(BaseModel):
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
     decision_id: str = Field(description="ULID decision identifier")
     tenant_id: str = Field(description="Tenant identifier")
     cell_id: str = Field(description="Cell identifier")
@@ -210,7 +210,7 @@ class ExecutionIntentV1(BaseModel):
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
     intent_id: str = Field(description="ULID intent identifier")
     tenant_id: str = Field(description="Tenant identifier")
     cell_id: str = Field(description="Cell identifier")
@@ -222,7 +222,7 @@ class ExecutionIntentV1(BaseModel):
             "subject_id": "host-123"
         }]
     )
-    intent_type: str = Field(example="isolate_host", description="Type of intent")
+    intent_type: str = Field(json_schema_extra={"example": "isolate_host"}, description="Type of intent")
     action_class: Literal["A0_observe", "A1_soft_containment", "A2_hard_containment", "A3_irreversible"] = Field(
         description="Action class"
     )
@@ -266,14 +266,14 @@ class AuditRecordV1(BaseModel):
     
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    schema_version: str = Field(example="1.0.0", description="Schema version")
+    schema_version: str = Field(json_schema_extra={"example": "1.0.0"}, description="Schema version")
     audit_id: str = Field(description="ULID audit identifier")
     tenant_id: str = Field(description="Tenant identifier")
     cell_id: str = Field(description="Cell identifier")
     idempotency_key: str = Field(description="Idempotency key")
     recorded_at: datetime = Field(description="When the record was recorded")
     event_kind: str = Field(
-        example="telemetry_ingested",
+        json_schema_extra={"example": "telemetry_ingested"},
         description="Type of event being audited"
     )
     payload_ref: Dict[str, Any] = Field(
@@ -501,6 +501,7 @@ class HandshakeSessionV1(BaseModel):
     federate_id: str = Field(description="Federate identifier")
     correlation_id: str = Field(description="Handshake correlation ID")
     state: HandshakeState = Field(description="Current handshake state")
+    step_index: int = Field(default=0, description="Current step index in handshake")
     created_at: datetime = Field(description="Session creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
     expires_at: Optional[datetime] = Field(default=None, description="Session expiration")
@@ -588,7 +589,7 @@ class ObservationV1(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     schema_version: str = Field(default="2.0.0", description="Schema version")
-    observation_id: str = Field(example="obs_01J...", description="Observation identifier")
+    observation_id: str = Field(json_schema_extra={"example": "obs_01J..."}, description="Observation identifier")
     source_federate_id: str = Field(description="Federate identifier that created this observation")
     timestamp_utc: datetime = Field(description="Observation timestamp in UTC")
     
@@ -632,7 +633,7 @@ class BeliefV1(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     schema_version: str = Field(default="2.0.0", description="Schema version")
-    belief_id: str = Field(example="belief_01J...", description="Belief identifier")
+    belief_id: str = Field(json_schema_extra={"example": "belief_01J..."}, description="Belief identifier")
     belief_type: str = Field(description="Type of belief")
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence in belief")
     source_observations: List[str] = Field(description="List of observation IDs that contributed to this belief")
@@ -672,7 +673,7 @@ class ArbitrationV1(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     schema_version: str = Field(default="2.0.0", description="Schema version")
-    arbitration_id: str = Field(example="arb_01J...", description="Arbitration identifier")
+    arbitration_id: str = Field(json_schema_extra={"example": "arb_01J..."}, description="Arbitration identifier")
     created_at_utc: datetime = Field(description="When arbitration was created")
     
     @field_serializer('created_at_utc')
@@ -836,6 +837,7 @@ __all__ = [
     'TelemetryEventV1',
     'SignalFactsV1',
     'BeliefV1',
+    'BeliefTelemetryV1',
     'LocalDecisionV1',
     'ExecutionIntentV1',
     'AuditRecordV1',

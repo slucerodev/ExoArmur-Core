@@ -158,7 +158,7 @@ class TestCoordinationModels:
         )
         
         # Invalid confidence should fail
-        with pytest.raises(ValidationError, match="Confidence must be between 0.0 and 1.0"):
+        with pytest.raises(ValidationError, match="Input should be less than or equal to 1"):
             CoordinationObservation(
                 observer_cell_id="cell-2",
                 observation_type="resource_usage",

@@ -171,11 +171,14 @@ class ProtocolEnforcer:
         failed_state = failure_state_map.get(failure_reason, HandshakeState.FAILED_PROTOCOL_VIOLATION)
         
         # Update handshake session state
-        self.identity_store.update_handshake_session(
-            federate_id=federate_id,
-            correlation_id=correlation_id,
+        session_id = correlation_id  # Use correlation_id as session_id
+        success = self.identity_store.update_handshake_session(
+            session_id=session_id,
             new_state=failed_state
         )
+        
+        if not success:
+            logger.warning(f"Failed to update session {session_id} - session not found")
         
         logger.warning(f"Handshake failed for {federate_id}: {failure_reason} -> {failed_state}")
         
@@ -204,10 +207,8 @@ class ProtocolEnforcer:
             return False, failure_reason, audit_event
         
         # 2. Check if state transition is allowed
-        current_session = self.identity_store.get_handshake_session(
-            message.federate_id,
-            message.correlation_id
-        )
+        session_id = message.correlation_id  # Use correlation_id as session_id
+        current_session = self.identity_store.get_handshake_session(session_id)
         
         if current_session is None:
             # Create new session for identity exchange
@@ -221,12 +222,40 @@ class ProtocolEnforcer:
                 )
                 return False, failure_reason, audit_event.to_dict()
             
-            # Create new session
-            self.identity_store.create_handshake_session(
-                federate_id=message.federate_id,
-                correlation_id=message.correlation_id,
-                initial_state=HandshakeState.IDENTITY_EXCHANGE
+            # Create new session - need initiator and responder
+            # For identity exchange, we only have the initiator
+            initiator_id = message.federate_id
+            responder_id = initiator_id  # Use same ID for now (self-handshake)
+            
+            session = self.identity_store.create_handshake_session(
+                session_id=session_id,
+                initiator_cell_id=initiator_id,
+                responder_cell_id=responder_id
             )
+            
+            if session is None:
+                failure_reason = "Failed to create handshake session"
+                audit_event = emit_verification_audit_event(
+                    event_type="session_creation_failure",
+                    message=message,
+                    success=False,
+                    failure_reason=failure_reason
+                )
+                return False, failure_reason, audit_event.to_dict()
+            
+            # Advance state for newly created session
+            new_state = self._get_next_state(session.state, message.msg_type)
+            logger.info(f"Advancing new session {session_id} from {session.state} to {new_state}")
+            success = self.identity_store.update_handshake_session(
+                session_id=session_id,
+                new_state=new_state
+            )
+            
+            if not success:
+                logger.warning(f"Failed to advance new session {session_id} to {new_state}")
+                return False, "State transition failed", audit_event.to_dict()
+            else:
+                logger.info(f"Successfully advanced new session {session_id} to {new_state}")
         else:
             # Check state transition
             can_advance, reason = self.can_advance_handshake_state(
@@ -251,11 +280,17 @@ class ProtocolEnforcer:
             
             # Advance state
             new_state = self._get_next_state(current_session.state, message.msg_type)
-            self.identity_store.update_handshake_session(
-                federate_id=message.federate_id,
-                correlation_id=message.correlation_id,
+            logger.info(f"Advancing session {session_id} from {current_session.state} to {new_state}")
+            success = self.identity_store.update_handshake_session(
+                session_id=session_id,
                 new_state=new_state
             )
+            
+            if not success:
+                logger.warning(f"Failed to advance session {session_id} to {new_state}")
+                return False, "State transition failed", audit_event.to_dict()
+            else:
+                logger.info(f"Successfully advanced session {session_id} to {new_state}")
         
         return True, None, audit_event
     

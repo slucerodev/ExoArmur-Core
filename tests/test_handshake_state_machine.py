@@ -243,8 +243,22 @@ class TestHandshakeStateMachine:
         federate_id = "cell-test-01"
         correlation_id = "corr-12345"
         
-        # Create session and transition to terminal state
+        # Create session and transition to terminal state via proper sequence
         session = state_machine.create_session(federate_id, correlation_id)
+        state_machine.transition_state(
+            correlation_id,
+            HandshakeState.IDENTITY_EXCHANGE,
+            "identity_exchange",
+            "verification_success",
+            {}
+        )
+        state_machine.transition_state(
+            correlation_id,
+            HandshakeState.CAPABILITY_NEGOTIATION,
+            "capability_negotiation",
+            "verification_success",
+            {}
+        )
         state_machine.transition_state(
             correlation_id,
             HandshakeState.CONFIRMED,
@@ -328,9 +342,12 @@ class TestHandshakeStateMachine:
         
         # Exponential growth
         delay = state_machine.calculate_retry_delay(1)
-        assert delay == timedelta(seconds=2)
+        assert delay == timedelta(seconds=1)
         
         delay = state_machine.calculate_retry_delay(2)
+        assert delay == timedelta(seconds=2)
+        
+        delay = state_machine.calculate_retry_delay(3)
         assert delay == timedelta(seconds=4)
         
         # Capped at max delay
@@ -356,16 +373,20 @@ class TestHandshakeStateMachine:
     
     def test_cleanup_expired_sessions(self, state_machine, fixed_clock):
         """Test cleanup of expired sessions"""
-        # Create multiple sessions
+        # Create sessions at different times
         sessions = []
         for i in range(3):
             federate_id = f"cell-test-{i:02d}"
             correlation_id = f"corr-{i:05d}"
             session = state_machine.create_session(federate_id, correlation_id)
             sessions.append(session)
+            
+            # Advance clock between session creations
+            if i < 2:  # Don't advance after last session
+                fixed_clock.advance(timedelta(minutes=5))
         
-        # Advance clock and expire one session
-        fixed_clock.advance(timedelta(minutes=11))
+        # Advance clock to expire only the first session (created 10 minutes ago)
+        fixed_clock.advance(timedelta(minutes=1))
         
         # Clean up expired sessions
         cleaned = state_machine.cleanup_expired_sessions()

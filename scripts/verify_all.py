@@ -2,7 +2,7 @@
 """
 Verify All - Comprehensive validation script for ExoArmur
 
-Runs lint, tests, schema validation, golden demo, and replay checks.
+Runs verify_all test suite (full suite, no ignores) as defined in docs/TEST_SUITES.md
 """
 
 import subprocess
@@ -56,31 +56,48 @@ def main():
     
     results = []
     
-    # 1. Python syntax check
+    # 1. Import sanity check
     results.append(run_command(
-        "python3 -m py_compile src/federation/*.py",
-        "Python Syntax Check"
+        """python3 -c "
+# V1 Core imports
+from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
+
+# Core system imports  
+from src.audit import AuditLogger, NoOpAuditInterface, FederationAuditInterface
+from src.replay import ReplayEngine
+from src.safety import SafetyGate
+
+# Federation interface imports
+from src.federation import FederateIdentityStore, HandshakeStateMachine
+
+# Approval/safety gate imports
+from src.analysis import FactsDeriver
+from src.beliefs import BeliefGenerator
+from src.collective_confidence import CollectiveConfidenceAggregator
+
+print('✅ All core imports successful')
+print('✅ V1 Core: TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1')
+print('✅ Audit: AuditLogger, NoOpAuditInterface, FederationAuditInterface, ReplayEngine')  
+print('✅ Safety: SafetyGate')
+print('✅ Federation: FederateIdentityStore, HandshakeStateMachine')
+print('✅ Analysis: FactsDeriver, BeliefGenerator, CollectiveConfidenceAggregator')
+" """,
+        "Import Sanity Check"
     ))
     
-    # 2. Import check
+    # 2. verify_all test suite (full suite, no ignores)
     results.append(run_command(
-        "python3 -c \"import src.federation.handshake_controller; import src.federation.observation_ingest; import src.federation.belief_aggregation; import src.federation.arbitration_service; print('All imports successful')\"",
-        "Import Validation"
+        "python3 -m pytest tests/ --tb=short",
+        "verify_all Test Suite"
     ))
     
-    # 3. Unit tests (Phase 2 only)
-    results.append(run_command(
-        "python3 -m pytest tests/test_observation_ingest.py tests/test_belief_aggregation.py tests/test_visibility_api.py tests/test_arbitration.py tests/test_constitutional_invariants.py tests/test_boundary_enforcement.py tests/test_replay_determinism.py tests/test_federate_identity_store.py tests/test_handshake_controller.py -v --tb=short",
-        "Unit Tests (Phase 2)"
-    ))
-    
-    # 4. Schema validation
+    # 3. Schema validation
     results.append(run_command(
         "python3 -c \"from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ObservationV1, ArbitrationV1; print('Schema validation passed')\"",
         "Schema Validation"
     ))
     
-    # 5. V1 Golden Demo (if exists)
+    # 4. V1 Golden Demo (if exists)
     if os.path.exists("tests/test_golden_demo.py"):
         results.append(run_command(
             "python3 -m pytest tests/test_golden_demo.py -v",
@@ -90,19 +107,19 @@ def main():
         print("\n⚠️  V1 Golden Demo test not found - skipping")
         results.append(True)  # Don't fail for missing test
     
-    # 6. Replay determinism test
+    # 5. Replay determinism test
     results.append(run_command(
         "python3 -m pytest tests/test_replay_determinism.py -v",
         "Replay Determinism"
     ))
     
-    # 7. Constitutional invariants test
+    # 6. Constitutional invariants test
     results.append(run_command(
         "python3 -m pytest tests/test_constitutional_invariants.py -v",
         "Constitutional Invariants"
     ))
     
-    # 8. Boundary enforcement test
+    # 7. Boundary enforcement test
     results.append(run_command(
         "python3 -m pytest tests/test_boundary_enforcement.py -v",
         "Boundary Enforcement"

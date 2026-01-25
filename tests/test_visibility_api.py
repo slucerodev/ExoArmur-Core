@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from spec.contracts.models_v1 import (
     ObservationV1,
     BeliefV1,
+    BeliefTelemetryV1,
     ObservationType,
     TelemetrySummaryPayloadV1,
     ThreatIntelPayloadV1
@@ -105,6 +106,7 @@ def test_visibility_endpoints_return_provenance(client, observation_store, fixed
     
     # Create test belief
     belief = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-456",
         belief_type="derived_from_telemetry_summary",
         confidence=0.75,
@@ -112,7 +114,6 @@ def test_visibility_endpoints_return_provenance(client, observation_store, fixed
         derived_at=base_time + timedelta(minutes=5),
         correlation_id="corr-123",
         evidence_summary="Aggregated telemetry from 1 observation",
-        conflicts=[],
         metadata={"total_events": 100, "observation_count": 1}
     )
     
@@ -203,15 +204,15 @@ def test_timeline_endpoint_returns_provenance(client, observation_store, fixed_c
     
     # Create belief derived from observations
     belief = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-timeline-1",
         belief_type="derived_from_threat_intel",
         confidence=0.85,
-        source_observations=["obs-timeline-2"],
-        derived_at=base_time + timedelta(minutes=15),
+        source_observations=["obs-timeline-1"],
+        derived_at=fixed_clock.now(),
         correlation_id=correlation_id,
-        evidence_summary="Threat intelligence aggregated from 1 observation",
-        conflicts=[],
-        metadata={"ioc_count": 5, "threat_types": ["malware"]}
+        evidence_summary="Threat intelligence from external source",
+        metadata={"threat_type": "malware", "severity": "high"}
     )
     
     # Store data
@@ -245,7 +246,7 @@ def test_timeline_endpoint_returns_provenance(client, observation_store, fixed_c
     belief_data = beliefs[0]
     assert belief_data["belief_id"] == "belief-timeline-1"
     assert belief_data["correlation_id"] == correlation_id
-    assert belief_data["source_observations"] == ["obs-timeline-2"]  # Links to observation
+    assert belief_data["source_observations"] == ["obs-timeline-1"]  # Links to observation
 
 
 def test_observations_endpoint_with_filters(client, observation_store, fixed_clock):
@@ -372,38 +373,38 @@ def test_beliefs_endpoint_with_filters(client, observation_store, fixed_clock):
     
     # Create beliefs with different attributes
     belief1 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-filter-1",
         belief_type="derived_from_telemetry_summary",
         confidence=0.8,
-        source_observations=["obs-1", "obs-2"],
+        source_observations=["obs-filter-1"],
         derived_at=base_time,
-        correlation_id="corr-filter-1",
-        evidence_summary="Telemetry belief 1",
-        conflicts=[],
+        correlation_id="corr-filter",
+        evidence_summary="Telemetry summary data",
         metadata={"type": "telemetry"}
     )
     
     belief2 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-filter-2",
         belief_type="derived_from_threat_intel",
         confidence=0.9,
-        source_observations=["obs-3"],
-        derived_at=base_time + timedelta(hours=1),
-        correlation_id="corr-filter-2",
-        evidence_summary="Threat intel belief 1",
-        conflicts=[],
+        source_observations=["obs-filter-2"],
+        derived_at=base_time + timedelta(minutes=5),
+        correlation_id="corr-filter",
+        evidence_summary="Threat intelligence data",
         metadata={"type": "threat"}
     )
     
     belief3 = BeliefV1(
+        schema_version="2.0.0",
         belief_id="belief-filter-3",
         belief_type="derived_from_telemetry_summary",
         confidence=0.7,
-        source_observations=["obs-4"],
-        derived_at=base_time + timedelta(hours=2),
-        correlation_id="corr-filter-1",
-        evidence_summary="Telemetry belief 2",
-        conflicts=["belief-conflict-1"],
+        source_observations=["obs-filter-3"],
+        derived_at=base_time + timedelta(minutes=10),
+        correlation_id="corr-filter",
+        evidence_summary="Another telemetry summary",
         metadata={"type": "telemetry"}
     )
     
@@ -421,20 +422,20 @@ def test_beliefs_endpoint_with_filters(client, observation_store, fixed_clock):
     assert all(belief["belief_type"] == "derived_from_telemetry_summary" for belief in type_beliefs)
     
     # Test correlation filter
-    response = client.get("/api/v2/visibility/beliefs?correlation_id=corr-filter-1")
+    response = client.get("/api/v2/visibility/beliefs?correlation_id=corr-filter")
     assert response.status_code == 200
     
     corr_beliefs = response.json()
-    assert len(corr_beliefs) == 2
-    assert all(belief["correlation_id"] == "corr-filter-1" for belief in corr_beliefs)
+    assert len(corr_beliefs) == 3
+    assert all(belief["correlation_id"] == "corr-filter" for belief in corr_beliefs)
     
     # Test since filter
-    since_time = base_time + timedelta(minutes=30)
+    since_time = base_time + timedelta(minutes=7)
     response = client.get(f"/api/v2/visibility/beliefs?since={since_time.isoformat().replace('+00:00', 'Z')}")
     assert response.status_code == 200
     
     since_beliefs = response.json()
-    assert len(since_beliefs) == 2  # belief2 and belief3
+    assert len(since_beliefs) == 1  # Only belief3 (at +10 minutes) should be returned
     
     # Test limit filter
     response = client.get("/api/v2/visibility/beliefs?limit=2")

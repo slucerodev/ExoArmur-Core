@@ -12,6 +12,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'contracts'))
 from models_v1 import AuditRecordV1
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ class AuditLogger:
             tenant_id=tenant_id,
             cell_id=cell_id,
             idempotency_key=idempotency_key,
-            recorded_at=datetime.utcnow(),
+            recorded_at=utc_now(),
             event_kind=event_kind,
             payload_ref=payload_ref,
             hashes={

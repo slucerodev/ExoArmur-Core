@@ -15,6 +15,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
+from src.clock import utc_now
+
 from src.api_models import (
     TelemetryIngestResponseV1,
     AuditResponseV1,
@@ -32,7 +34,7 @@ class TestTelemetryIngestResponseV1:
             accepted=True,
             correlation_id="corr-123",
             event_id="01J4NR5X9Z8GABCDEF12345678",
-            processed_at=datetime.utcnow(),
+            processed_at=utc_now(),
             trace_id="trace-123"
         )
         
@@ -49,7 +51,7 @@ class TestTelemetryIngestResponseV1:
             correlation_id="corr-123",
             event_id="01J4NR5X9Z8GABCDEF12345678",
             belief_id="01J4NR5X9Z8GABCDEF12345679",
-            processed_at=datetime.utcnow(),
+            processed_at=utc_now(),
             trace_id="trace-123"
         )
         
@@ -62,7 +64,7 @@ class TestTelemetryIngestResponseV1:
                 accepted=True,
                 correlation_id="corr-123",
                 event_id="01J4NR5X9Z8GABCDEF12345678",
-                processed_at=datetime.utcnow(),
+                processed_at=utc_now(),
                 trace_id="trace-123",
                 extra_field="not_allowed"
             )
@@ -86,7 +88,7 @@ class TestAuditResponseV1:
             correlation_id="corr-123",
             audit_records=[],
             total_count=0,
-            retrieved_at=datetime.utcnow()
+            retrieved_at=utc_now()
         )
         
         assert response.correlation_id == "corr-123"
@@ -101,7 +103,7 @@ class TestAuditResponseV1:
             tenant_id="tenant-acme",
             cell_id="cell-okc-01",
             idempotency_key="idemp-123",
-            recorded_at=datetime.utcnow(),
+            recorded_at=utc_now(),
             event_kind="telemetry_ingested",
             payload_ref={"kind": "inline", "ref": "payload-data"},
             hashes={"sha256": "abc123"},
@@ -113,7 +115,7 @@ class TestAuditResponseV1:
             correlation_id="corr-123",
             audit_records=[audit_record],
             total_count=1,
-            retrieved_at=datetime.utcnow()
+            retrieved_at=utc_now()
         )
         
         assert len(response.audit_records) == 1
@@ -127,7 +129,7 @@ class TestAuditResponseV1:
                 correlation_id="corr-123",
                 audit_records=[],
                 total_count=0,
-                retrieved_at=datetime.utcnow(),
+                retrieved_at=utc_now(),
                 extra_field="not_allowed"
             )
 
@@ -140,7 +142,7 @@ class TestErrorResponseV1:
         error = ErrorResponseV1(
             error="ValidationError",
             message="Invalid input data",
-            timestamp=datetime.utcnow()
+            timestamp=utc_now()
         )
         
         assert error.error == "ValidationError"
@@ -153,7 +155,7 @@ class TestErrorResponseV1:
             error="ProcessingError",
             message="Failed to process telemetry",
             correlation_id="corr-123",
-            timestamp=datetime.utcnow()
+            timestamp=utc_now()
         )
         
         assert error.correlation_id == "corr-123"
@@ -164,6 +166,6 @@ class TestErrorResponseV1:
             ErrorResponseV1(
                 error="ValidationError",
                 message="Invalid input data",
-                timestamp=datetime.utcnow(),
+                timestamp=utc_now(),
                 extra_field="not_allowed"
             )

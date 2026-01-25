@@ -104,6 +104,8 @@ class CoordinationStateMachine:
                     scope=announcement.scope,
                     expiration_timestamp=announcement.expiration_timestamp
                 )
+                # Add owner to participants
+                session.participants.append(announcement.owner_cell_id)
                 self._sessions[announcement.coordination_id] = session
                 
                 self._emit_event(
@@ -279,6 +281,10 @@ class CoordinationStateMachine:
             
             session.observations.append(observation)
             session.updated_at = datetime.now(timezone.utc)
+            
+            # Add observer to participants if not already present
+            if observation.observer_cell_id not in session.participants:
+                session.participants.append(observation.observer_cell_id)
             
             self._emit_event(
                 "observation_added",

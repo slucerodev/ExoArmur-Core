@@ -8,6 +8,7 @@ import sys
 import os
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock
+from pydantic import ValidationError
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -83,19 +84,14 @@ class TestCoordinationStateMachine:
             affected_cells=["cell-1"]
         )
         
-        # Past expiration
-        announcement = CoordinationAnnouncement(
-            owner_cell_id="cell-1",
-            coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
-            scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) - timedelta(hours=1)
-        )
-        
-        result = machine.create_announcement(announcement)
-        
-        assert result.success is False
-        assert result.state == CoordinationState.UNCLAIMED
-        assert "Invalid announcement" in result.message
+        # Past expiration should fail at validation
+        with pytest.raises(ValidationError, match="Expiration must be in the future"):
+            announcement = CoordinationAnnouncement(
+                owner_cell_id="cell-1",
+                coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
+                scope=scope,
+                expiration_timestamp=datetime.now(timezone.utc) - timedelta(hours=1)
+            )
     
     def test_claim_coordination_success(self):
         """Test successful coordination claim"""
@@ -399,7 +395,7 @@ class TestCoordinationStateMachine:
         assert status["state"] == "unclaimed"
         assert status["coordinator_cell_id"] == "cell-1"
         assert status["coordination_type"] == "temporary_coordination"
-        assert status["participants"] == []
+        assert status["participants"] == ["cell-1"]
         assert status["is_expired"] is False
         assert status["observation_count"] == 0
         assert status["intent_count"] == 0

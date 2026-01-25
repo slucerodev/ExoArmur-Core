@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
+from src.clock import utc_now
+
 from src.analysis.facts_deriver import FactsDeriver
 from models_v1 import TelemetryEventV1, SignalFactsV1
 
@@ -29,8 +31,8 @@ class TestFactsDerivation:
             event_id="01J4NR5X9Z8GABCDEF12345678",
             tenant_id="tenant-acme",
             cell_id="cell-okc-01",
-            observed_at=datetime.utcnow(),
-            received_at=datetime.utcnow(),
+            observed_at=utc_now(),
+            received_at=utc_now(),
             source={
                 "kind": "edr",
                 "name": "crowdstrike",
@@ -94,8 +96,8 @@ class TestFactsDerivation:
                 event_id="01J4NR5X9Z8GABCDEF12345678",
                 tenant_id="tenant-acme",
                 cell_id="cell-okc-01",
-                observed_at=datetime.utcnow(),
-                received_at=datetime.utcnow(),
+                observed_at=utc_now(),
+                received_at=utc_now(),
                 source={"kind": "edr", "name": "test"},
                 event_type="process_start",
                 severity=severity,
@@ -118,8 +120,8 @@ class TestFactsDerivation:
                 event_id="01J4NR5X9Z8GABCDEF12345678",
                 tenant_id="tenant-acme",
                 cell_id="cell-okc-01",
-                observed_at=datetime.utcnow(),
-                received_at=datetime.utcnow(),
+                observed_at=utc_now(),
+                received_at=utc_now(),
                 source={"kind": source_kind, "name": "test"},
                 event_type="process_start",
                 severity="medium",

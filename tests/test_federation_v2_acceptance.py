@@ -46,7 +46,7 @@ class TestFederationFormationAcceptance:
     This should fail until Phase 2 is fully implemented.
     """
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 federation"""
         flags = get_feature_flags()
@@ -60,7 +60,7 @@ class TestFederationFormationAcceptance:
         
         return flags
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def federation_manager(self):
         """Federation manager for testing"""
         # Create federation manager with enabled=True
@@ -138,7 +138,7 @@ class TestFederationV2Acceptance:
     These are NOT future acceptance tests - they validate current isolation enforcement.
     """
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 federation"""
         flags = get_feature_flags()
@@ -152,7 +152,7 @@ class TestFederationV2Acceptance:
         
         return flags
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def federation_cells(self):
         """Multiple cells for federation testing"""
         cells = {}
@@ -179,7 +179,7 @@ class TestFederationV2Acceptance:
         
         return cells
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def sample_telemetry_events(self):
         """Sample telemetry events for federation testing"""
         events = []
@@ -354,12 +354,12 @@ if __name__ == "__main__":
 class TestFederationV2Compatibility:
     """V2 Federation Compatibility Test Suite (separate from xfail tests)"""
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 federation"""
         flags = get_feature_flags()
         
-        # Create context for testing
+        # Enable V2 federation for testing
         context = FeatureFlagContext(
             cell_id="test-cell-01",
             tenant_id="test-tenant",
@@ -368,7 +368,7 @@ class TestFederationV2Compatibility:
         
         return flags
     
-    @pytest.fixture(scope="class")
+    @pytest.fixture
     async def federation_cells(self):
         """Multiple cells for federation testing"""
         cells = {}

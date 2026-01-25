@@ -7,6 +7,8 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+pytestmark = pytest.mark.sensitive
+
 # Import fixtures from federation_fixtures
 from tests.federation_fixtures import (
     fixed_clock,

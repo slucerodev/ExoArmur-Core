@@ -3,7 +3,7 @@ ExoArmur FastAPI Service - Workflow 1 Implementation
 Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 import logging
 import sys
@@ -16,21 +16,34 @@ import uuid
 # Add contracts to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
+# Import clock for deterministic time handling
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+from clock import utc_now
+
 # Import contract models
 from models_v1 import TelemetryEventV1, AuditRecordV1
+
+# Import ICW API
+try:
+    from identity_containment.icw_api import get_icw_api
+except ImportError:
+    # Fallback if ICW API not available
+    def get_icw_api():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="ICW API not initialized")
 
 # Import API models
 from api_models import TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
 
 # Import internal modules
-from perception import TelemetryValidator
-from analysis import FactsDeriver
-from decision import LocalDecider
-from beliefs import BeliefGenerator
-from collective_confidence import CollectiveConfidenceAggregator
-from safety import SafetyGate
-from execution import ExecutionKernel
-from audit import AuditLogger
+from perception.validator import TelemetryValidator
+from analysis.facts_deriver import FactsDeriver
+from decision.local_decider import LocalDecider
+from beliefs.belief_generator import BeliefGenerator
+from collective_confidence.aggregator import CollectiveConfidenceAggregator
+from safety.safety_gate import SafetyGate
+from execution.execution_kernel import ExecutionKernel
+from audit.audit_logger import AuditLogger
 from nats_client import ExoArmurNATSClient, NATSConfig
 from control_plane.approval_service import ApprovalService
 from control_plane.intent_store import IntentStore
@@ -303,7 +316,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
             correlation_id=event.correlation_id,
             event_id=event.event_id,
             belief_id=belief.belief_id,
-            processed_at=datetime.utcnow(),
+            processed_at=utc_now(),
             trace_id=event.trace_id,
             approval_id=approval_id,
             approval_status="PENDING" if approval_id else None,
@@ -439,6 +452,85 @@ async def get_approval_status(approval_id: str):
         
     except Exception as e:
         logger.error(f"Failed to retrieve approval status for {approval_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ICW API Routes (V2 Feature-Flagged Endpoints)
+@app.get("/api/v2/identity_containment/status")
+async def get_containment_status(subject_id: str = Query(...), provider: str = Query(...)):
+    """Get containment status for a subject"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.get_containment_status(subject_id, provider)
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to get containment status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/identity_containment/recommendations")
+async def create_recommendation(request: Dict[str, Any]):
+    """Create containment recommendation"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.create_recommendation(request)
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to create recommendation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/identity_containment/intents/from_recommendation")
+async def create_intent_from_recommendation(request: Dict[str, Any]):
+    """Create intent from recommendation"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.create_intent_from_recommendation(request)
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to create intent from recommendation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v2/identity_containment/intents/{intent_id}")
+async def get_intent(intent_id: str):
+    """Get intent details"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.get_intent(intent_id)
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to get intent {intent_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/identity_containment/tick")
+async def tick():
+    """Process expirations and revert expired containments"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.tick()
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to process tick: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/identity_containment/execute/{approval_id}")
+async def execute_approval(approval_id: str):
+    """Execute containment with approval"""
+    try:
+        icw_api = get_icw_api()
+        return await icw_api.execute_approval(approval_id)
+    except Exception as e:
+        if hasattr(e, 'status_code'):
+            raise e
+        logger.error(f"Failed to execute approval {approval_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

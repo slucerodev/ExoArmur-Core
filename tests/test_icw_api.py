@@ -5,7 +5,7 @@ Tests for Identity Containment Window (ICW) API endpoints
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 import sys
 import os
 
@@ -30,6 +30,13 @@ class TestICWAPI:
         """Mock ICW API"""
         api = Mock(spec=IdentityContainmentAPI)
         api.feature_flag_enabled = True
+        # Configure async methods to return coroutines
+        api.get_containment_status = AsyncMock()
+        api.create_recommendation = AsyncMock()
+        api.create_intent_from_recommendation = AsyncMock()
+        api.get_intent = AsyncMock()
+        api.tick = AsyncMock()
+        api.execute_approval = AsyncMock()
         return api
     
     def test_feature_flag_off_returns_404(self, client):
@@ -38,6 +45,8 @@ class TestICWAPI:
         with patch('main.get_icw_api') as mock_get_api:
             mock_api = Mock(spec=IdentityContainmentAPI)
             mock_api._check_feature_flag.side_effect = HTTPException(status_code=404, detail="Feature not enabled")
+            # Configure async methods to avoid recursion
+            mock_api.get_containment_status = AsyncMock(side_effect=HTTPException(status_code=404, detail="Feature not enabled"))
             mock_get_api.return_value = mock_api
             
             # Try to access ICW endpoint
