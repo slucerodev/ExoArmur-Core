@@ -1,209 +1,53 @@
-# ExoArmur ADMO
+# ExoArmur 3.0
 
-Autonomous Defense Mesh Organism
+Autonomous Defense Mesh Organism (ADMO)
 
-## Overview
+ExoArmur is an enterprise-grade autonomous defense/orchestration platform implemented as a distributed mesh of autonomous cells. This repository contains the ExoArmur 3.0 codebase (V1 contracts are stable; V2 federation scaffolding is additive and feature-flagged).
 
-ExoArmur is an enterprise-grade autonomous defense/orchestration platform that operates as a distributed mesh of autonomous defensive cells. Each cell makes independent decisions following organism laws, with coordination achieved through belief propagation rather than centralized command distribution.
+Project site (GitHub Pages): https://CYLIX-V2.github.io/ExoArmur-3.0
 
-## Architecture
+Overview
 
-ExoArmur follows the core organism loop:
-**TelemetryEventV1** → **SignalFactsV1** → **BeliefV1** → **CollectiveConfidence** → **SafetyGate** → **ExecutionIntentV1** → **AuditRecordV1**
+- Cognition pipeline: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
+- Design goals: deterministic behavior, auditable decision trails, human-in-the-loop for critical actions, and strict governance for changes.
 
-Key architectural principles:
-- No central brain; cognition is per-cell
-- Belief propagation, not command distribution
-- Deterministic behavior and replay capability
-- Human-in-the-loop for critical decisions
+Quick start
 
-## Current Implementation Status
-
-### ✅ Phase 2: Federation Foundation (Complete)
-- **Handshake Protocol**: Secure federate identity establishment with cryptographic verification
-- **Identity Management**: Federate identity store with trust scoring and capability negotiation  
-- **Message Security**: End-to-end encryption and signature verification for all federation messages
-- **Replay Protection**: Nonce-based replay attack prevention
-- **Audit Trail**: Complete audit events for all federation operations
-
-### ✅ Phase 2B: Coordination Visibility (Complete)
-- **Observation Ingest**: Signed observation ingestion with validation and storage
-- **Belief Aggregation**: Deterministic belief generation from observations with provenance tracking
-- **Visibility API**: Read-only REST API for federation coordination visibility
-- **Conflict Detection**: Automatic detection of conflicting beliefs with deterministic conflict keys
-- **Correlation Tracking**: Timeline views and correlation ID-based event grouping
-
-### ✅ Phase 2C: Arbitration (Complete)
-- **Conflict Arbitration**: Human-in-the-loop resolution of belief conflicts
-- **Approval Integration**: A3-level human approval required for all conflict resolutions
-- **Deterministic Resolution**: Reproducible post-resolution belief states
-- **Audit Completeness**: Full audit trail for arbitration lifecycle
-
-### ✅ Phase 3: Execution & Enforcement (Complete)
-- **Safety Gate**: Policy enforcement with arbitration precedence (KillSwitch > PolicyVerification > SafetyGate > PolicyAuthorization > TrustConstraints > CollectiveConfidence > LocalDecision)
-- **Execution Engine**: Intent execution with idempotency and audit trails
-- **Control Plane**: Human approval workflows with intent freezing and binding
-- **Policy Engine**: Rule evaluation and decision making with safety constraints
-- **Collective Confidence**: Quorum-based decision aggregation
-
-### 🔄 Phase 4: Advanced Capabilities (Planning)
-Future enhancements may include:
-- Machine learning-based analysis and predictions
-- Advanced automation capabilities
-- Extended defensive measures
-
-### 📊 Test Coverage
-- **299 tests passing** across all components
-- **Constitutional invariants** enforced
-- **Boundary enforcement** between federation and execution layers
-- **Deterministic replay** capability verified
-- **Feature flag isolation** tested
-
-## Safety Guarantees
-- All execution requires human approval (A3) unless explicitly permitted
-- Kill switches can override all automation
-- Policy violations force escalation
-- Audit trail continues through execution phase
-
-## Development
-
-### Quick Start
 ```bash
-# Run all verification checks
+# Run verification checks
 make verify
 
-# Run tests only
+# Run tests
 make test
 
-# Run specific test suite
+# Run a specific test
 python3 -m pytest tests/test_constitutional_invariants.py -v
 ```
 
-### Project Structure
-```
-src/federation/          # Federation coordination (Phase 2)
-├── handshake_controller.py
-├── observation_ingest.py
-├── belief_aggregation.py
-├── arbitration_service.py
-└── visibility_api.py
-
-spec/contracts/          # Data contracts and models
-├── models_v1.py        # Core ADMO models
-└── feature_flags_v2.yaml
-
-tests/                   # Comprehensive test suite
-├── test_constitutional_invariants.py
-├── test_boundary_enforcement.py
-├── test_replay_determinism.py
-└── test_*.py
-
-docs/                    # Documentation
-├── COORDINATION_VISIBILITY.md
-├── ARBITRATION.md
-├── AUDIT_EVENT_CATALOG.md
-└── FEATURE_FLAGS.md
-```
-
-### Feature Flags
-All V2 features are disabled by default and require explicit enablement:
+Demo (V2 restrained autonomy)
 
 ```bash
-# Enable federation features
-export EXOARMUR_V2_FEDERATION_ENABLED=true
-
-# Enable observation ingest
-export EXOARMUR_V2_OBSERVATION_INGEST_ENABLED=true
-
-# Enable arbitration
-export EXOARMUR_V2_ARBITRATION_ENABLED=true
-```
-
-See [docs/FEATURE_FLAGS.md](docs/FEATURE_FLAGS.md) for complete flag matrix.
-
-## 🚀 V2 Restrained Autonomy Demo
-
-This demo showcases ExoArmur's V2 restrained autonomy capabilities with human-in-the-loop approval and deterministic audit trails.
-
-### What This Demo Proves
-
-- **Restrained Autonomy**: No action executes without explicit operator approval
-- **Deterministic Audit Trail**: Every decision is recorded with reproducible outcomes
-- **Replay Capability**: Audit streams can be replayed to verify identical results
-- **Idempotency**: Actions execute at most once per intent, preventing duplicates
-
-### Quick Start (Copy/Paste)
-
-**A) Flags OFF → Demo Refuses (Expected)**
-```bash
+# Run the V2 demo (feature flags may be required)
 python3 scripts/demo_v2_restrained_autonomy.py
-# Expected: "❌ V2 restrained autonomy is disabled"
 ```
 
-**B) Flags ON + Operator DENY (Safe)**
-```bash
-EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
-EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
-EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
-PYTHONPATH=/path/to/ExoArmur/src:/path/to/ExoArmur/spec/contracts \
-python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny
-# Expected: "DEMO_RESULT=DENIED" and "AUDIT_STREAM_ID=<id>"
-```
+Repository structure
 
-**C) Replay Using Audit Stream ID**
-```bash
-# Use the AUDIT_STREAM_ID from step (B)
-python3 scripts/demo_v2_restrained_autonomy.py --replay <audit_stream_id>
-# Expected: "REPLAY_VERIFIED=true"
-```
+- src/ - implementation code (federation scaffolding, controllers)
+- spec/contracts/ - canonical ADMO contract schemas and models
+- tests/ - test suite and acceptance gates
+- docs/ - documentation site (published to GitHub Pages)
 
-### Run Tests
+Publishing the docs
 
-```bash
-# V2 demo tests only
-python3 -m pytest tests/test_v2_restrained_autonomy.py -v
+This repository is configured to publish the contents of the `docs/` folder to GitHub Pages via an Actions workflow. After pushing to the `main` branch the site should publish automatically; allow a minute for the workflow to complete.
 
-# Full test suite
-python3 -m pytest tests/ -v
+Contributing
 
-# Boundary gate tests (sensitive)
-python3 -m pytest tests/ -v -m "sensitive"
-```
+- V1 contracts are immutable
+- V2 work must be additive and feature-flagged (default OFF)
+- All changes require tests and must preserve constitutional invariants described in the docs
 
-> **Note**: The PYTHONPATH requirement ensures proper module loading without package installation. Adjust paths according to your working directory.
-
-For detailed troubleshooting and development guidance, see [docs/RUNBOOK_V2_DEMO.md](docs/RUNBOOK_V2_DEMO.md).
-
-## Constitutional Invariants
-
-The system enforces these core invariants:
-
-1. **Federation Cannot Trigger Execution**: Federation modules are isolated from execution modules
-2. **Unconfirmed Federates Cannot Ingest**: Only CONFIRMED federates can submit observations
-3. **Conflicts Cannot Auto-Resolve**: All conflicts require human approval
-4. **Deterministic Replay**: Same inputs always produce same outputs
-5. **Audit Completeness**: All significant operations emit audit events
-
-## Compliance and Security
-
-- **Zero Trust Architecture**: All federates authenticate and authorize
-- **End-to-End Encryption**: All federation messages are encrypted
-- **Human-in-the-Loop**: Critical decisions require human approval
-- **Complete Audit Trail**: All operations are auditable and replayable
-- **Deterministic Behavior**: System behavior is reproducible and testable
-
-## Contributing
-
-1. All changes must maintain constitutional invariants
-2. V1 functionality cannot be modified
-3. V2 features must be feature-flagged
-4. All changes require comprehensive tests
-5. Boundary violations are not permitted
-
-## License
+License
 
 [License information to be added]
-
----
-
-**Current Status**: Phase 2 Complete ✅ | Phase 3 Complete ✅ | Phase 4: Planning 📋 | Tests Passing: 299/360 ✅
