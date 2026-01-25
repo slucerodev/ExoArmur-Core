@@ -78,6 +78,15 @@ class FeatureFlags:
                 'dependencies': ['v2_federation_enabled'],
                 'risk_level': 'low',
                 'owner': 'audit_team'
+            },
+            'v2_threat_classification_enabled': {
+                'description': 'Enable Phase 2A threat classification autonomous decisions',
+                'default_value': False,
+                'current_value': False,
+                'rollout_strategy': 'disabled',
+                'dependencies': [],
+                'risk_level': 'medium',
+                'owner': 'safety_team'
             }
         }
     
@@ -194,3 +203,8 @@ def is_v2_control_plane_enabled(context: Optional[FeatureFlagContext] = None) ->
 def is_v2_operator_approval_required(context: Optional[FeatureFlagContext] = None) -> bool:
     """Check if V2 operator approval is required (convenience function)"""
     return get_feature_flags().is_v2_operator_approval_required(context)
+
+
+def is_v2_threat_classification_enabled(context: Optional[FeatureFlagContext] = None) -> bool:
+    """Check if V2 threat classification is enabled (convenience function)"""
+    return get_feature_flags().is_enabled('v2_threat_classification_enabled', context)
