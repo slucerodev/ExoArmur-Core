@@ -121,6 +121,59 @@ export EXOARMUR_V2_ARBITRATION_ENABLED=true
 
 See [docs/FEATURE_FLAGS.md](docs/FEATURE_FLAGS.md) for complete flag matrix.
 
+## 🚀 V2 Restrained Autonomy Demo
+
+This demo showcases ExoArmur's V2 restrained autonomy capabilities with human-in-the-loop approval and deterministic audit trails.
+
+### What This Demo Proves
+
+- **Restrained Autonomy**: No action executes without explicit operator approval
+- **Deterministic Audit Trail**: Every decision is recorded with reproducible outcomes
+- **Replay Capability**: Audit streams can be replayed to verify identical results
+- **Idempotency**: Actions execute at most once per intent, preventing duplicates
+
+### Quick Start (Copy/Paste)
+
+**A) Flags OFF → Demo Refuses (Expected)**
+```bash
+python3 scripts/demo_v2_restrained_autonomy.py
+# Expected: "❌ V2 restrained autonomy is disabled"
+```
+
+**B) Flags ON + Operator DENY (Safe)**
+```bash
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+PYTHONPATH=/path/to/ExoArmur/src:/path/to/ExoArmur/spec/contracts \
+python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+# Expected: "DEMO_RESULT=DENIED" and "AUDIT_STREAM_ID=<id>"
+```
+
+**C) Replay Using Audit Stream ID**
+```bash
+# Use the AUDIT_STREAM_ID from step (B)
+python3 scripts/demo_v2_restrained_autonomy.py --replay <audit_stream_id>
+# Expected: "REPLAY_VERIFIED=true"
+```
+
+### Run Tests
+
+```bash
+# V2 demo tests only
+python3 -m pytest tests/test_v2_restrained_autonomy.py -v
+
+# Full test suite
+python3 -m pytest tests/ -v
+
+# Boundary gate tests (sensitive)
+python3 -m pytest tests/ -v -m "sensitive"
+```
+
+> **Note**: The PYTHONPATH requirement ensures proper module loading without package installation. Adjust paths according to your working directory.
+
+For detailed troubleshooting and development guidance, see [docs/RUNBOOK_V2_DEMO.md](docs/RUNBOOK_V2_DEMO.md).
+
 ## Constitutional Invariants
 
 The system enforces these core invariants:

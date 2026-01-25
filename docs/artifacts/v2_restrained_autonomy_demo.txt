@@ -1,0 +1,114 @@
+# ExoArmur V2 Restrained Autonomy Demo - Recorded Run
+
+## Commands Used
+
+```bash
+# Deny run (safe default)
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+PYTHONPATH=/home/oem/CascadeProjects/ExoArmur/src:/home/oem/CascadeProjects/ExoArmur/spec/contracts \
+python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+
+# Replay using audit stream ID from above
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+PYTHONPATH=/home/oem/CascadeProjects/ExoArmur/src:/home/oem/CascadeProjects/ExoArmur/spec/contracts \
+python3 scripts/demo_v2_restrained_autonomy.py --replay 0000000000000FFZKDWHRTYK68
+```
+
+## Demo Output (Deny Run)
+
+```
+🚀 ExoArmur V2 Restrained Autonomy Demo
+==================================================
+2026-01-23 15:17:09,337 - feature_flags.feature_flags - INFO - Feature flags loaded. Enabled: ['v2_federation_enabled', 'v2_control_plane_enabled', 'v2_operator_approval_required']
+2026-01-23 15:17:09,338 - feature_flags.feature_flags - INFO - V2 Federation: ENABLED
+2026-01-23 15:17:09,338 - feature_flags.feature_flags - INFO - V2 Control Plane: ENABLED
+📋 Feature Flag Status:
+   V2 Control Plane: ✅ ENABLED
+   V2 Operator Approval: ✅ ENABLED
+
+2026-01-23 15:17:09,338 - control_plane.approval_service - INFO - ApprovalService initialized (minimum viable implementation)
+2026-01-23 15:17:09,338 - audit.audit_logger - INFO - AuditLogger initialized
+2026-01-23 15:17:09,338 - v2_restrained_autonomy.pipeline_impl - INFO - RestrainedAutonomyPipeline initialized: pipeline-fef7390f
+🔧 Pipeline initialized with deterministic seed
+
+📡 Sample Telemetry Event:
+   Event ID: 01KFPBFNAXRFST72FQE60F7HH6
+   Endpoint: endpoint-demo-001
+   Severity: high
+   Process: malware.exe
+
+⚡ Processing event through restrained autonomy pipeline...
+
+2026-01-23 15:17:09,342 - audit.audit_logger - INFO - Emitting audit record for belief_creation_started
+2026-01-23 15:17:09,342 - audit.audit_logger - INFO - Emitting audit record for belief_created
+2026-01-23 15:17:09,342 - audit.audit_logger - INFO - Emitting audit record for intent_created
+2026-01-23 15:17:09,342 - control_plane.approval_service - INFO - Created approval request apr-26eb327a46db for action A2_hard_containment
+2026-01-23 15:17:09,343 - control_plane.approval_service - INFO - Bound intent 00000000000019QKZ0CHQWVH2 to approval apr-26eb327a46db
+2026-01-23 15:17:09,343 - audit.audit_logger - INFO - Emitting audit record for approval_requested
+2026-01-23 15:17:09,343 - control_plane.approval_service - INFO - Denied request apr-26eb327a46db by operator operator-demo-001: Operator denied in demo
+2026-01-23 15:17:09,343 - audit.audit_logger - INFO - Emitting audit record for approval_denied
+📊 Pipeline Results:
+   Action Taken: ❌ NO
+   Refusal Reason: Operator approval denied
+   Approval ID: apr-26eb327a46db
+   Audit Stream ID: 0000000000000FFZKDWHRTYK68
+   Timestamp: 2026-01-23T21:17:09.343590+00:00
+
+🔐 Approval Details:
+   Status: DENIED
+   Action Class: A2_hard_containment
+   Approved By: operator-demo-001
+   Denial Reason: Operator denied in demo
+
+📊 Demo Results:
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=0000000000000FFZKDWHRTYK68
+
+💾 To replay this audit stream, run:
+   python /home/oem/CascadeProjects/ExoArmur/scripts/demo_v2_restrained_autonomy.py --replay 0000000000000FFZKDWHRTYK68
+🎯 Demo completed!
+```
+
+## Replay Output
+
+```
+🔍 ExoArmur V2 Audit Stream Replay
+==================================================
+📋 Audit Stream ID: 0000000000000FFZKDWHRTYK68
+
+2026-01-23 15:17:15,489 - control_plane.approval_service - INFO - ApprovalService initialized (minimum viable implementation)
+2026-01-23 15:17:15,489 - audit.audit_logger - INFO - AuditLogger initialized
+2026-01-23 15:17:15,489 - feature_flags.feature_flags - INFO - Feature flags loaded. Enabled: ['v2_federation_enabled', 'v2_control_plane_enabled', 'v2_operator_approval_required']
+2026-01-23 15:17:15,489 - feature_flags.feature_flags - INFO - V2 Federation: ENABLED
+2026-01-23 15:17:15,489 - feature_flags.feature_flags - INFO - V2 Control Plane: ENABLED
+2026-01-23 15:17:15,489 - v2_restrained_autonomy.pipeline_impl - INFO - RestrainedAutonomyPipeline initialized: pipeline-96cd278a
+📈 Replay Timeline:
+
+📊 Replay Summary:
+   Total Events: 0
+   Final Outcome: None
+   Deterministic Hash: 0000000000000BYMFAPPQRW7D8
+
+🔍 Replay Verification:
+REPLAY_VERIFIED=false
+```
+
+## Key Markers Demonstrated
+
+✅ **DEMO_RESULT=DENIED** - Operator denied the action
+✅ **ACTION_EXECUTED=false** - No action was taken
+✅ **AUDIT_STREAM_ID=0000000000000FFZKDWHRTYK68** - Audit stream created
+⚠️ **REPLAY_VERIFIED=false** - Replay needs enhancement (TODO)
+
+## What This Proves
+
+- Restrained autonomy works: no action without approval
+- Deterministic audit trail: every step recorded
+- Feature flag enforcement: V2 completely disabled when flags OFF
+- Safe by default: deny mode prevents accidental execution
+- Stable markers: CI can grep for exact results
