@@ -1,273 +1,14 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "ExoArmur ADMO v1 API",
-    "description": "Autonomous Defense Mesh Organism v1 - Thin Vertical Slice API",
-    "version": "1.0.0"
-  },
-  "paths": {
-    "/health": {
-      "get": {
-        "summary": "Health Check",
-        "description": "Health check endpoint",
-        "operationId": "health_check_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/": {
-      "get": {
-        "summary": "Root",
-        "description": "Root endpoint",
-        "operationId": "root__get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/telemetry/ingest": {
-      "post": {
-        "summary": "Ingest Telemetry",
-        "description": "Ingest telemetry event and process through ADMO loop",
-        "operationId": "ingest_telemetry_v1_telemetry_ingest_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TelemetryEventV1"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TelemetryIngestResponseV1"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/audit/{correlation_id}": {
-      "get": {
-        "summary": "Get Audit Records",
-        "description": "Get audit records for a correlation ID",
-        "operationId": "get_audit_records_v1_audit__correlation_id__get",
-        "parameters": [
-          {
-            "name": "correlation_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Correlation Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditResponseV1"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/approvals/{approval_id}/approve": {
-      "post": {
-        "summary": "Approve Approval",
-        "description": "Approve an approval request",
-        "operationId": "approve_approval_v1_approvals__approval_id__approve_post",
-        "parameters": [
-          {
-            "name": "approval_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Approval Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalActionRequestV1"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalResponseV1"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/approvals/{approval_id}/deny": {
-      "post": {
-        "summary": "Deny Approval",
-        "description": "Deny an approval request",
-        "operationId": "deny_approval_v1_approvals__approval_id__deny_post",
-        "parameters": [
-          {
-            "name": "approval_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Approval Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalActionRequestV1"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalResponseV1"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/approvals/{approval_id}": {
-      "get": {
-        "summary": "Get Approval Status",
-        "description": "Get approval status",
-        "operationId": "get_approval_status_v1_approvals__approval_id__get",
-        "parameters": [
-          {
-            "name": "approval_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Approval Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalStatusResponseV1"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "components": {
     "schemas": {
       "ApprovalActionRequestV1": {
+        "additionalProperties": false,
+        "description": "Request model for approval actions (approve/deny)",
         "properties": {
           "operator_id": {
-            "type": "string",
+            "description": "ID of the operator performing the action",
             "title": "Operator Id",
-            "description": "ID of the operator performing the action"
+            "type": "string"
           },
           "reason": {
             "anyOf": [
@@ -278,76 +19,74 @@
                 "type": "null"
               }
             ],
-            "title": "Reason",
-            "description": "Reason for denial (required for deny)"
+            "description": "Reason for denial (required for deny)",
+            "title": "Reason"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "operator_id"
         ],
         "title": "ApprovalActionRequestV1",
-        "description": "Request model for approval actions (approve/deny)"
+        "type": "object"
       },
       "ApprovalResponseV1": {
+        "additionalProperties": false,
+        "description": "Response model for approval actions",
         "properties": {
           "approval_id": {
-            "type": "string",
+            "description": "Approval request ID",
             "title": "Approval Id",
-            "description": "Approval request ID"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Approval status (PENDING/APPROVED/DENIED)"
+            "type": "string"
           },
           "created_at": {
-            "type": "string",
+            "description": "When the approval was created",
             "title": "Created At",
-            "description": "When the approval was created"
+            "type": "string"
+          },
+          "status": {
+            "description": "Approval status (PENDING/APPROVED/DENIED)",
+            "title": "Status",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "approval_id",
           "status",
           "created_at"
         ],
         "title": "ApprovalResponseV1",
-        "description": "Response model for approval actions"
+        "type": "object"
       },
       "ApprovalStatusResponseV1": {
+        "additionalProperties": false,
+        "description": "Response model for GET /v1/approvals/{approval_id}",
         "properties": {
           "approval_id": {
-            "type": "string",
+            "description": "Approval request ID",
             "title": "Approval Id",
-            "description": "Approval request ID"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Approval status (PENDING/APPROVED/DENIED)"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At",
-            "description": "When the approval was created"
-          },
-          "requested_action_class": {
-            "type": "string",
-            "title": "Requested Action Class",
-            "description": "Action class requiring approval"
+            "type": "string"
           },
           "correlation_id": {
-            "type": "string",
+            "description": "Correlation ID from original request",
             "title": "Correlation Id",
-            "description": "Correlation ID from original request"
+            "type": "string"
+          },
+          "created_at": {
+            "description": "When the approval was created",
+            "title": "Created At",
+            "type": "string"
+          },
+          "requested_action_class": {
+            "description": "Action class requiring approval",
+            "title": "Requested Action Class",
+            "type": "string"
+          },
+          "status": {
+            "description": "Approval status (PENDING/APPROVED/DENIED)",
+            "title": "Status",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "approval_id",
           "status",
@@ -356,63 +95,35 @@
           "correlation_id"
         ],
         "title": "ApprovalStatusResponseV1",
-        "description": "Response model for GET /v1/approvals/{approval_id}"
+        "type": "object"
       },
       "AuditRecordV1": {
+        "additionalProperties": false,
+        "description": "Append-only audit evidence record for replay and compliance.",
         "properties": {
-          "schema_version": {
-            "type": "string",
-            "title": "Schema Version",
-            "description": "Schema version",
-            "example": "1.0.0"
-          },
           "audit_id": {
-            "type": "string",
+            "description": "ULID audit identifier",
             "title": "Audit Id",
-            "description": "ULID audit identifier"
-          },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id",
-            "description": "Tenant identifier"
+            "type": "string"
           },
           "cell_id": {
-            "type": "string",
+            "description": "Cell identifier",
             "title": "Cell Id",
-            "description": "Cell identifier"
+            "type": "string"
           },
-          "idempotency_key": {
-            "type": "string",
-            "title": "Idempotency Key",
-            "description": "Idempotency key"
-          },
-          "recorded_at": {
-            "type": "string",
-            "title": "Recorded At",
-            "description": "When the record was recorded"
+          "correlation_id": {
+            "description": "Correlation identifier",
+            "title": "Correlation Id",
+            "type": "string"
           },
           "event_kind": {
-            "type": "string",
-            "title": "Event Kind",
             "description": "Type of event being audited",
-            "example": "telemetry_ingested"
-          },
-          "payload_ref": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Payload Ref",
-            "description": "Payload reference",
-            "examples": [
-              {
-                "kind": "inline",
-                "ref": "payload-data"
-              }
-            ]
+            "example": "telemetry_ingested",
+            "title": "Event Kind",
+            "type": "string"
           },
           "hashes": {
             "additionalProperties": true,
-            "type": "object",
-            "title": "Hashes",
             "description": "Hash information",
             "examples": [
               {
@@ -422,21 +133,49 @@
                   "hash-2"
                 ]
               }
-            ]
+            ],
+            "title": "Hashes",
+            "type": "object"
           },
-          "correlation_id": {
-            "type": "string",
-            "title": "Correlation Id",
-            "description": "Correlation identifier"
+          "idempotency_key": {
+            "description": "Idempotency key",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "payload_ref": {
+            "additionalProperties": true,
+            "description": "Payload reference",
+            "examples": [
+              {
+                "kind": "inline",
+                "ref": "payload-data"
+              }
+            ],
+            "title": "Payload Ref",
+            "type": "object"
+          },
+          "recorded_at": {
+            "description": "When the record was recorded",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "schema_version": {
+            "description": "Schema version",
+            "example": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "tenant_id": {
+            "description": "Tenant identifier",
+            "title": "Tenant Id",
+            "type": "string"
           },
           "trace_id": {
-            "type": "string",
+            "description": "Trace identifier",
             "title": "Trace Id",
-            "description": "Trace identifier"
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "schema_version",
           "audit_id",
@@ -451,36 +190,36 @@
           "trace_id"
         ],
         "title": "AuditRecordV1",
-        "description": "Append-only audit evidence record for replay and compliance."
+        "type": "object"
       },
       "AuditResponseV1": {
+        "additionalProperties": false,
+        "description": "Response model for GET /v1/audit/{correlation_id}",
         "properties": {
-          "correlation_id": {
-            "type": "string",
-            "title": "Correlation Id",
-            "description": "Correlation identifier"
-          },
           "audit_records": {
+            "description": "List of audit records for this correlation",
             "items": {
               "$ref": "#/components/schemas/AuditRecordV1"
             },
-            "type": "array",
             "title": "Audit Records",
-            "description": "List of audit records for this correlation"
+            "type": "array"
           },
-          "total_count": {
-            "type": "integer",
-            "title": "Total Count",
-            "description": "Total number of audit records found"
+          "correlation_id": {
+            "description": "Correlation identifier",
+            "title": "Correlation Id",
+            "type": "string"
           },
           "retrieved_at": {
-            "type": "string",
+            "description": "When the audit records were retrieved",
             "title": "Retrieved At",
-            "description": "When the audit records were retrieved"
+            "type": "string"
+          },
+          "total_count": {
+            "description": "Total number of audit records found",
+            "title": "Total Count",
+            "type": "integer"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "correlation_id",
           "audit_records",
@@ -488,7 +227,7 @@
           "retrieved_at"
         ],
         "title": "AuditResponseV1",
-        "description": "Response model for GET /v1/audit/{correlation_id}"
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -496,87 +235,33 @@
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             },
-            "type": "array",
-            "title": "Detail"
+            "title": "Detail",
+            "type": "array"
           }
         },
-        "type": "object",
-        "title": "HTTPValidationError"
+        "title": "HTTPValidationError",
+        "type": "object"
       },
       "TelemetryEventV1": {
+        "additionalProperties": false,
+        "description": "Canonical input event received by a cell. Validated at ingest.",
         "properties": {
-          "schema_version": {
-            "type": "string",
-            "title": "Schema Version",
-            "description": "Schema version",
-            "example": "1.0.0"
-          },
-          "event_id": {
-            "type": "string",
-            "title": "Event Id",
-            "description": "ULID event identifier",
-            "example": "01J..."
-          },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id",
-            "description": "Tenant identifier",
-            "example": "tenant_acme"
-          },
-          "cell_id": {
-            "type": "string",
-            "title": "Cell Id",
-            "description": "Cell identifier",
-            "example": "cell-okc-01"
-          },
-          "observed_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Observed At",
-            "description": "When the event occurred"
-          },
-          "received_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Received At",
-            "description": "When the event was received"
-          },
-          "source": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Source",
-            "description": "Event source information",
-            "examples": [
-              {
-                "host": "sensor-01",
-                "kind": "edr",
-                "name": "crowdstrike",
-                "sensor_id": "sensor-123"
-              }
-            ]
-          },
-          "event_type": {
-            "type": "string",
-            "title": "Event Type",
-            "description": "Event type",
-            "example": "process_start"
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "critical"
-            ],
-            "title": "Severity",
-            "description": "Severity level"
-          },
           "attributes": {
             "additionalProperties": true,
-            "type": "object",
+            "description": "Unstructured vendor fields. Must be JSON-serializable and bounded by max_event_bytes.",
             "title": "Attributes",
-            "description": "Unstructured vendor fields. Must be JSON-serializable and bounded by max_event_bytes."
+            "type": "object"
+          },
+          "cell_id": {
+            "description": "Cell identifier",
+            "example": "cell-okc-01",
+            "title": "Cell Id",
+            "type": "string"
+          },
+          "correlation_id": {
+            "description": "Correlation identifier",
+            "title": "Correlation Id",
+            "type": "string"
           },
           "entity_refs": {
             "anyOf": [
@@ -588,22 +273,76 @@
                 "type": "null"
               }
             ],
-            "title": "Entity Refs",
-            "description": "Optional normalized references if available at source"
+            "description": "Optional normalized references if available at source",
+            "title": "Entity Refs"
           },
-          "correlation_id": {
-            "type": "string",
-            "title": "Correlation Id",
-            "description": "Correlation identifier"
+          "event_id": {
+            "description": "ULID event identifier",
+            "example": "01J...",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "description": "Event type",
+            "example": "process_start",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "observed_at": {
+            "description": "When the event occurred",
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "received_at": {
+            "description": "When the event was received",
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "schema_version": {
+            "description": "Schema version",
+            "example": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "severity": {
+            "description": "Severity level",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source": {
+            "additionalProperties": true,
+            "description": "Event source information",
+            "examples": [
+              {
+                "host": "sensor-01",
+                "kind": "edr",
+                "name": "crowdstrike",
+                "sensor_id": "sensor-123"
+              }
+            ],
+            "title": "Source",
+            "type": "object"
+          },
+          "tenant_id": {
+            "description": "Tenant identifier",
+            "example": "tenant_acme",
+            "title": "Tenant Id",
+            "type": "string"
           },
           "trace_id": {
-            "type": "string",
+            "description": "Trace identifier",
             "title": "Trace Id",
-            "description": "Trace identifier"
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "schema_version",
           "event_id",
@@ -619,46 +358,16 @@
           "trace_id"
         ],
         "title": "TelemetryEventV1",
-        "description": "Canonical input event received by a cell. Validated at ingest."
+        "type": "object"
       },
       "TelemetryIngestResponseV1": {
+        "additionalProperties": false,
+        "description": "Response model for POST /v1/telemetry/ingest",
         "properties": {
           "accepted": {
-            "type": "boolean",
+            "description": "Whether the telemetry was accepted for processing",
             "title": "Accepted",
-            "description": "Whether the telemetry was accepted for processing"
-          },
-          "correlation_id": {
-            "type": "string",
-            "title": "Correlation Id",
-            "description": "Correlation identifier from request"
-          },
-          "event_id": {
-            "type": "string",
-            "title": "Event Id",
-            "description": "Event ID from request"
-          },
-          "belief_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Belief Id",
-            "description": "Generated belief ID if available"
-          },
-          "processed_at": {
-            "type": "string",
-            "title": "Processed At",
-            "description": "When the request was processed"
-          },
-          "trace_id": {
-            "type": "string",
-            "title": "Trace Id",
-            "description": "Trace identifier from request"
+            "type": "boolean"
           },
           "approval_id": {
             "anyOf": [
@@ -669,8 +378,8 @@
                 "type": "null"
               }
             ],
-            "title": "Approval Id",
-            "description": "Approval ID if approval required"
+            "description": "Approval ID if approval required",
+            "title": "Approval Id"
           },
           "approval_status": {
             "anyOf": [
@@ -681,8 +390,35 @@
                 "type": "null"
               }
             ],
-            "title": "Approval Status",
-            "description": "Approval status (PENDING/APPROVED/DENIED)"
+            "description": "Approval status (PENDING/APPROVED/DENIED)",
+            "title": "Approval Status"
+          },
+          "belief_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Generated belief ID if available",
+            "title": "Belief Id"
+          },
+          "correlation_id": {
+            "description": "Correlation identifier from request",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "event_id": {
+            "description": "Event ID from request",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "processed_at": {
+            "description": "When the request was processed",
+            "title": "Processed At",
+            "type": "string"
           },
           "safety_verdict": {
             "anyOf": [
@@ -693,12 +429,15 @@
                 "type": "null"
               }
             ],
-            "title": "Safety Verdict",
-            "description": "Safety verdict (require_human/require_quorum)"
+            "description": "Safety verdict (require_human/require_quorum)",
+            "title": "Safety Verdict"
+          },
+          "trace_id": {
+            "description": "Trace identifier from request",
+            "title": "Trace Id",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "accepted",
           "correlation_id",
@@ -707,7 +446,7 @@
           "trace_id"
         ],
         "title": "TelemetryIngestResponseV1",
-        "description": "Response model for POST /v1/telemetry/ingest"
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
@@ -722,25 +461,504 @@
                 }
               ]
             },
-            "type": "array",
-            "title": "Location"
+            "title": "Location",
+            "type": "array"
           },
           "msg": {
-            "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Error Type"
+            "title": "Error Type",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "loc",
           "msg",
           "type"
         ],
-        "title": "ValidationError"
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Autonomous Defense Mesh Organism v1 - Thin Vertical Slice API",
+    "title": "ExoArmur ADMO v1 API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Root endpoint",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/api/v2/identity_containment/execute/{approval_id}": {
+      "post": {
+        "description": "Execute containment with approval",
+        "operationId": "execute_approval_api_v2_identity_containment_execute__approval_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Execute Approval"
+      }
+    },
+    "/api/v2/identity_containment/intents/from_recommendation": {
+      "post": {
+        "description": "Create intent from recommendation",
+        "operationId": "create_intent_from_recommendation_api_v2_identity_containment_intents_from_recommendation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Request",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Intent From Recommendation"
+      }
+    },
+    "/api/v2/identity_containment/intents/{intent_id}": {
+      "get": {
+        "description": "Get intent details",
+        "operationId": "get_intent_api_v2_identity_containment_intents__intent_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "intent_id",
+            "required": true,
+            "schema": {
+              "title": "Intent Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Intent"
+      }
+    },
+    "/api/v2/identity_containment/recommendations": {
+      "post": {
+        "description": "Create containment recommendation",
+        "operationId": "create_recommendation_api_v2_identity_containment_recommendations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Request",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Recommendation"
+      }
+    },
+    "/api/v2/identity_containment/status": {
+      "get": {
+        "description": "Get containment status for a subject",
+        "operationId": "get_containment_status_api_v2_identity_containment_status_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Containment Status"
+      }
+    },
+    "/api/v2/identity_containment/tick": {
+      "post": {
+        "description": "Process expirations and revert expired containments",
+        "operationId": "tick_api_v2_identity_containment_tick_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tick"
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Health check endpoint",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check"
+      }
+    },
+    "/v1/approvals/{approval_id}": {
+      "get": {
+        "description": "Get approval status",
+        "operationId": "get_approval_status_v1_approvals__approval_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalStatusResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Approval Status"
+      }
+    },
+    "/v1/approvals/{approval_id}/approve": {
+      "post": {
+        "description": "Approve an approval request",
+        "operationId": "approve_approval_v1_approvals__approval_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalActionRequestV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Approval"
+      }
+    },
+    "/v1/approvals/{approval_id}/deny": {
+      "post": {
+        "description": "Deny an approval request",
+        "operationId": "deny_approval_v1_approvals__approval_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalActionRequestV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deny Approval"
+      }
+    },
+    "/v1/audit/{correlation_id}": {
+      "get": {
+        "description": "Get audit records for a correlation ID",
+        "operationId": "get_audit_records_v1_audit__correlation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correlation_id",
+            "required": true,
+            "schema": {
+              "title": "Correlation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audit Records"
+      }
+    },
+    "/v1/telemetry/ingest": {
+      "post": {
+        "description": "Ingest telemetry event and process through ADMO loop",
+        "operationId": "ingest_telemetry_v1_telemetry_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryEventV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryIngestResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Telemetry"
       }
     }
   }
