@@ -185,6 +185,7 @@ class TestProtocolEnforcement:
         """Test identity store"""
         # Enable V2 federation identity for tests
         import os
+        old_value = os.environ.get('EXOARMUR_FLAG_V2_FEDERATION_ENABLED')
         os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
         
         # Reset global feature flags to pick up new environment variable
@@ -192,7 +193,18 @@ class TestProtocolEnforcement:
         feature_flags.feature_flags._feature_flags_instance = None
         
         # Create fresh identity store with enabled flags
-        return FederateIdentityStore()
+        store = FederateIdentityStore()
+        
+        yield store
+        
+        # Cleanup: restore environment and reset feature flags
+        if old_value is None:
+            os.environ.pop('EXOARMUR_FLAG_V2_FEDERATION_ENABLED', None)
+        else:
+            os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = old_value
+        
+        # Reset global feature flags again
+        feature_flags.feature_flags._feature_flags_instance = None
     
     @pytest.fixture
     def key_pair(self):

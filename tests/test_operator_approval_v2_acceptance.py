@@ -34,7 +34,8 @@ from control_plane.operator_interface import OperatorInterface, OperatorConfig
 from contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 
 
-@pytest.mark.xfail(strict=True, reason="V2 operator approval not yet implemented (Phase 2). This is a future acceptance gate.")
+@pytest.mark.xfail(strict=True, reason="V2 operator approval requires Phase 2. Current phase: 1.")
+@pytest.mark.v2_acceptance
 @pytest.mark.asyncio
 class TestOperatorApprovalV2Acceptance:
     """V2 Operator Approval Acceptance Test Suite"""
@@ -248,45 +249,6 @@ class TestOperatorApprovalV2Acceptance:
         await approval_service.get_pending_approvals()  # This will raise NotImplementedError
         
         print("✅ STEP 6 PASSED: Federation approval coordination (NotImplementedError raised as expected)")
-    
-    @pytest.mark.asyncio
-    async def test_v1_compatibility_with_v2_disabled(self, feature_flags, approval_service):
-        """
-        COMPATIBILITY TEST: V1 Compatibility with V2 Disabled
-        
-        Verify that V1 functionality works when V2 features are disabled:
-        - V2 operator approval disabled
-        - V1 safety gates work normally
-        - No V2 interference with V1 operations
-        - Feature flags properly isolate V2 functionality
-        """
-        
-        print("\n🔒 COMPATIBILITY TEST: V1 Compatibility with V2 Disabled")
-        
-        # Create V2 objects with enabled=False to verify no side effects
-        approval_config = ApprovalConfig(enabled=False)
-        approval_service_disabled = ApprovalService(approval_config)
-        
-        control_config = ControlAPIConfig(enabled=False)
-        control_api_disabled = ControlAPI(control_config)
-        
-        operator_config = OperatorConfig(enabled=False)
-        operator_interface = OperatorInterface(operator_config)
-        
-        # These should be no-op and not raise exceptions
-        await approval_service_disabled.initialize()
-        await control_api_disabled.startup()
-        await operator_interface.initialize()
-        
-        # Verify V1 functionality is preserved
-        assert feature_flags is not None, "Feature flags should be available"
-        assert approval_service is not None, "Approval service should be available"
-        
-        print("✅ COMPATIBILITY TEST PASSED: V1 compatibility with V2 disabled")
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
 
 
 class TestOperatorApprovalV2Compatibility:
@@ -295,16 +257,12 @@ class TestOperatorApprovalV2Compatibility:
     @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 operator approval"""
+        from unittest.mock import patch
         flags = get_feature_flags()
         
-        # Create context for testing
-        context = FeatureFlagContext(
-            cell_id="test-cell-01",
-            tenant_id="test-tenant",
-            environment="test"
-        )
-        
-        return flags
+        # Ensure V2 is disabled for compatibility testing
+        with patch.object(flags, 'is_v2_operator_approval_required', return_value=False):
+            yield flags
     
     @pytest.mark.asyncio
     async def test_v1_compatibility_with_v2_disabled(self, feature_flags):

@@ -69,7 +69,7 @@ class FederationManager:
         self._identity_manager: Optional[FederationIdentityManager] = None
         
         if self.config.enabled:
-            logger.info(f"FederationManager: enabled=True for cell {self.config.cell_id}")
+            logger.warning(f"FederationManager: enabled=True for cell {self.config.cell_id}")
         else:
             logger.debug("FederationManager: scaffolding mode (enabled=False)")
     

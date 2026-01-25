@@ -34,6 +34,7 @@ from models_v1 import (
 from nats_client import ExoArmurNATSClient, NATSConfig
 
 
+@pytest.mark.golden_demo
 class TestGoldenDemoFlow:
     """Golden Demo Flow integration test for ADMO v1"""
     

@@ -83,3 +83,11 @@ site/
 # Local Development Scripts
 run_*.sh
 test_*.sh
+
+# Local environments (additional entries)
+.venv/
+.venv_clean_install/
+
+# Local scratch / outputs
+test_output.txt
+test_replay.txt

@@ -51,7 +51,10 @@ class ApprovalService:
         self._initialized = False
         self._approvals: Dict[str, ApprovalRequest] = {}
         
-        logger.info("ApprovalService initialized (minimum viable implementation)")
+        if self.config.enabled:
+            logger.warning("ApprovalService: enabled=True not yet implemented (Phase 2)")
+        else:
+            logger.info("ApprovalService initialized (minimum viable implementation)")
     
     def create_request(
         self,
@@ -159,12 +162,32 @@ class ApprovalService:
     
     # Legacy methods for compatibility (no-op)
     async def initialize(self) -> None:
-        """Initialize approval service (no-op)"""
-        pass
+        """Initialize approval service"""
+        if not self.config.enabled:
+            return  # No-op when disabled
+        
+        # Check V2 feature flags
+        from feature_flags import get_feature_flags
+        feature_flags = get_feature_flags()
+        if not feature_flags.is_v2_operator_approval_required():
+            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        
+        # V2 implementation would go here
+        self._initialized = True
     
     async def submit_approval_request(self, request_data: Dict[str, Any]) -> str:
-        """Submit approval request (legacy - no-op)"""
-        return f"legacy-{uuid.uuid4().hex[:8]}"
+        """Submit approval request"""
+        if not self.config.enabled:
+            return f"legacy-{uuid.uuid4().hex[:8]}"
+        
+        # Check V2 feature flags
+        from feature_flags import get_feature_flags
+        feature_flags = get_feature_flags()
+        if not feature_flags.is_v2_operator_approval_required():
+            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        
+        # V2 implementation would go here
+        return f"v2-{uuid.uuid4().hex[:8]}"
     
     async def get_approval_status(self, request_id: str) -> Dict[str, Any]:
         """Get approval request status (legacy - no-op)"""
@@ -184,20 +207,53 @@ class ApprovalService:
         return True
     
     async def get_pending_approvals(self, operator_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get pending approvals (legacy - no-op)"""
+        """Get pending approvals"""
+        if not self.config.enabled:
+            return []
+        
+        # Check V2 feature flags
+        from feature_flags import get_feature_flags
+        feature_flags = get_feature_flags()
+        if not feature_flags.is_v2_operator_approval_required():
+            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        
+        # V2 implementation would go here
         return []
     
     async def check_authorization(self, operator_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Check operator authorization for request (legacy - no-op)"""
+        """Check operator authorization for request"""
+        if not self.config.enabled:
+            return {
+                "authorized": False,
+                "reason": "V2 approval service disabled"
+            }
+        
+        # Check V2 feature flags
+        from feature_flags import get_feature_flags
+        feature_flags = get_feature_flags()
+        if not feature_flags.is_v2_operator_approval_required():
+            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        
+        # V2 implementation would go here
         return {
-            "authorized": False,
-            "reason": "legacy_mode",
-            "clearance_sufficient": False
+            "authorized": True,
+            "operator_id": operator_id,
+            "clearance_level": "admin"
         }
     
     async def request_emergency_override(self, emergency_data: Dict[str, Any]) -> str:
-        """Request emergency override (legacy - no-op)"""
-        return f"legacy-emergency-{uuid.uuid4().hex[:8]}"
+        """Request emergency override"""
+        if not self.config.enabled:
+            return f"legacy-emergency-{uuid.uuid4().hex[:8]}"
+        
+        # Check V2 feature flags
+        from feature_flags import get_feature_flags
+        feature_flags = get_feature_flags()
+        if not feature_flags.is_v2_operator_approval_required():
+            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        
+        # V2 implementation would go here
+        return f"v2-emergency-{uuid.uuid4().hex[:8]}"
     
     def is_approval_required(self, request_type: str, risk_score: float) -> bool:
         """Check if approval is required for request (legacy - no-op)"""

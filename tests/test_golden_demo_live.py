@@ -132,6 +132,7 @@ def sample_telemetry_b():
 
 
 @pytest.mark.xfail(strict=True, reason="Live NATS JetStream implementation in progress - requires full NATS integration")
+@pytest.mark.golden_demo
 @pytest.mark.asyncio
 async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a, sample_telemetry_b):
     """

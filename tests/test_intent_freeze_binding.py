@@ -128,52 +128,63 @@ class TestIntentFreezeBinding:
         """Test that execution is blocked until approval is granted"""
         import main
         
-        # Create execution kernel with services
-        execution_kernel = ExecutionKernel(
-            nats_client=None,
-            approval_service=main.approval_service,
-            intent_store=main.intent_store
-        )
+        # Enable V2 feature flags for this test
+        from unittest.mock import patch
+        from feature_flags import get_feature_flags
         
-        # Create safety verdict that would allow execution
-        safety_verdict = SafetyVerdict(
-            verdict="allow",
-            rationale="Test approval",
-            rule_ids=["SG-401"]
-        )
+        with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
+            # Create execution kernel with services
+            execution_kernel = ExecutionKernel(
+                nats_client=None,
+                approval_service=main.approval_service,
+                intent_store=main.intent_store
+            )
+            
+            # Create safety verdict that would allow execution
+            safety_verdict = SafetyVerdict(
+                verdict="allow",
+                rationale="Test approval",
+                rule_ids=["SG-401"]
+            )
+            
+            # Create execution intent
+            intent = execution_kernel.create_execution_intent(
+                local_decision=sample_local_decision,
+                safety_verdict=safety_verdict,
+                idempotency_key="test-key-001"
+            )
+            
+            # Modify intent to be A1 (requires approval)
+            intent.action_class = "A1_soft_containment"
+            
+            # Execute intent (should be blocked without approval)
+            result = asyncio.run(execution_kernel.execute_intent(intent))
+            
+            # Verify execution was blocked
+            assert result is False
+            
+            # Create approval request
+            approval_id = main.approval_service.create_request(
+                correlation_id=intent.correlation_id,
+                trace_id=intent.trace_id,
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+                idempotency_key=intent.idempotency_key,
+                requested_action_class=intent.action_class,
+                payload_ref={"test": "data"}
+            )
         
-        # Create execution intent
-        intent = execution_kernel.create_execution_intent(
-            local_decision=sample_local_decision,
-            safety_verdict=safety_verdict,
-            idempotency_key="test-key-001"
-        )
-        
-        # Modify intent to be A1 (requires approval)
-        intent.action_class = "A1_soft_containment"
-        
-        # Create approval request and freeze intent
-        approval_id = main.approval_service.create_request(
-            correlation_id="test-corr-001",
-            trace_id="test-trace-001",
-            tenant_id="test-tenant",
-            cell_id="test-cell",
-            idempotency_key="test-key-001",
-            requested_action_class="A1_soft_containment",
-            payload_ref={"test": "data"}
-        )
-        
-        # Bind and freeze intent
-        intent_hash = main.intent_store.compute_intent_hash(intent)
-        main.approval_service.bind_intent(approval_id, intent.intent_id, intent.idempotency_key, intent_hash)
-        main.intent_store.freeze_intent(approval_id, intent)
-        
-        # Set approval_id in intent but status is PENDING
-        intent.safety_context["human_approval_id"] = approval_id
-        
-        # Execute intent (should be blocked due to PENDING status)
-        result = asyncio.run(execution_kernel.execute_intent(intent))
-        assert result is False
+            # Bind and freeze intent
+            intent_hash = main.intent_store.compute_intent_hash(intent)
+            main.approval_service.bind_intent(approval_id, intent.intent_id, intent.idempotency_key, intent_hash)
+            main.intent_store.freeze_intent(approval_id, intent)
+            
+            # Set approval_id in intent but status is PENDING
+            intent.safety_context["human_approval_id"] = approval_id
+            
+            # Execute intent (should be blocked due to PENDING status)
+            result = asyncio.run(execution_kernel.execute_intent(intent))
+            assert result is False
     
     def test_execution_allowed_after_approved_and_matches_binding(self, sample_local_decision):
         """Test that execution is allowed after approval and binding matches"""
@@ -233,55 +244,60 @@ class TestIntentFreezeBinding:
         """Test that execution is blocked on binding mismatch"""
         import main
         
-        # Create execution kernel with services
-        execution_kernel = ExecutionKernel(
-            nats_client=None,
-            approval_service=main.approval_service,
-            intent_store=main.intent_store
-        )
+        # Enable V2 feature flags for this test
+        from unittest.mock import patch
+        from feature_flags import get_feature_flags
         
-        # Create safety verdict that would allow execution
-        safety_verdict = SafetyVerdict(
-            verdict="allow",
-            rationale="Test approval",
-            rule_ids=["SG-401"]
-        )
-        
-        # Create execution intent
-        intent = execution_kernel.create_execution_intent(
-            local_decision=sample_local_decision,
-            safety_verdict=safety_verdict,
-            idempotency_key="test-key-003"
-        )
-        
-        # Modify intent to be A1 (requires approval)
-        intent.action_class = "A1_soft_containment"
-        
-        # Create approval request and freeze intent
-        approval_id = main.approval_service.create_request(
-            correlation_id="test-corr-003",
-            trace_id="test-trace-003",
-            tenant_id="test-tenant",
-            cell_id="test-cell",
-            idempotency_key="test-key-003",
-            requested_action_class="A1_soft_containment",
-            payload_ref={"test": "data"}
-        )
-        
-        # Set approval_id in intent BEFORE hashing
-        intent.safety_context["human_approval_id"] = approval_id
-        
-        # Bind and freeze intent
-        intent_hash = main.intent_store.compute_intent_hash(intent)
-        main.approval_service.bind_intent(approval_id, intent.intent_id, intent.idempotency_key, intent_hash)
-        main.intent_store.freeze_intent(approval_id, intent)
-        
-        # Approve the request
-        main.approval_service.approve(approval_id, "operator-001")
-        
-        # Modify intent to create binding mismatch (change idempotency_key)
-        intent.idempotency_key = "different-key"
-        
-        # Execute intent (should be blocked due to binding mismatch)
-        result = asyncio.run(execution_kernel.execute_intent(intent))
-        assert result is False
+        with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
+            # Create execution kernel with services
+            execution_kernel = ExecutionKernel(
+                nats_client=None,
+                approval_service=main.approval_service,
+                intent_store=main.intent_store
+            )
+            
+            # Create safety verdict that would allow execution
+            safety_verdict = SafetyVerdict(
+                verdict="allow",
+                rationale="Test approval",
+                rule_ids=["SG-401"]
+            )
+            
+            # Create execution intent
+            intent = execution_kernel.create_execution_intent(
+                local_decision=sample_local_decision,
+                safety_verdict=safety_verdict,
+                idempotency_key="test-key-003"
+            )
+            
+            # Modify intent to be A1 (requires approval)
+            intent.action_class = "A1_soft_containment"
+            
+            # Create approval request and freeze intent
+            approval_id = main.approval_service.create_request(
+                correlation_id="test-corr-003",
+                trace_id="test-trace-003",
+                tenant_id="test-tenant",
+                cell_id="test-cell",
+                idempotency_key="test-key-003",
+                requested_action_class="A1_soft_containment",
+                payload_ref={"test": "data"}
+            )
+            
+            # Set approval_id in intent BEFORE hashing
+            intent.safety_context["human_approval_id"] = approval_id
+            
+            # Bind and freeze intent
+            intent_hash = main.intent_store.compute_intent_hash(intent)
+            main.approval_service.bind_intent(approval_id, intent.intent_id, intent.idempotency_key, intent_hash)
+            main.intent_store.freeze_intent(approval_id, intent)
+            
+            # Approve the request
+            main.approval_service.approve(approval_id, "operator-001")
+            
+            # Modify intent to create binding mismatch (change idempotency_key)
+            intent.idempotency_key = "different-key"
+            
+            # Execute intent (should be blocked due to binding mismatch)
+            result = asyncio.run(execution_kernel.execute_intent(intent))
+            assert result is False

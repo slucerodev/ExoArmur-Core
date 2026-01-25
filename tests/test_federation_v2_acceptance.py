@@ -34,6 +34,7 @@ from contracts.models_v1 import TelemetryEventV1, BeliefV1
 
 
 @pytest.mark.xfail(strict=True, reason="V2 federation requires real Phase 2 implementation - future acceptance gate")
+@pytest.mark.v2_acceptance
 @pytest.mark.asyncio
 class TestFederationFormationAcceptance:
     """Federation Formation Acceptance Test - Phase 2 Implementation

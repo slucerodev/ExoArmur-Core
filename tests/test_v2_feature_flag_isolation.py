@@ -158,7 +158,7 @@ class TestV2FeatureFlagIsolation:
     @pytest.mark.asyncio
     async def test_v2_enabled_triggers_notimplementederror(self):
         """Test that enabled=True triggers NotImplementedError as expected"""
-        # Create V2 objects with enabled=True
+        # Create V2 objects with enabled=True (construction should succeed)
         fed_manager = FederationManager(FederationConfig(enabled=True))
         # agg_config = AggregationConfig(enabled=True)
         # aggregator = CrossCellAggregator(agg_config)  # Phase 2A scope - removed
@@ -167,7 +167,7 @@ class TestV2FeatureFlagIsolation:
         control_api = ControlAPI(ControlAPIConfig(enabled=True))
         operator_interface = OperatorInterface(OperatorConfig(enabled=True))
         
-        # These should raise NotImplementedError
+        # These should raise NotImplementedError when methods are called
         with pytest.raises(NotImplementedError):
             await fed_manager.initialize()
         
@@ -182,6 +182,18 @@ class TestV2FeatureFlagIsolation:
         
         with pytest.raises(NotImplementedError):
             await operator_interface.initialize()
+        
+        # Test that disabled objects can be created and are no-op
+        fed_manager_disabled = FederationManager(FederationConfig(enabled=False))
+        approval_service_disabled = ApprovalService(ApprovalConfig(enabled=False))
+        control_api_disabled = ControlAPI(ControlAPIConfig(enabled=False))
+        operator_interface_disabled = OperatorInterface(OperatorConfig(enabled=False))
+        
+        # These should be no-op and not raise exceptions
+        await fed_manager_disabled.initialize()
+        await approval_service_disabled.initialize()
+        await control_api_disabled.startup()
+        await operator_interface_disabled.initialize()
         
         # Clean up - shutdown methods also raise NotImplementedError when enabled=True
         # So we don't call them, just let the objects be garbage collected

@@ -318,29 +318,34 @@ class TestApprovalWiring:
     def test_execution_kernel_blocks_without_approval(self, execution_kernel, sample_local_decision_suspicious):
         """Test D2: ExecutionKernel blocks A1/A2/A3 intents without approval_id"""
         
-        # Create safety verdict that allows execution
-        safety_verdict = SafetyVerdict(
-            verdict="allow",
-            rationale="Test approval",
-            rule_ids=["SG-401"]
-        )
+        # Enable V2 feature flags for this test
+        from unittest.mock import patch
+        from feature_flags import get_feature_flags
         
-        # Create execution intent without human_approval_id
-        intent = execution_kernel.create_execution_intent(
-            local_decision=sample_local_decision_suspicious,
-            safety_verdict=safety_verdict,
-            idempotency_key="test-key-004"
-        )
-        
-        # Modify intent to be A1 (should be blocked without approval)
-        intent.action_class = "A1_soft_containment"
-        intent.safety_context["human_approval_id"] = None
-        
-        # Execute intent (should be blocked)
-        result = asyncio.run(execution_kernel.execute_intent(intent))
-        
-        # Verify execution was blocked
-        assert result is False
+        with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
+            # Create safety verdict that allows execution
+            safety_verdict = SafetyVerdict(
+                verdict="allow",
+                rationale="Test approval",
+                rule_ids=["SG-401"]
+            )
+            
+            # Create execution intent without human_approval_id
+            intent = execution_kernel.create_execution_intent(
+                local_decision=sample_local_decision_suspicious,
+                safety_verdict=safety_verdict,
+                idempotency_key="test-key-004"
+            )
+            
+            # Modify intent to be A1 (should be blocked without approval)
+            intent.action_class = "A1_soft_containment"
+            intent.safety_context["human_approval_id"] = None
+            
+            # Execute intent (should be blocked)
+            result = asyncio.run(execution_kernel.execute_intent(intent))
+            
+            # Verify execution was blocked
+            assert result is False
     
     def test_execution_kernel_allows_a0_without_approval(self, execution_kernel, sample_local_decision):
         """Test D2: ExecutionKernel allows A0 intents without approval_id"""

@@ -73,6 +73,22 @@ class AuditLogger:
         """Get audit records for a correlation ID"""
         return self.audit_records.get(correlation_id, [])
     
+    def get_records_by_correlation(self, correlation_id: str) -> List[AuditRecordV1]:
+        """Get audit records for a correlation ID (alias for get_audit_records)"""
+        return self.get_audit_records(correlation_id)
+    
+    def record_audit(self, event_kind: str, payload_ref: Dict[str, Any], correlation_id: str, trace_id: str, tenant_id: str, cell_id: str, idempotency_key: str) -> AuditRecordV1:
+        """Record audit event (alias for emit_audit_record)"""
+        return self.emit_audit_record(
+            event_kind=event_kind,
+            payload_ref=payload_ref,
+            correlation_id=correlation_id,
+            trace_id=trace_id,
+            tenant_id=tenant_id,
+            cell_id=cell_id,
+            idempotency_key=idempotency_key
+        )
+    
     def _compute_hash(self, payload_ref: Dict[str, Any]) -> str:
         """Compute SHA256 hash of payload"""
         payload_str = json.dumps(payload_ref, sort_keys=True)

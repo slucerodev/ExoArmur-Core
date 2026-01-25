@@ -1,0 +1,80 @@
+name: V2 Demo Smoke Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  v2-demo-smoke:
+    runs-on: ubuntu-latest
+    name: V2 Restrained Autonomy Demo Smoke
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install python-ulid
+        pip install pydantic==2.5.0
+        
+    - name: Run V2 Demo with DENY (Safe)
+      run: |
+        export EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+        export EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+        export EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+        export PYTHONPATH="${{ github.workspace }}/src:${{ github.workspace }}/spec/contracts"
+        
+        # Run demo with deny decision
+        python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny > demo_output.txt 2>&1
+        cat demo_output.txt
+        
+        # Extract audit stream ID for replay
+        AUDIT_ID=$(grep "AUDIT_STREAM_ID=" demo_output.txt | cut -d'=' -f2)
+        echo "AUDIT_ID=$AUDIT_ID" >> $GITHUB_ENV
+        
+        # Verify required markers are present
+        grep -q "DEMO_RESULT=DENIED" demo_output.txt || { echo "❌ Missing DEMO_RESULT=DENIED"; exit 1; }
+        grep -q "ACTION_EXECUTED=false" demo_output.txt || { echo "❌ Missing ACTION_EXECUTED=false"; exit 1; }
+        grep -q "AUDIT_STREAM_ID=" demo_output.txt || { echo "❌ Missing AUDIT_STREAM_ID"; exit 1; }
+        
+        echo "✅ Demo markers verified"
+        
+    - name: Run Replay Verification
+      run: |
+        export EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+        export EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+        export EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+        export PYTHONPATH="${{ github.workspace }}/src:${{ github.workspace }}/spec/contracts"
+        
+        # Run replay using the audit ID from previous step
+        python3 scripts/demo_v2_restrained_autonomy.py --replay "$AUDIT_ID" > replay_output.txt 2>&1
+        cat replay_output.txt
+        
+        # Verify replay marker is present
+        grep -q "REPLAY_VERIFIED=true" replay_output.txt || { echo "❌ Replay verification failed"; exit 1; }
+        
+        echo "✅ Replay verification successful"
+        
+    - name: Run V2 Demo Tests
+      run: |
+        export PYTHONPATH="${{ github.workspace }}/src:${{ github.workspace }}/spec/contracts"
+        python3 -m pytest tests/test_v2_restrained_autonomy.py -v
+        
+    - name: Upload demo artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: v2-demo-output
+        path: |
+          demo_output.txt
+          replay_output.txt
+        retention-days: 7

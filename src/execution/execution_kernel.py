@@ -12,6 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'spec', 'con
 from models_v1 import LocalDecisionV1, ExecutionIntentV1
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from clock import utc_now
+from feature_flags import get_feature_flags
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,10 @@ class ExecutionKernel:
         """Execute intent with idempotency enforcement"""
         logger.info(f"Executing intent {intent.intent_id}")
         
-        # Check approval requirement for A1/A2/A3 actions
-        if intent.action_class in ["A1_soft_containment", "A2_hard_containment", "A3_irreversible"]:
+        # Check approval requirement for A1/A2/A3 actions (only in V2)
+        feature_flags = get_feature_flags()
+        if (intent.action_class in ["A1_soft_containment", "A2_hard_containment", "A3_irreversible"] and 
+            feature_flags.is_v2_operator_approval_required()):
             approval_id = intent.safety_context.get("human_approval_id")
             
             if not approval_id:
