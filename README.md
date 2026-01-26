@@ -1,61 +1,73 @@
-# ExoArmur 3.0
+# ExoArmur Core
 
-Autonomous Defense Mesh Organism (ADMO)
+**Audit-Verified — Beta**
 
-ExoArmur is an enterprise-grade autonomous defense/orchestration platform implemented as a distributed mesh of autonomous cells. This repository contains the ExoArmur 3.0 codebase (V1 contracts are stable; V2 federation scaffolding is additive and feature-flagged).
+ExoArmur Core is a deterministic execution safety substrate designed to enforce
+guardrails, preserve auditability, and enable replayable decision verification
+for automation and autonomous-adjacent systems.
 
-**Status: v1.0.0-beta - Phase 6 Certified**
+This repository contains the open-core foundation of ExoArmur.
 
-Project site (GitHub Pages): https://CYLIX-V2.github.io/ExoArmur-3.0
+It does not implement autonomous behavior, orchestration logic, or response
+automation. Those capabilities are intentionally excluded.
 
-## 🚨 Repository Hygiene Notice
-- **Runtime state** (data/, artifacts/reality_run_*/) is generated locally, not stored in Git
-- **Evidence bundles** are reproducible via `scripts/phase6_final_reality_run.py`
-- Repository is optimized for public cloning with minimal size
-- See `RELEASE_REPRODUCIBILITY.md` for complete regeneration instructions
+---
 
-Overview
+## What ExoArmur Core Provides
 
-- Cognition pipeline: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
-- Design goals: deterministic behavior, auditable decision trails, human-in-the-loop for critical actions, and strict governance for changes.
+ExoArmur Core guarantees:
 
-Quick start
+- Deterministic execution classification
+- Durable event persistence
+- Idempotent execution under retries
+- Crash-consistent recovery
+- Explicit safety enforcement (kill switches, approvals, tenant isolation)
+- Bounded retries and backpressure
+- Deterministic failure classification
+- Replayable decision history from durable artifacts
+- Cold-reviewer reproducibility
+
+If ExoArmur Core permits or denies an action, that decision can be reproduced
+later using only the recorded evidence bundle.
+
+---
+
+## What This Is Not
+
+ExoArmur Core is intentionally **not**:
+
+- an autonomous agent
+- a decision-making intelligence
+- a workflow orchestrator
+- a SOAR or SIEM replacement
+- a prompt-based system
+- a real-time automation engine
+
+All behavior layers are additive and out of scope for this repository.
+
+---
+
+## Project Status
+
+**v1.0.0-beta**
+
+The core execution substrate has undergone independent verification and
+reproducibility review.
+
+The core architecture is frozen.
+
+Public interfaces may evolve based on early adopter feedback.
+
+---
+
+## Running the Core
+
+### Requirements
+
+- Docker
+- Docker Compose
+
+### Start the runtime
 
 ```bash
-# Run verification checks
-make verify
-
-# Run tests
-make test
-
-# Run a specific test
-python3 -m pytest tests/test_constitutional_invariants.py -v
-```
-
-Demo (V2 restrained autonomy)
-
-```bash
-# Run the V2 demo (feature flags may be required)
-python3 scripts/demo_v2_restrained_autonomy.py
-```
-
-Repository structure
-
-- src/ - implementation code (federation scaffolding, controllers)
-- spec/contracts/ - canonical ADMO contract schemas and models
-- tests/ - test suite and acceptance gates
-- docs/ - documentation site (published to GitHub Pages)
-
-Publishing the docs
-
-This repository is configured to publish the contents of the `docs/` folder to GitHub Pages via an Actions workflow. After pushing to the `main` branch the site should publish automatically; allow a minute for the workflow to complete.
-
-Contributing
-
-- V1 contracts are immutable
-- V2 work must be additive and feature-flagged (default OFF)
-- All changes require tests and must preserve constitutional invariants described in the docs
-
-License
-
-[License information to be added]
+docker compose up -d
