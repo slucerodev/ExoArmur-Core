@@ -1,2 +1,0 @@
-GATE 2: FAIL
-Evidence: Restart survival or idempotency failed

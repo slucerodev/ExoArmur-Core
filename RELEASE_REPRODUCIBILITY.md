@@ -1,5 +1,19 @@
 # Phase 6 Cold Reviewer Reproducibility Guide
 
+## 🚨 IMPORTANT: RUNTIME STATE & EVIDENCE POLICY
+
+### Runtime State Generation
+- **data/** directory: NATS JetStream runtime state is generated locally during execution
+- **artifacts/reality_run_**/**: Evidence bundles are generated locally, not stored in Git
+- These directories are intentionally excluded from version control via .gitignore
+- Fresh clones will create these directories automatically during execution
+
+### Evidence Bundle Reproduction
+- Full evidence bundles are **reproducible**, not committed to Git
+- Use `scripts/phase6_final_reality_run.py` to regenerate complete evidence locally
+- Phase 6 verification creates all necessary artifacts on-demand
+- This keeps repository size minimal while preserving reproducibility
+
 ## QUICK START
 
 ### 1. Environment Setup

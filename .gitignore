@@ -91,3 +91,8 @@ test_*.sh
 # Local scratch / outputs
 test_output.txt
 test_replay.txt
+
+# Runtime State and Evidence Bundles
+data/
+artifacts/reality_run_*/
+*.log

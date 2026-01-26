@@ -1,6 +1,21 @@
 # ExoArmur Open-Core Boundary Definition
 
-## 🟢 CORE COMPONENTS (Included in Open-Core Release)
+## � RUNTIME & ARTIFACTS POLICY
+
+### Repository Hygiene
+- **data/**: NATS JetStream runtime state - generated locally, excluded from Git
+- **artifacts/reality_run_**/**: Evidence bundles - reproducible, not stored in Git  
+- **__pycache__/**, *.pyc: Python bytecode - excluded from Git
+- **.venv/**: Virtual environments - excluded from Git
+- **logs/**: Runtime logs - excluded from Git
+
+### Reproducibility Guarantee
+- All evidence bundles can be regenerated via `scripts/phase6_final_reality_run.py`
+- Runtime state is recreated automatically on fresh execution
+- Phase 6 verification is fully reproducible from source
+- Repository remains lean while preserving complete audit trail
+
+## �🟢 CORE COMPONENTS (Included in Open-Core Release)
 
 ### Reliability Substrate
 - ✅ **Timeout Enforcement**: Central timeout manager with deterministic audit codes

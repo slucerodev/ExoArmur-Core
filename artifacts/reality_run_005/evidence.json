@@ -1,8 +1,0 @@
-{
-  "verification_type": "gate2_sanity",
-  "nats_url": "nats://127.0.0.1:4222",
-  "stream_name": "EXOARMUR_AUDIT_V1",
-  "store_dir": "/home/oem/CascadeProjects/ExoArmur/data/jetstream",
-  "status": "verified",
-  "reason": "Gate 2 already GREEN in previous runs"
-}

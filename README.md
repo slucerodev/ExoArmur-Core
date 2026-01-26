@@ -6,6 +6,12 @@ ExoArmur is an enterprise-grade autonomous defense/orchestration platform implem
 
 Project site (GitHub Pages): https://CYLIX-V2.github.io/ExoArmur-3.0
 
+## 🚨 Repository Hygiene Notice
+- **Runtime state** (data/, artifacts/reality_run_*/) is generated locally, not stored in Git
+- **Evidence bundles** are reproducible via `scripts/phase6_final_reality_run.py`
+- Repository is optimized for public cloning with minimal size
+- See `RELEASE_REPRODUCIBILITY.md` for complete regeneration instructions
+
 Overview
 
 - Cognition pipeline: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1

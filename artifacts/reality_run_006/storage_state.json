@@ -1,4 +1,0 @@
-STORAGE_TYPE: docker_volume
-STREAM_NAME: EXOARMUR_AUDIT_V1
-STORE_DIR: /data/jetstream (docker volume)
-CAPTURED_AT: 2026-01-25T20:26:06Z
