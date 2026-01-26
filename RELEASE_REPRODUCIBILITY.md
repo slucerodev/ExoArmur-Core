@@ -1,5 +1,7 @@
 # Phase 6 Cold Reviewer Reproducibility Guide
 
+**ExoArmur v1.0.0-beta - Phase 6 Certified**
+
 ## 🚨 IMPORTANT: RUNTIME STATE & EVIDENCE POLICY
 
 ### Runtime State Generation

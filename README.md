@@ -4,6 +4,8 @@ Autonomous Defense Mesh Organism (ADMO)
 
 ExoArmur is an enterprise-grade autonomous defense/orchestration platform implemented as a distributed mesh of autonomous cells. This repository contains the ExoArmur 3.0 codebase (V1 contracts are stable; V2 federation scaffolding is additive and feature-flagged).
 
+**Status: v1.0.0-beta - Phase 6 Certified**
+
 Project site (GitHub Pages): https://CYLIX-V2.github.io/ExoArmur-3.0
 
 ## 🚨 Repository Hygiene Notice

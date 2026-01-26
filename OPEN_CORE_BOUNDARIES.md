@@ -1,6 +1,8 @@
 # ExoArmur Open-Core Boundary Definition
 
-## � RUNTIME & ARTIFACTS POLICY
+**Version: v1.0.0-beta - Phase 6 Certified**
+
+## 🚨 RUNTIME & ARTIFACTS POLICY
 
 ### Repository Hygiene
 - **data/**: NATS JetStream runtime state - generated locally, excluded from Git
