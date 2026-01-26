@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "audit_id": "01J4NR5X9Z8GABCDEF12345678",
+  "tenant_id": "tenant_001",
+  "cell_id": "cell_001",
+  "idempotency_key": "gate2_test_idemp_001",
+  "recorded_at": "2026-01-25T20:06:40.952342+00:00",
+  "event_kind": "GATE2_TEST",
+  "payload_ref": {
+    "test": "restart_idempotency",
+    "injection": 1
+  },
+  "hashes": {
+    "sha256": "4cda73ca024170039f95e2a5b5bf2bf9e9db9a393d32c7e99dbc6e7acb7cb769",
+    "upstream_hashes": []
+  },
+  "correlation_id": "gate2_test_001",
+  "trace_id": "trace_gate2_001"
+}

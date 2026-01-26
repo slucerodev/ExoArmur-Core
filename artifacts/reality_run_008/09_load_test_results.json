@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-01-25T21:39:01.096082+00:00",
+  "config": {
+    "test_a_nodes": 1000,
+    "test_a_concurrency": 50,
+    "test_a_duration": 30,
+    "test_b_peers": 500,
+    "test_b_concurrency": 25,
+    "test_b_duration": 30,
+    "operations_per_second": 50,
+    "operation_timeout": 5.0,
+    "tenant_isolation": true,
+    "enable_timeouts": true,
+    "enable_retries": true,
+    "enable_backpressure": true,
+    "enable_circuit_breakers": true
+  },
+  "results": {
+    "test_a": {
+      "total_operations": 1472,
+      "successful_operations": 199,
+      "failed_operations": 1273,
+      "success_rate": 0.13519021739130435,
+      "failure_breakdown": {
+        "timeouts": 0,
+        "retries": 0,
+        "backpressure": 0,
+        "circuit_breakers": 1259
+      },
+      "latency": {
+        "average": 0.10526931690781013,
+        "p50": 4.124641418457031e-05,
+        "p95": 0.7517001628875732,
+        "p99": 0.999666690826416,
+        "min": 2.6464462280273438e-05,
+        "max": 3.9869391918182373
+      },
+      "throughput": 49.03595218075238,
+      "tenant_isolation": 10,
+      "node_distribution": 786,
+      "peer_distribution": 100,
+      "test_name": "Test A: 1000 Logical Nodes",
+      "test_config": {
+        "nodes": 1000,
+        "concurrency": 50,
+        "duration": 30,
+        "operations_per_second": 50
+      }
+    },
+    "test_b": {
+      "total_operations": 1476,
+      "successful_operations": 0,
+      "failed_operations": 1476,
+      "success_rate": 0.0,
+      "failure_breakdown": {
+        "timeouts": 0,
+        "retries": 0,
+        "backpressure": 0,
+        "circuit_breakers": 1476
+      },
+      "latency": {
+        "average": 4.59593809070949e-05,
+        "p50": 4.506111145019531e-05,
+        "p95": 5.817413330078125e-05,
+        "p99": 7.62939453125e-05,
+        "min": 2.5510787963867188e-05,
+        "max": 0.00037360191345214844
+      },
+      "throughput": 49.18777519827072,
+      "tenant_isolation": 10,
+      "node_distribution": 100,
+      "peer_distribution": 469,
+      "test_name": "Test B: 500 Peer Identities",
+      "test_config": {
+        "peers": 500,
+        "concurrency": 25,
+        "duration": 30,
+        "operations_per_second": 50
+      }
+    }
+  },
+  "reliability_stats": {
+    "timeout_manager": {
+      "configured": true
+    },
+    "retry_manager": {
+      "configured": true,
+      "retry_attempts": 0
+    },
+    "backpressure_manager": {
+      "configured": true,
+      "backpressure_events": 0,
+      "rate_limiters": 10,
+      "queues": 0
+    },
+    "circuit_breaker_manager": {
+      "configured": true,
+      "circuit_breakers": 1,
+      "state_changes": 1
+    },
+    "total_audit_events": 1
+  }
+}

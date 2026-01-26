@@ -1,5 +1,6 @@
 """
 Execution kernel with idempotency enforcement
+Phase 5: Added execution gate enforcement for all side effects.
 """
 
 import logging
@@ -13,6 +14,7 @@ from models_v1 import LocalDecisionV1, ExecutionIntentV1
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from clock import utc_now
 from feature_flags import get_feature_flags
+from src.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,26 @@ class ExecutionKernel:
     async def execute_intent(self, intent: ExecutionIntentV1) -> bool:
         """Execute intent with idempotency enforcement"""
         logger.info(f"Executing intent {intent.intent_id}")
+        
+        # PHASE 5: Enforce execution gate BEFORE any side effects
+        gate_result = await enforce_execution_gate(
+            action_type=ExecutionActionType.EXECUTION_KERNEL_INTENT,
+            tenant_id=intent.tenant_id,
+            correlation_id=intent.correlation_id,
+            trace_id=intent.trace_id,
+            principal_id="system",  # System-initiated execution
+            additional_context={
+                "intent_id": intent.intent_id,
+                "action_class": intent.action_class,
+                "intent_type": intent.intent_type,
+                "subject": intent.subject
+            }
+        )
+        
+        if gate_result.decision != GateDecision.ALLOW:
+            logger.warning(f"Intent execution blocked by execution gate: {gate_result.reason.value}")
+            # Audit event already emitted by execution gate
+            return False
         
         # Check approval requirement for A1/A2/A3 actions (only in V2)
         feature_flags = get_feature_flags()

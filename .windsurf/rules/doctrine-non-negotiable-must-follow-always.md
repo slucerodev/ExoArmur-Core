@@ -1,187 +1,116 @@
 ---
-trigger: always_on
+trigger: model_decision
 ---
-# EXOARMUR — REALITY-FIRST DEVELOPMENT RULESET
-# PURPOSE: Permanently eliminate hollow, symbolic, or illusion-based progress.
+EXOARMUR — REALITY-FIRST RULESET (v2: Production-Grade Truth)
 
 MISSION
-You are developing a fully functioning real-world application.
-Architectural shape, mockups, prototypes, and skeletons are insufficient.
-Work is valid only if it increases operational truth under real conditions.
+Build a fully functioning real-world application.
+Work is valid ONLY if it increases operational truth under real conditions.
 
 DEFINITION OF REAL
-A component is REAL only if all of the following are true:
+A component is REAL only if ALL are true:
+1) Persists outside the Python process
+2) Survives full process termination and restart
+3) Produces externally verifiable outputs
+4) Can be replayed/audited from durable artifacts
+5) Evidence exists on disk proving the above
 
-1. It persists data outside the Python process.
-2. It survives full process termination and restart.
-3. Its outputs can be externally verified.
-4. Its behavior can be replayed or audited from durable artifacts.
-5. Evidence exists on disk proving the above.
+If any condition is unmet → HOLLOW.
+If proof cannot be shown → UNPROVEN.
 
-If any condition is unmet, the component is HOLLOW.
-
-NO EXCEPTIONS.
-
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
 NON-NEGOTIABLE CONSTRAINTS
-
-- No new features.
-- No redesign of architecture shape.
+- No new product features.
+- No architecture redesign.
 - No speculative work.
 - No “this should work.”
-- No optimism.
-- No assumptions.
+- No optimism. No assumptions.
+- No mocks in any reality path.
+- No in-memory persistence used as “storage.”
+- Refactors ONLY when required to eliminate a lie or to enable a verifier/evidence artifact.
 
-Only enforcement and grounding of what already exists is permitted.
+────────────────────────────────────────────────────────
 
----------------------------------------------------------------------
+TRUTH AXIOMS (PRODUCTION LANDMINES)
+A) TIME IS NOT TRUTH
+- Wall-clock time (now()) is forbidden in any decision path unless the time basis is recorded into artifacts.
+- Artifacts must distinguish event_time (source) vs process_time (system).
+- Replay must not depend on current time.
 
-REALITY GATES (SINGLE SOURCE OF TRUTH)
+B) DELIVERY IS AT-LEAST-ONCE
+- Duplicates are expected.
+- The system MUST be idempotent at the ingest/commit boundary.
+- Duplicate input must not duplicate durable outcomes.
 
-GATE 1 — DURABLE PERSISTENCE EXISTS
-PASS ONLY IF:
-- Audit records and beliefs are persisted outside process memory.
-- Persistence is real (JetStream file-backed streams and/or real database).
-- Data remains accessible after application shutdown.
+C) CONFIG DRIFT IS A LIE
+- Effective runtime config (flags/env/config files influencing behavior) MUST be snapshotted and hashed per run.
+- Replay must use recorded config; if config differs and is not declared, replay equivalence fails.
 
-If persistence disappears on exit → FAIL.
+D) HUMANS ARE NON-DETERMINISTIC
+- Any operator/human action that influences outcomes MUST be captured as a durable event:
+  actor_id, action, event_time, process_time, correlation_id.
+- Replay consumes recorded decisions, not “what a human would do.”
 
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
-GATE 2 — RESTART SURVIVAL
-PASS ONLY IF:
-- Application is terminated.
-- Broker/storage is terminated.
-- Both restart cleanly.
-- System continues without manual intervention.
-- No silent loss of records.
+REALITY GATES (SOURCE OF TRUTH)
+Gate 1 — Durable Persistence Exists
+Gate 2 — Restart Survival
+Gate 3 — Replay Equivalence
+Gate 4 — Minimal Deployment Proof
+Gate 5 — Time Truth (replay clock safety)
+Gate 6 — Duplicate/Idempotency Truth (at-least-once safety)
+Gate 7 — Config + Human Action Truth (reproducibility boundaries)
 
-Verifier must confirm expected counts.
+A gate is GREEN only with durable evidence artifacts on disk.
+Otherwise: RED or UNPROVEN.
 
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
-GATE 3 — REPLAY EQUIVALENCE
-PASS ONLY IF:
-- A completed run is replayed from durable storage.
-- Replay produces identical or explicitly-declared outcomes:
-  - intent hash (or equivalent)
-  - safety verdict
-  - approval requirement
-  - audit trace structure
-
-If replay diverges without explanation → FAIL.
-
----------------------------------------------------------------------
-
-GATE 4 — MINIMAL DEPLOYMENT PROOF
-PASS ONLY IF:
-- docker-compose up brings up the full system.
-- A single command executes a known scenario.
-- An evidence bundle is produced consumable by a cold reviewer.
-
----------------------------------------------------------------------
-
-REALITY HARNESS (MANDATORY)
-
-A single command must exist:
-- make reality
-  OR
-- scripts/reality.sh
-
-This command MUST:
-- Use real components only (no mocks).
-- Start JetStream with file-backed storage (or real DB).
-- Start ExoArmur service.
-- Inject known telemetry.
-- Verify persistence.
-- Run replay.
-- Emit evidence artifacts.
-
----------------------------------------------------------------------
-
-MANDATORY EVIDENCE BUNDLE
-
-Each reality run MUST output:
-
+MANDATORY EVIDENCE BUNDLE (PER RUN)
 artifacts/<run_id>/
 - audit_export.jsonl
-- jetstream_state.json (streams, consumers, counts)
+- storage_state.json
 - replay_report.json
 - service.log
-- PASS_FAIL.txt
+- config_snapshot.json
+- config_hash.txt
+- time_model.json
+- idempotency_report.json        (when Gate 6 is targeted)
+- operator_actions.jsonl         (when operator actions exist)
+- PASS_FAIL.txt                  (includes per-gate status)
 
-If evidence is missing → gate cannot pass.
+Missing required artifacts → FAIL.
 
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
-HARD PROHIBITIONS (AUTOMATIC FAILURES)
+AUTOMATIC FAILURES (ARCHITECTURAL LIES)
+- TODO/FIXME in any I/O, persistence, or replay path
+- in-memory used as persistence in reality harness
+- mocked JetStream/DB in reality harness
+- hard-coded or reused identifiers
+- “looks correct” reasoning / passing tests without disk proof
+- decision logic using now() without recorded time basis
 
-The following are architectural lies:
+On detection:
+1) Mark as LIE
+2) Add failing verifier and/or artifact requirement
+3) Do not proceed until resolved
 
-- TODO or FIXME in any I/O path.
-- In-memory storage used as persistence.
-- Mocked JetStream or DB in reality harness.
-- Hard-coded identifiers.
-- “Looks correct” statements.
-- Passing tests without external proof.
-
-If found:
-1. Mark as LIE.
-2. Add failing gate or verifier.
-3. Remove or make real.
-
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
 IDENTITY AND TRACE TRUTH
+All core IDs must be unique and real:
+audit_id, belief_id, intent_id, correlation_id, idempotency_key
+ULID (or equivalent) required. Hard-coded IDs forbidden.
 
-All core identifiers MUST be real and unique:
-- audit_id
-- belief_id
-- intent_id
-- correlation_id
-
-Hard-coded or reused identifiers are forbidden.
-
-ULID or equivalent required.
-
----------------------------------------------------------------------
-
-CASCADE BEHAVIOR REQUIREMENTS
-
-Before implementing anything, Cascade MUST:
-
-1. Declare which Reality Gate (1–4) is being addressed.
-2. Identify the minimal change required to flip that gate to GREEN.
-3. Implement verifier BEFORE or WITH the change.
-4. Produce or describe evidence artifacts.
-5. Refuse scope drift.
-
-“No while I’m here.”
-“No cleanup.”
-“No refactors unless required to eliminate a lie.
-
----------------------------------------------------------------------
+────────────────────────────────────────────────────────
 
 ACCEPTANCE STANDARD
+Completion may be claimed ONLY when:
+- Target gate is GREEN
+- Evidence bundle exists
+- Cold reviewer can reproduce via docker-compose + single command
 
-Cascade may claim completion ONLY when:
-- The current gate is GREEN.
-- Evidence bundle exists.
-- A cold external reviewer can reproduce results.
-
-If proof cannot be shown, output MUST state:
-
-UNPROVEN.
-
----------------------------------------------------------------------
-
-CORE PRINCIPLE
-
-If the system cannot survive reality,
-it does not exist.
-
-Truth overrides elegance.
-Evidence overrides belief.
-Reality overrides architecture.
-
+Otherwise output MUST state: UNPROVEN

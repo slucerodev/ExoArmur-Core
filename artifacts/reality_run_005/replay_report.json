@@ -1,0 +1,27 @@
+{
+  "verification_at_utc": "2026-01-25T20:19:17.633568+00:00",
+  "audit_export_file": "/home/oem/CascadeProjects/ExoArmur/artifacts/reality_run_005/audit_export.jsonl",
+  "pass": true,
+  "reason": "Replay equivalence verified - deterministic outcomes computed",
+  "replay_outcomes": {
+    "total_records": 3,
+    "unique_correlation_ids": 2,
+    "unique_tenants": 1,
+    "event_kinds": [
+      "SAFETY_CHECK",
+      "DECISION_MADE",
+      "TELEMETRY_INGESTED"
+    ],
+    "outcome_hash": "9948005a8f64a0ff6459771d151b2150ce983590bde5cf0eebeda4cbc304a952",
+    "replayed_at_utc": "2026-01-25T20:19:17.633534+00:00",
+    "correlation_analysis": {
+      "max_events_per_correlation": 2,
+      "avg_events_per_correlation": 1.5
+    }
+  },
+  "equivalence_checks": {
+    "deterministic_hashing": true,
+    "consistent_correlation_ids": true,
+    "no_data_loss": true
+  }
+}

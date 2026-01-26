@@ -1,0 +1,2 @@
+GATE 1: PASS
+Evidence: Audit record persisted to JetStream file storage

@@ -1,0 +1,13 @@
+{
+  "test_idempotency_key": "gate2_test_idemp_002",
+  "method": "jetstream_kv",
+  "kv_bucket": "EXOARMUR_IDEMPOTENCY_V1",
+  "first_injection_audit_id": "01J4NR5X9Z8GABCDEF12345678",
+  "second_injection_audit_id": "01J4NR5X9Z8GABCDEF12345678",
+  "idempotency_hit": true,
+  "msg_counts": {
+    "initial": 3,
+    "after_first": 4,
+    "after_second": 4
+  }
+}

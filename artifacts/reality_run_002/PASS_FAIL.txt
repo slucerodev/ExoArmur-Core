@@ -1,0 +1,5 @@
+GATE 1: PASS
+Evidence: Audit record persisted to JetStream file storage and survived restart
+Storage: file
+Store directory: /tmp/nats_data
+Messages before/after: 4/4

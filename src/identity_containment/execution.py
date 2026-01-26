@@ -3,6 +3,7 @@ Identity Containment Execution Integration
 
 Integrates identity containment with the ExecutionKernel for
 approved containment operations.
+Phase 5: Added execution gate enforcement for all side effects.
 """
 
 import logging
@@ -20,6 +21,7 @@ from src.federation.audit import AuditService, AuditEventType
 from src.control_plane.approval_service import ApprovalService
 from src.identity_containment.effector import IdentityContainmentEffector
 from src.identity_containment.intent_service import IdentityContainmentIntentService
+from src.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ class IdentityContainmentExecutor:
         self.intent_service = intent_service
         self.effector = effector
     
-    def execute_containment_apply(self, approval_id: str) -> Optional[IdentityContainmentAppliedRecordV1]:
+    async def execute_containment_apply(self, approval_id: str) -> Optional[IdentityContainmentAppliedRecordV1]:
         """Execute containment apply operation
         
         Args:
@@ -79,6 +81,25 @@ class IdentityContainmentExecutor:
         intent = self.intent_service.get_intent_by_approval(approval_id)
         if not intent:
             logger.error(f"No intent found for approval {approval_id}")
+            return None
+        
+        # PHASE 5: Enforce execution gate BEFORE any side effects
+        gate_result = await enforce_execution_gate(
+            action_type=ExecutionActionType.IDENTITY_CONTAINMENT_APPLY,
+            tenant_id=intent.tenant_id,
+            correlation_id=intent.correlation_id,
+            trace_id=intent.trace_id,
+            principal_id=approval.approver_id,
+            additional_context={
+                "approval_id": approval_id,
+                "intent_id": intent.intent_id,
+                "subject": intent.subject
+            }
+        )
+        
+        if gate_result.decision != GateDecision.ALLOW:
+            logger.warning(f"Containment apply blocked by execution gate: {gate_result.reason.value}")
+            # Audit event already emitted by execution gate
             return None
         
         # Verify approval binding
@@ -123,7 +144,7 @@ class IdentityContainmentExecutor:
             
             return None
     
-    def execute_containment_revert(self, intent_hash: str, reason: str) -> Optional[IdentityContainmentRevertedRecordV1]:
+    async def execute_containment_revert(self, intent_hash: str, reason: str) -> Optional[IdentityContainmentRevertedRecordV1]:
         """Execute containment revert operation
         
         Args:
@@ -137,6 +158,25 @@ class IdentityContainmentExecutor:
         intent = self.intent_service.get_intent(intent_hash)
         if not intent:
             logger.error(f"No intent found for hash {intent_hash}")
+            return None
+        
+        # PHASE 5: Enforce execution gate BEFORE any side effects
+        gate_result = await enforce_execution_gate(
+            action_type=ExecutionActionType.IDENTITY_CONTAINMENT_REVERT,
+            tenant_id=intent.tenant_id,
+            correlation_id=intent.correlation_id,
+            trace_id=intent.trace_id,
+            principal_id="system",  # System-initiated revert
+            additional_context={
+                "intent_hash": intent_hash,
+                "intent_id": intent.intent_id,
+                "reason": reason
+            }
+        )
+        
+        if gate_result.decision != GateDecision.ALLOW:
+            logger.warning(f"Containment revert blocked by execution gate: {gate_result.reason.value}")
+            # Audit event already emitted by execution gate
             return None
         
         try:
@@ -165,13 +205,30 @@ class IdentityContainmentExecutor:
             
             return None
     
-    def process_expirations(self) -> int:
+    async def process_expirations(self) -> int:
         """Process expired containments
         
         Returns:
             Number of containments that expired and were reverted
         """
         try:
+            # PHASE 5: Enforce execution gate for batch expiration processing
+            gate_result = await enforce_execution_gate(
+                action_type=ExecutionActionType.IDENTITY_CONTAINMENT_EXPIRE,
+                tenant_id="system",  # System-level operation
+                correlation_id=None,
+                trace_id=None,
+                principal_id="system",
+                additional_context={
+                    "operation": "batch_expiration_processing",
+                    "timestamp": self.clock.now().isoformat()
+                }
+            )
+            
+            if gate_result.decision != GateDecision.ALLOW:
+                logger.warning(f"Expiration processing blocked by execution gate: {gate_result.reason.value}")
+                return 0
+            
             reverted_records = self.effector.process_expirations()
             
             logger.info(f"Processed {len(reverted_records)} expired containments")
@@ -217,7 +274,7 @@ class IdentityContainmentTickService:
         elapsed = (now - self.last_tick_utc).total_seconds()
         return elapsed >= self.tick_interval_seconds
     
-    def tick(self) -> int:
+    async def tick(self) -> int:
         """Run expiration processing tick
         
         Returns:
@@ -229,8 +286,8 @@ class IdentityContainmentTickService:
         now = self.clock.now()
         
         try:
-            # Process expirations
-            expired_count = self.executor.process_expirations()
+            # Process expirations (includes gate enforcement)
+            expired_count = await self.executor.process_expirations()
             
             # Update last tick time
             self.last_tick_utc = now

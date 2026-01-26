@@ -1,0 +1,12 @@
+{
+  "storage_type": "file",
+  "stream_name": "EXOARMUR_AUDIT_V1",
+  "consumer_names": [],
+  "store_dir": "/tmp/nats_data",
+  "msg_count": 4,
+  "bytes": 2056,
+  "first_seq": 1,
+  "last_seq": 4,
+  "consumer_count": 0,
+  "captured_at_utc": "2026-01-25T19:53:48.179650+00:00"
+}

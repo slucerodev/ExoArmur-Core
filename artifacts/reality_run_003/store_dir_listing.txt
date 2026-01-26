@@ -1,0 +1,14 @@
+JetStream Store Directory: data/jetstream
+Captured at: 2026-01-25T20:06:42.959610+00:00
+
+=== ls -la ===
+total 12
+drwxrwxr-x 3 oem oem 4096 Jan 25 14:05 .
+drwxrwxr-x 3 oem oem 4096 Jan 25 14:04 ..
+drwxr-x--- 3 oem oem 4096 Jan 25 14:05 jetstream
+
+=== find files ===
+
+=== disk usage ===
+60K	data/jetstream
+

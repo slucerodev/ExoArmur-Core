@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "audit_id": "01J4NR5X9Z8GABCDEF12345678",
+  "tenant_id": "tenant_001",
+  "cell_id": "cell_001",
+  "idempotency_key": "idemp_001",
+  "recorded_at": "2026-01-25T18:39:19.045674+00:00",
+  "event_kind": "REALITY_TEST",
+  "payload_ref": {
+    "test": "gate1_persistence",
+    "timestamp": 1769366359.0456665
+  },
+  "hashes": {
+    "sha256": "5be244bf63537a0c3cf09f6187726a14aefa64757ac7a9e03b2ac291c1aca7ac",
+    "upstream_hashes": []
+  },
+  "correlation_id": "reality_test_001",
+  "trace_id": "trace_001"
+}

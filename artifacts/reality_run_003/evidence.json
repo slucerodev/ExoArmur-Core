@@ -1,0 +1,16 @@
+{
+  "run_id": "reality_run_003",
+  "pre_shutdown_utc": "2026-01-25T20:06:40.938860+00:00",
+  "post_restart_utc": "2026-01-25T20:06:48.005992+00:00",
+  "nats_start_cmd": "./nats-server-v2.10.9-linux-amd64/nats-server -js -sd data/jetstream -m 8222",
+  "nats_stop_cmd": "pkill -f nats-server",
+  "store_dir": "data/jetstream",
+  "restart_confirmed": true,
+  "restart_method": "message_count_comparison",
+  "pre_restart_msg_count": 2,
+  "post_restart_msg_count": 2,
+  "post_duplicate_injection_msg_count": 2,
+  "final_msg_count": 3,
+  "idempotency_enforced": false,
+  "test_idempotency_key": "gate2_test_idemp_001"
+}

@@ -1,0 +1,8 @@
+{
+  "storage_type": "file",
+  "stream_name": "EXOARMUR_AUDIT_V1",
+  "store_dir": "data/jetstream",
+  "msg_count": 2,
+  "bytes": 1024,
+  "captured_at_utc": "2026-01-25T20:06:42.964576+00:00"
+}

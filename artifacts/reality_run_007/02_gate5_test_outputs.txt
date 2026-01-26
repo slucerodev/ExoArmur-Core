@@ -1,0 +1,16 @@
+Execution DENIED: missing tenant context
+Execution DENIED: global kill switch active for tenant tenant-123
+============================================================
+GATE 5: KILL SWITCH ENFORCEMENT TESTS
+============================================================
+Testing execution gate FAIL CLOSED behavior...
+✓ Execution gate correctly DENIES without tenant context
+Testing global kill switch enforcement...
+✓ Global kill switch correctly blocks execution
+Testing execution allowed when switches inactive...
+✓ Execution allowed when switches are inactive
+
+============================================================
+GATE 5 TEST RESULTS: 3 passed, 0 failed
+============================================================
+✓ ALL KILL SWITCH TESTS PASSED

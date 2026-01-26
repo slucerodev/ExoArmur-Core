@@ -1,0 +1,11 @@
+{
+  "messages": 2,
+  "bytes": 1028,
+  "first_seq": 1,
+  "last_seq": 2,
+  "consumer_count": 0,
+  "deleted": null,
+  "num_deleted": null,
+  "lost": null,
+  "subjects": null
+}

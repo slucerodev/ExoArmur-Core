@@ -1,0 +1,7 @@
+GATE 2: PASS
+Evidence: Restart survival and idempotency enforcement verified
+Storage: file
+Store directory: data/jetstream
+Messages pre/post restart: 4/4
+Idempotency enforced: 4 -> 4
+Idempotency method: JetStream KV

@@ -1,0 +1,74 @@
+{
+  "injected_at_utc": "2026-01-25T20:26:05.727560+00:00",
+  "nats_url": "nats://127.0.0.1:4222",
+  "stream_name": "EXOARMUR_AUDIT_V1",
+  "scenarios_injected": 3,
+  "final_stream_messages": 3,
+  "final_stream_bytes": 1740,
+  "injected_records": [
+    {
+      "schema_version": "1.0.0",
+      "audit_id": "01J4NR5X9Z8GABCDEF12345678",
+      "tenant_id": "tenant_001",
+      "cell_id": "cell_001",
+      "idempotency_key": "gate3_scenario_001",
+      "recorded_at": "2026-01-25T20:26:04.721512+00:00",
+      "event_kind": "TELEMETRY_INGESTED",
+      "payload_ref": {
+        "test": "gate3_replay",
+        "scenario": "telemetry_batch",
+        "batch_id": "batch_001",
+        "records": 10
+      },
+      "hashes": {
+        "sha256": "cc2a460cdcc30f54dc22cc23b0be4777b6506e4a004dec1b366ac05c4b4a0ece",
+        "upstream_hashes": []
+      },
+      "correlation_id": "gate3_test_001",
+      "trace_id": "trace_gate3_001"
+    },
+    {
+      "schema_version": "1.0.0",
+      "audit_id": "01J4NR5X9Z8GABCDEF12345678",
+      "tenant_id": "tenant_001",
+      "cell_id": "cell_001",
+      "idempotency_key": "gate3_scenario_002",
+      "recorded_at": "2026-01-25T20:26:04.723437+00:00",
+      "event_kind": "SAFETY_CHECK",
+      "payload_ref": {
+        "test": "gate3_replay",
+        "scenario": "safety_verification",
+        "check_type": "boundary_validation",
+        "result": "passed"
+      },
+      "hashes": {
+        "sha256": "1be7557dccf510943ff7902ba6f12c43b2c4996dc6b66aa8893c92b4f7badcb8",
+        "upstream_hashes": []
+      },
+      "correlation_id": "gate3_test_001",
+      "trace_id": "trace_gate3_002"
+    },
+    {
+      "schema_version": "1.0.0",
+      "audit_id": "01J4NR5X9Z8GABCDEF12345678",
+      "tenant_id": "tenant_001",
+      "cell_id": "cell_001",
+      "idempotency_key": "gate3_scenario_003",
+      "recorded_at": "2026-01-25T20:26:04.724650+00:00",
+      "event_kind": "DECISION_MADE",
+      "payload_ref": {
+        "test": "gate3_replay",
+        "scenario": "autonomous_decision",
+        "decision_type": "allow",
+        "confidence": 0.95,
+        "reason": "within_safe_parameters"
+      },
+      "hashes": {
+        "sha256": "b43d01a3ebe650eaf62f7c84fc0e1751f9eb7d69d4b3eee3a19629f1f9a97960",
+        "upstream_hashes": []
+      },
+      "correlation_id": "gate3_test_002",
+      "trace_id": "trace_gate3_003"
+    }
+  ]
+}
