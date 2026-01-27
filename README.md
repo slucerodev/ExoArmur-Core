@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/exoarmur-logo.png" width="180" />
+</p>
+
 # ExoArmur Core
 
 **Audit-Verified — Beta**
