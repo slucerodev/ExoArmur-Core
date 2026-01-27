@@ -341,9 +341,9 @@ After emergency disable:
 - Monitor error rates
 - Validate audit continuity
 
-## Future Flag Planning
+## Experimental Flag Considerations
 
-### Planned Flags
+### Potential Flags
 - `v2_machine_learning_enabled` - ML-based anomaly detection
 - `v2_auto_healing_enabled` - Automatic system healing
 - `v2_cross_region_sync` - Multi-region synchronization
