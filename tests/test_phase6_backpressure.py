@@ -264,7 +264,7 @@ async def test_execute_with_backpressure():
         await manager.execute_with_backpressure(
             tenant_id="tenant-456",
             operation="rate-limited-operation",
-            coro=rate_limited_operation()
+            coro=rate_limited_operation
         )
         assert False, "Should have raised RateLimitExceeded"
     except RateLimitExceeded:
