@@ -1,0 +1,23 @@
+title = "ExoArmur Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow legitimate key usage in ExoArmur codebase"
+paths = [
+    "src/reliability/backpressure_manager.py",
+    "src/feature_flags/config.py",
+    "src/auth/",
+    "src/federation/",
+    "src/control_plane/",
+    "src/identity_containment/",
+    "src/core/integration.py",
+    "tests/",
+    "scripts/reality_inject.py",
+    "scripts/test_gate2_restart_idempotency.py",
+    "artifacts/openapi_v1.json",
+    "artifacts/repo_manifest/",
+    "src/k8s/",
+    "openapi_spec.yaml",
+]
