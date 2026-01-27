@@ -48,6 +48,8 @@ python3 -c "from spec.contracts.models_v1 import TelemetryEventV1; print('✅ Im
 python3 scripts/verify_all.py
 ```
 
+Note: phase6_final_reality_run performs a boundary guard preflight to enforce repository hygiene.
+
 ## Test Suites
 
 ExoArmur defines three explicit test suites (see docs/TEST_SUITES.md):

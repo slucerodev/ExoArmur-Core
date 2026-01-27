@@ -9,8 +9,27 @@ import logging
 import sys
 import os
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+
+# BOUNDARY GUARD PREFLIGHT
+# Enforce repository boundaries before running any tests
+print("Phase 6: Running boundary guard preflight...")
+try:
+    result = subprocess.run(
+        [sys.executable, 'scripts/boundary_guard.py'],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    print(f"Boundary guard: {result.stdout.strip()}")
+except subprocess.CalledProcessError as e:
+    print(f"Boundary guard FAILED: {e.stdout.strip()}")
+    if e.stderr:
+        print(f"Error: {e.stderr.strip()}")
+    print("Phase 6 ABORTED: Repository boundary violations detected")
+    sys.exit(1)
 
 # Add src to path for module imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
