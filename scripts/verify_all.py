@@ -88,8 +88,8 @@ print('✅ Analysis: FactsDeriver, BeliefGenerator, CollectiveConfidenceAggregat
     
     # 2. verify_all test suite (full suite, no ignores)
     results.append(run_command(
-        "python3 -m pytest tests/ --tb=short",
-        "verify_all Test Suite"
+        "python3 -m pytest tests/ --tb=short -W error::pytest.PytestUnraisableExceptionWarning -W error::RuntimeWarning",
+        "verify_all Test Suite with Strict Warnings"
     ))
     
     # 3. Schema validation

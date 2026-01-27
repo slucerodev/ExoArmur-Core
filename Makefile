@@ -17,13 +17,7 @@ test:
 
 verify:
 	@echo "Running comprehensive verification pipeline..."
-	@echo "1. Running core verification..."
-	python3 scripts/verify_core.py
-	@echo "2. Verifying schema snapshot stability..."
-	python3 scripts/verify_snapshot_stability.py
-	@echo "3. Checking import sorting..."
-	python3 -m isort --check-only src/plugins/ tests/test_plugin_registry.py tests/test_shared_primitives_snapshots.py scripts/verify_*.py
-	@echo "✅ All verification checks passed!"
+	python3 scripts/verify_all.py
 
 lint:
 	@echo "Running basic Python syntax checks..."

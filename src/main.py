@@ -76,6 +76,7 @@ execution_kernel: Optional[ExecutionKernel] = None
 audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
+background_tasks = set()  # Track background tasks for deterministic shutdown
 
 
 def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = None):
@@ -114,9 +115,16 @@ async def startup_event():
     # Initialize components with NATS client
     initialize_components(nats_client_instance)
     
-    # Start background consumers
-    asyncio.create_task(collective_aggregator.start_consumer())
-    asyncio.create_task(audit_logger.start_consumer())
+    # Start background consumers with tracking
+    if collective_aggregator:
+        task1 = asyncio.create_task(collective_aggregator.start_consumer())
+        task1.add_done_callback(background_tasks.discard)
+        background_tasks.add(task1)
+    
+    if audit_logger:
+        task2 = asyncio.create_task(audit_logger.start_consumer())
+        task2.add_done_callback(background_tasks.discard)
+        background_tasks.add(task2)
     
     logger.info("ExoArmur ADMO service started successfully")
 
@@ -124,7 +132,24 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global nats_client
+    global nats_client, background_tasks
+    
+    # Cancel all background tasks
+    if background_tasks:
+        logger.info(f"Cancelling {len(background_tasks)} background tasks")
+        for task in background_tasks:
+            task.cancel()
+        
+        # Wait for tasks to complete with timeout
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*background_tasks, return_exceptions=True),
+                timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Background tasks did not complete within timeout")
+        finally:
+            background_tasks.clear()
     
     if nats_client:
         await nats_client.disconnect()
