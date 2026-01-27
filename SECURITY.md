@@ -1,5 +1,15 @@
 # Security Policy
 
+## Security Scanning
+
+ExoArmur uses automated security scanning on all changes:
+
+- **Dependency scan**: `pip-audit` - Checks for known vulnerabilities in dependencies
+- **SAST**: `bandit -r src` - Static analysis for security issues in Python code
+- **Secret scan**: `gitleaks detect --no-git --redact --config .gitleaks.toml` - Ensures no secrets in current working tree
+
+History scanning may flag legacy false positives; the release gate verifies current working tree cleanliness.
+
 ## Supported Versions
 
 Use this section to tell people about which versions of your project are
