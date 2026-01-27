@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FeatureFlagDefinition:
     """Definition of a feature flag"""
-    key: str
+    name: str
     description: str
     default_value: bool
     rollout_strategy: str
@@ -36,7 +36,7 @@ class FeatureFlagConfig:
         
         # V2 Federation
         definitions['v2_federation_enabled'] = FeatureFlagDefinition(
-            key='v2_federation_enabled',
+            name='v2_federation_enabled',
             description='Enable multi-cell federation capabilities',
             default_value=False,
             rollout_strategy='disabled',
@@ -47,7 +47,7 @@ class FeatureFlagConfig:
         
         # V2 Control Plane
         definitions['v2_control_plane_enabled'] = FeatureFlagDefinition(
-            key='v2_control_plane_enabled',
+            name='v2_control_plane_enabled',
             description='Enable operator control plane and approval workflows',
             default_value=False,
             rollout_strategy='disabled',
@@ -58,7 +58,7 @@ class FeatureFlagConfig:
         
         # V2 Operator Approval
         definitions['v2_operator_approval_required'] = FeatureFlagDefinition(
-            key='v2_operator_approval_required',
+            name='v2_operator_approval_required',
             description='Require operator approval for A3 actions',
             default_value=False,
             rollout_strategy='disabled',
@@ -69,7 +69,7 @@ class FeatureFlagConfig:
         
         # V2 Federation Identity
         definitions['v2_federation_identity_enabled'] = FeatureFlagDefinition(
-            key='v2_federation_identity_enabled',
+            name='v2_federation_identity_enabled',
             description='Enable federation identity and trust management',
             default_value=False,
             rollout_strategy='disabled',
@@ -80,7 +80,7 @@ class FeatureFlagConfig:
         
         # V2 Audit Federation
         definitions['v2_audit_federation_enabled'] = FeatureFlagDefinition(
-            key='v2_audit_federation_enabled',
+            name='v2_audit_federation_enabled',
             description='Enable cross-cell audit consolidation',
             default_value=False,
             rollout_strategy='disabled',

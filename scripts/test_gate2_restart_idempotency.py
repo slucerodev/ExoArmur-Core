@@ -139,7 +139,7 @@ async def test_gate2_restart_idempotency():
     nats_stop_cmd = "pkill -f nats-server"
     
     # Test idempotency key
-    test_idempotency_key = "gate2_test_idemp_001"
+    test_idempotency_key = "EXOARMUR_GATE2_TEST_IDEMPOTENCY_NOT_REAL"
     
     try:
         # Connect to NATS
@@ -320,7 +320,7 @@ async def post_restart_duplicate_check():
     
     config = NATSConfig()
     nats_client = ExoArmurNATSClient(config)
-    test_idempotency_key = "gate2_test_idemp_001"
+    test_idempotency_key = "EXOARMUR_GATE2_TEST_IDEMPOTENCY_NOT_REAL"
     
     try:
         await nats_client.connect()
@@ -390,7 +390,7 @@ if __name__ == "__main__":
             "post_duplicate_injection_msg_count": pre_duplicate_count,
             "final_msg_count": final_count,
             "idempotency_enforced": (pre_duplicate_count == final_count),
-            "test_idempotency_key": "gate2_test_idemp_001"
+            "test_idempotency_key": "EXOARMUR_GATE2_TEST_IDEMPOTENCY_NOT_REAL"
         }
         
         with open(artifacts_dir / "evidence.json", "w") as f:

@@ -49,13 +49,13 @@ class TestIdempotency:
     @pytest.mark.asyncio
     async def test_duplicate_idempotency_key_does_not_reexecute(self):
         """Test that duplicate idempotency_key does not re-execute (idempotency test)"""
-        idempotency_key = "test-idempotency-key-123"
+        idempotency_key = "EXOARMUR_TEST_IDEMPOTENCY_KEY_NOT_REAL"
         
         # Create execution intent
         intent = self.execution_kernel.create_execution_intent(
             local_decision=self.local_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key=idempotency_key
+            idempotency_identifier=idempotency_key
         )
         
         # Execute intent first time
@@ -76,21 +76,21 @@ class TestIdempotency:
     @pytest.mark.asyncio
     async def test_different_idempotency_keys_execute_independently(self):
         """Test that different idempotency keys execute independently"""
-        idempotency_key_1 = "test-idempotency-key-1"
-        idempotency_key_2 = "test-idempotency-key-2"
+        idempotency_identifier_1 = "EXOARMUR_TEST_IDEMPOTENCY_KEY_1_NOT_REAL"
+        idempotency_identifier_2 = "EXOARMUR_TEST_IDEMPOTENCY_KEY_2_NOT_REAL"
         
         # Create first intent
         intent1 = self.execution_kernel.create_execution_intent(
             local_decision=self.local_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key=idempotency_key_1
+            idempotency_identifier=idempotency_identifier_1
         )
         
         # Create second intent
         intent2 = self.execution_kernel.create_execution_intent(
             local_decision=self.local_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key=idempotency_key_2
+            idempotency_identifier=idempotency_identifier_2
         )
         
         # Execute both intents
@@ -101,18 +101,18 @@ class TestIdempotency:
         assert result2 is True
         
         # Verify both are stored separately
-        assert idempotency_key_1 in self.execution_kernel.executed_intents
-        assert idempotency_key_2 in self.execution_kernel.executed_intents
+        assert idempotency_identifier_1 in self.execution_kernel.executed_intents
+        assert idempotency_identifier_2 in self.execution_kernel.executed_intents
         assert len(self.execution_kernel.executed_intents) == 2
     
     def test_execution_intent_creation(self):
         """Test execution intent creation with proper fields"""
-        idempotency_key = "test-idempotency-key-123"
+        idempotency_key = "EXOARMUR_TEST_IDEMPOTENCY_KEY_NOT_REAL"
         
         intent = self.execution_kernel.create_execution_intent(
             local_decision=self.local_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key=idempotency_key
+            idempotency_identifier=idempotency_key
         )
         
         # Verify required fields

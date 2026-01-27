@@ -34,7 +34,7 @@ class ExecutionKernel:
         self,
         local_decision: LocalDecisionV1,
         safety_verdict,
-        idempotency_key: str
+        idempotency_identifier: str
     ) -> ExecutionIntentV1:
         """Create execution intent from local decision and safety verdict"""
         logger.info(f"Creating execution intent for decision {local_decision.decision_id}")
@@ -52,7 +52,7 @@ class ExecutionKernel:
             intent_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
             tenant_id=local_decision.tenant_id,
             cell_id=local_decision.cell_id,
-            idempotency_key=idempotency_key,
+            idempotency_key=idempotency_identifier,
             subject=local_decision.subject,
             intent_type="isolate_host",  # TODO: derive from decision
             action_class=action_class,

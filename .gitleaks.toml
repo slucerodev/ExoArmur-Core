@@ -3,21 +3,24 @@ title = "ExoArmur Gitleaks Configuration"
 [extend]
 useDefault = true
 
+# Exclude only generated/local artifacts that are never committed
 [allowlist]
-description = "Allow legitimate key usage in ExoArmur codebase"
+description = "Exclude generated artifacts and runtime state"
 paths = [
-    "src/reliability/backpressure_manager.py",
-    "src/feature_flags/config.py",
-    "src/auth/",
-    "src/federation/",
-    "src/control_plane/",
-    "src/identity_containment/",
-    "src/core/integration.py",
-    "tests/",
-    "scripts/reality_inject.py",
-    "scripts/test_gate2_restart_idempotency.py",
-    "artifacts/openapi_v1.json",
+    # Generated evidence bundles (never committed)
+    "artifacts/reality_run_",
+    
+    # Generated repository metadata (optional but allowed)
     "artifacts/repo_manifest/",
-    "src/k8s/",
-    "openapi_spec.yaml",
+    
+    # Runtime state (never committed)
+    "data/",
+    
+    # Runtime logs (never committed)
+    "logs/",
+    
+    # Python virtual environments
+    ".venv/",
+    "venv/",
+    ".venv_clean_install/",
 ]

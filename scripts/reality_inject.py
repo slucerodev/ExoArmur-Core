@@ -59,7 +59,7 @@ async def inject_scenario(nats_url: str, stream_name: str, output_file: str):
                 "trace_id": "trace_gate3_001",
                 "tenant_id": "tenant_001",
                 "cell_id": "cell_001",
-                "idempotency_key": "gate3_scenario_001"
+                "idempotency_key": "EXOARMUR_GATE3_SCENARIO_001_NOT_REAL"
             },
             {
                 "event_kind": "SAFETY_CHECK",
@@ -73,7 +73,7 @@ async def inject_scenario(nats_url: str, stream_name: str, output_file: str):
                 "trace_id": "trace_gate3_002",
                 "tenant_id": "tenant_001",
                 "cell_id": "cell_001",
-                "idempotency_key": "gate3_scenario_002"
+                "idempotency_key": "EXOARMUR_GATE3_SCENARIO_002_NOT_REAL"
             },
             {
                 "event_kind": "DECISION_MADE",
@@ -88,7 +88,7 @@ async def inject_scenario(nats_url: str, stream_name: str, output_file: str):
                 "trace_id": "trace_gate3_003",
                 "tenant_id": "tenant_001",
                 "cell_id": "cell_001",
-                "idempotency_key": "gate3_scenario_003"
+                "idempotency_key": "EXOARMUR_GATE3_SCENARIO_003_NOT_REAL"
             }
         ]
         

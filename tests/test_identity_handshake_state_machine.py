@@ -198,7 +198,7 @@ class TestIdentityHandshakeStateMachine:
         machine.initiate_handshake("cell-1", "cell-2")
         
         # Create valid identity exchange message
-        base64_public_key = "c2VjcmV0X2tleV9leGFtcGxl"  # "secret_key_example" in base64
+        base64_public_identifier = "ZXhhbXBsZV9wdWJsaWNfaWRlbnRpZmllcg=="  # "example_public_identifier" in base64
         
         message_data = {
             "cell_identity": {
