@@ -4,6 +4,7 @@ Phase 5 Operational Safety Hardening
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
 from enum import Enum
@@ -109,7 +110,7 @@ class ExecutionGate:
             logger.error(f"Failed to ensure KV stores: {e}")
             # Continue with in-memory defaults (DENY)
     
-    async def get_global_kill_switch_status(self, switch_name: str) -> bool:
+    async def get_global_kill_switch_status(self, switch_name: str = "all_execution") -> bool:
         """Get global kill switch status
         
         Args:
@@ -118,6 +119,12 @@ class ExecutionGate:
         Returns:
             True if kill switch is ACTIVE (execution blocked), False if inactive
         """
+        # Check for test mode override (but not in kill switch tests)
+        if (os.environ.get("EXOARMUR_FAIL_OPEN_KILL_SWITCH") == "1" and 
+            not os.environ.get("EXOARMUR_TESTING_KILL_SWITCH") == "1"):
+            logger.debug(f"Test mode override: global kill switch '{switch_name}' forced INACTIVE")
+            return False
+        
         await self._ensure_kv_stores()
         
         if not self._global_kill_switch_kv:
@@ -148,6 +155,12 @@ class ExecutionGate:
         Returns:
             True if kill switch is ACTIVE (execution blocked), False if inactive
         """
+        # Check for test mode override (but not in kill switch tests)
+        if (os.environ.get("EXOARMUR_FAIL_OPEN_KILL_SWITCH") == "1" and 
+            not os.environ.get("EXOARMUR_TESTING_KILL_SWITCH") == "1"):
+            logger.debug(f"Test mode override: tenant '{tenant_id}' kill switch '{switch_name}' forced INACTIVE")
+            return False
+        
         await self._ensure_kv_stores()
         
         if not self._tenant_kill_switch_kv:
@@ -247,8 +260,8 @@ class ExecutionGate:
                     "additional_context": context.additional_context or {}
                 }
                 
-                # Emit to tenant-scoped audit stream
-                audit_subject = f"exoarmur.{context.tenant_id}.audit.append.v1"
+                # Emit to tenant-scoped audit stream (or global if no tenant)
+                audit_subject = f"exoarmur.{context.tenant_id or ''}audit.append.v1"
                 await self.nats_client.publish(audit_subject, audit_record)
                 
                 logger.info(f"Audit event emitted for execution denial: {result.reason.value}")

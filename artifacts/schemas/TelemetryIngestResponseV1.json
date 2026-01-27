@@ -7,40 +7,6 @@
       "title": "Accepted",
       "type": "boolean"
     },
-    "correlation_id": {
-      "description": "Correlation identifier from request",
-      "title": "Correlation Id",
-      "type": "string"
-    },
-    "event_id": {
-      "description": "Event ID from request",
-      "title": "Event Id",
-      "type": "string"
-    },
-    "belief_id": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Generated belief ID if available",
-      "title": "Belief Id"
-    },
-    "processed_at": {
-      "description": "When the request was processed",
-      "format": "date-time",
-      "title": "Processed At",
-      "type": "string"
-    },
-    "trace_id": {
-      "description": "Trace identifier from request",
-      "title": "Trace Id",
-      "type": "string"
-    },
     "approval_id": {
       "anyOf": [
         {
@@ -67,6 +33,35 @@
       "description": "Approval status (PENDING/APPROVED/DENIED)",
       "title": "Approval Status"
     },
+    "belief_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Generated belief ID if available",
+      "title": "Belief Id"
+    },
+    "correlation_id": {
+      "description": "Correlation identifier from request",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "event_id": {
+      "description": "Event ID from request",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "processed_at": {
+      "description": "When the request was processed",
+      "format": "date-time",
+      "title": "Processed At",
+      "type": "string"
+    },
     "safety_verdict": {
       "anyOf": [
         {
@@ -79,6 +74,11 @@
       "default": null,
       "description": "Safety verdict (require_human/require_quorum)",
       "title": "Safety Verdict"
+    },
+    "trace_id": {
+      "description": "Trace identifier from request",
+      "title": "Trace Id",
+      "type": "string"
     }
   },
   "required": [

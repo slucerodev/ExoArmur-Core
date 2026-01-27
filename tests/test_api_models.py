@@ -113,14 +113,14 @@ class TestAuditResponseV1:
         
         response = AuditResponseV1(
             correlation_id="corr-123",
-            audit_records=[audit_record],
+            audit_records=[audit_record.model_dump()],
             total_count=1,
             retrieved_at=utc_now()
         )
         
         assert len(response.audit_records) == 1
         assert response.total_count == 1
-        assert response.audit_records[0].audit_id == "01J4NR5X9Z8GABCDEF12345678"
+        assert response.audit_records[0]["audit_id"] == "01J4NR5X9Z8GABCDEF12345678"
     
     def test_reject_extra_fields(self):
         """Test that extra fields are rejected"""

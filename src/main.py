@@ -238,7 +238,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
         execution_intent = execution_kernel.create_execution_intent(
             local_decision=local_decision,
             safety_verdict=safety_verdict,
-            idempotency_key=idempotency_key
+            idempotency_identifier=idempotency_key
         )
         
         if safety_verdict.verdict == "allow":
@@ -341,9 +341,12 @@ async def get_audit_records(correlation_id: str):
         
         audit_records = audit_logger.get_audit_records(correlation_id)
         
+        # Convert AuditRecordV1 instances to dicts for serialization
+        audit_records_dicts = [record.model_dump() for record in audit_records]
+        
         response = AuditResponseV1(
             correlation_id=correlation_id,
-            audit_records=audit_records,
+            audit_records=audit_records_dicts,
             total_count=len(audit_records),
             retrieved_at=datetime.utcnow()
         )

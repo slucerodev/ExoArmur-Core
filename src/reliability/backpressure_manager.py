@@ -11,7 +11,6 @@ from typing import Dict, Any, Optional, List, Callable, TypeVar
 from enum import Enum
 from dataclasses import dataclass, field
 from collections import deque
-import threading
 import weakref
 
 logger = logging.getLogger(__name__)
@@ -84,7 +83,7 @@ class TokenBucket:
         self.window_size = window_size  # Window size in seconds
         self.tokens = burst  # Start with full burst
         self.last_refill = time.time()
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
     
     def _refill_tokens(self):
         """Refill tokens based on elapsed time"""
@@ -96,9 +95,9 @@ class TokenBucket:
         self.tokens = min(self.burst, self.tokens + tokens_to_add)
         self.last_refill = now
     
-    def consume(self, tokens: int = 1) -> bool:
+    async def consume(self, tokens: int = 1) -> bool:
         """Consume tokens if available"""
-        with self._lock:
+        async with self._lock:
             self._refill_tokens()
             
             if self.tokens >= tokens:
@@ -144,9 +143,8 @@ class TenantRateLimiter:
                    f"{config.tenant_requests_per_second} req/s, "
                    f"burst {config.tenant_requests_per_second * config.burst_multiplier}")
     
-    async def check_rate_limit(self, operation: str = "request") -> bool:
-        """
-        Check if operation is allowed under rate limits
+    async def check_rate_limit(self, operation: str = "operation") -> bool:
+        """Check if operation is allowed under rate limit
         
         Args:
             operation: Description of operation for audit
@@ -158,13 +156,13 @@ class TenantRateLimiter:
             RateLimitExceeded: If rate limit is exceeded
         """
         # Check global rate limit first
-        if not self.global_bucket.consume(1):
+        if not await self.global_bucket.consume(1):
             raise RateLimitExceeded(
                 tenant_id=self.tenant_id, limit_type="global", current_rate=self.global_bucket.tokens, limit=self.config.global_requests_per_second
             )
         
         # Check tenant-specific rate limit
-        if not self.bucket.consume(1):
+        if not await self.bucket.consume(1):
             raise RateLimitExceeded(
                 tenant_id=self.tenant_id, limit_type="tenant", current_rate=self.bucket.tokens, limit=self.config.tenant_requests_per_second
             )

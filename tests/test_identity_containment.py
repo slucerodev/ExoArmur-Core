@@ -357,23 +357,23 @@ class TestIdentityContainmentExecution:
             effector=effector
         )
     
-    def test_execution_blocked_without_approval(self, executor, approval_service):
+    async def test_execution_blocked_without_approval(self, executor, approval_service):
         """Test that execution is blocked without approval"""
         # Configure approval service to return no approval
         approval_service.get_approval_details.return_value = None
         
         # Try to execute
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should be blocked
         assert result is None
     
-    def test_execution_allowed_after_approval_and_matches_binding(
+    async def test_execution_allowed_after_approval_and_matches_binding(
         self, executor, approval_service, intent_service, effector
     ):
         """Test that execution is allowed after approval and matches binding"""
         # Execute containment
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should succeed
         assert result is not None
@@ -382,7 +382,7 @@ class TestIdentityContainmentExecution:
         # Verify effector was called
         effector.apply.assert_called_once()
     
-    def test_execution_blocked_on_binding_mismatch(
+    async def test_execution_blocked_on_binding_mismatch(
         self, executor, intent_service
     ):
         """Test that execution is blocked on binding mismatch"""
@@ -390,7 +390,7 @@ class TestIdentityContainmentExecution:
         intent_service.verify_approval_binding.return_value = False
         
         # Try to execute
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should be blocked
         assert result is None

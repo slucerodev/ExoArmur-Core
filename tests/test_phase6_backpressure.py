@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from src.reliability import (
     BackpressureAction,
     RateLimitExceeded,
     QueueFullError,
@@ -43,15 +43,15 @@ async def test_token_bucket():
     bucket = TokenBucket(rate=10.0, burst=20.0, window_size=1.0)
     
     # Should start with full burst
-    assert bucket.consume(5) == True, "Should consume 5 tokens from full bucket"
-    assert bucket.consume(15) == True, "Should consume remaining 15 tokens"
-    assert bucket.consume(1) == False, "Should fail when bucket is empty"
+    assert await bucket.consume(5) == True, "Should consume 5 tokens from full bucket"
+    assert await bucket.consume(15) == True, "Should consume remaining 15 tokens"
+    assert await bucket.consume(1) == False, "Should fail when bucket is empty"
     
     # Test refill after time
     import time
     time.sleep(0.2)  # Wait for refill
     
-    assert bucket.consume(1) == True, "Should have tokens after refill"
+    assert await bucket.consume(1) == True, "Should have tokens after refill"
     
     print("✓ Token bucket works correctly")
 
@@ -202,10 +202,6 @@ async def test_backpressure_check():
     # Test rate limit check (exhaust burst)
     limiter = manager.get_rate_limiter("tenant-123")
     
-    # Exhaust the burst capacity
-    config = RateLimitConfig(tenant_requests_per_second=10.0, burst_multiplier=2.0)
-    limiter = TenantRateLimiter("tenant-123", config)
-    
     # Consume all burst tokens
     for i in range(20):  # 20 tokens in burst
         try:
@@ -246,7 +242,7 @@ async def test_execute_with_backpressure():
     result = await manager.execute_with_backpressure(
         tenant_id="tenant-456",
         operation="test-operation",
-        coro=successful_operation()
+        coro=successful_operation
     )
     
     assert result == "operation-success", "Should return operation result"

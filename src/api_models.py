@@ -81,7 +81,7 @@ class AuditResponseV1(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     correlation_id: str = Field(description="Correlation identifier")
-    audit_records: List[AuditRecordV1] = Field(description="List of audit records for this correlation")
+    audit_records: List[Dict[str, Any]] = Field(description="List of audit records for this correlation")
     total_count: int = Field(description="Total number of audit records found")
     retrieved_at: datetime = Field(description="When the audit records were retrieved")
     

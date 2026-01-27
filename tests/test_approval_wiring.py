@@ -334,7 +334,7 @@ class TestApprovalWiring:
             intent = execution_kernel.create_execution_intent(
                 local_decision=sample_local_decision_suspicious,
                 safety_verdict=safety_verdict,
-                idempotency_key="test-key-004"
+                idempotency_identifier="test-key-004"
             )
             
             # Modify intent to be A1 (should be blocked without approval)
@@ -361,7 +361,7 @@ class TestApprovalWiring:
         intent = execution_kernel.create_execution_intent(
             local_decision=sample_local_decision,
             safety_verdict=safety_verdict,
-            idempotency_key="test-key-005"
+            idempotency_identifier="test-key-005"
         )
         
         # Intent should be A0 (allowed without approval)

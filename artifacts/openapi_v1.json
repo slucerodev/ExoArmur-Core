@@ -97,101 +97,6 @@
         "title": "ApprovalStatusResponseV1",
         "type": "object"
       },
-      "AuditRecordV1": {
-        "additionalProperties": false,
-        "description": "Append-only audit evidence record for replay and compliance.",
-        "properties": {
-          "audit_id": {
-            "description": "ULID audit identifier",
-            "title": "Audit Id",
-            "type": "string"
-          },
-          "cell_id": {
-            "description": "Cell identifier",
-            "title": "Cell Id",
-            "type": "string"
-          },
-          "correlation_id": {
-            "description": "Correlation identifier",
-            "title": "Correlation Id",
-            "type": "string"
-          },
-          "event_kind": {
-            "description": "Type of event being audited",
-            "example": "telemetry_ingested",
-            "title": "Event Kind",
-            "type": "string"
-          },
-          "hashes": {
-            "additionalProperties": true,
-            "description": "Hash information",
-            "examples": [
-              {
-                "sha256": "abc123...",
-                "upstream_hashes": [
-                  "hash-1",
-                  "hash-2"
-                ]
-              }
-            ],
-            "title": "Hashes",
-            "type": "object"
-          },
-          "idempotency_key": {
-            "description": "Idempotency key",
-            "title": "Idempotency Key",
-            "type": "string"
-          },
-          "payload_ref": {
-            "additionalProperties": true,
-            "description": "Payload reference",
-            "examples": [
-              {
-                "kind": "inline",
-                "ref": "payload-data"
-              }
-            ],
-            "title": "Payload Ref",
-            "type": "object"
-          },
-          "recorded_at": {
-            "description": "When the record was recorded",
-            "title": "Recorded At",
-            "type": "string"
-          },
-          "schema_version": {
-            "description": "Schema version",
-            "example": "1.0.0",
-            "title": "Schema Version",
-            "type": "string"
-          },
-          "tenant_id": {
-            "description": "Tenant identifier",
-            "title": "Tenant Id",
-            "type": "string"
-          },
-          "trace_id": {
-            "description": "Trace identifier",
-            "title": "Trace Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "schema_version",
-          "audit_id",
-          "tenant_id",
-          "cell_id",
-          "idempotency_key",
-          "recorded_at",
-          "event_kind",
-          "payload_ref",
-          "hashes",
-          "correlation_id",
-          "trace_id"
-        ],
-        "title": "AuditRecordV1",
-        "type": "object"
-      },
       "AuditResponseV1": {
         "additionalProperties": false,
         "description": "Response model for GET /v1/audit/{correlation_id}",
@@ -199,7 +104,8 @@
           "audit_records": {
             "description": "List of audit records for this correlation",
             "items": {
-              "$ref": "#/components/schemas/AuditRecordV1"
+              "additionalProperties": true,
+              "type": "object"
             },
             "title": "Audit Records",
             "type": "array"

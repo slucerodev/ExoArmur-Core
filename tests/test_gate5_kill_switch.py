@@ -14,13 +14,12 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from safety import (
+from src.safety import (
     ExecutionGate, 
     ExecutionContext, 
     ExecutionActionType,
     GateDecision,
-    DenialReason,
-    enforce_execution_gate
+    DenialReason
 )
 
 
@@ -86,7 +85,7 @@ async def test_execution_gate_fail_closed():
     print("✓ Execution gate correctly DENIES without tenant context")
 
 
-async def test_global_kill_switch_enforcement():
+async def test_global_kill_switch_enforcement(kill_switch_test_mode):
     """Test that global kill switch blocks execution"""
     print("Testing global kill switch enforcement...")
     
@@ -111,7 +110,7 @@ async def test_global_kill_switch_enforcement():
     print("✓ Global kill switch correctly blocks execution")
 
 
-async def test_tenant_kill_switch_enforcement():
+async def test_tenant_kill_switch_enforcement(kill_switch_test_mode):
     """Test that tenant kill switch blocks execution"""
     print("Testing tenant kill switch enforcement...")
     
@@ -139,7 +138,7 @@ async def test_tenant_kill_switch_enforcement():
     print("✓ Tenant kill switch correctly blocks execution")
 
 
-async def test_execution_allowed_when_switches_inactive():
+async def test_execution_allowed_when_switches_inactive(kill_switch_test_mode):
     """Test that execution is allowed when both switches are inactive"""
     print("Testing execution allowed when switches inactive...")
     
@@ -165,7 +164,7 @@ async def test_execution_allowed_when_switches_inactive():
     print("✓ Execution allowed when switches are inactive")
 
 
-async def test_denial_audit_emission():
+async def test_denial_audit_emission(kill_switch_test_mode):
     """Test that denials emit audit events"""
     print("Testing denial audit emission...")
     
@@ -202,13 +201,16 @@ async def test_convenience_function():
     mock_nats = MockNATSClient()
     
     # Override global gate for testing
-    from safety import _execution_gate
+    from src.safety import _execution_gate
     _execution_gate = ExecutionGate(nats_client=mock_nats)
     
     # Set global kill switch to INACTIVE
     await _execution_gate._ensure_kv_stores()
     await _execution_gate._global_kill_switch_kv.put("switch_all_execution", "inactive")
     await _execution_gate._tenant_kill_switch_kv.put("tenant-123_switch_all_execution", "inactive")
+    
+    # Import convenience function after gate is set up
+    from src.safety import enforce_execution_gate
     
     # Test convenience function
     result = await enforce_execution_gate(

@@ -65,6 +65,11 @@ def override_execution_gate():
     """Override execution gate to allow tests without NATS"""
     from src.safety import GateDecision, DenialReason, GateResult
     from unittest.mock import patch
+    import os
+    
+    # Set flag for normal tests (not kill switch tests)
+    original_testing_flag = os.environ.get("EXOARMUR_TESTING_KILL_SWITCH")
+    os.environ["EXOARMUR_TESTING_KILL_SWITCH"] = "0"
     
     # Create a mock enforce_execution_gate function that always allows
     async def mock_enforce_execution_gate(
@@ -80,6 +85,21 @@ def override_execution_gate():
             reason=None
         )
     
-    # Patch enforce_execution_gate at its source
+    # Patch at the source
     with patch('src.safety.execution_gate.enforce_execution_gate', mock_enforce_execution_gate):
         yield
+    
+    # Restore original flag
+    if original_testing_flag is None:
+        os.environ.pop("EXOARMUR_TESTING_KILL_SWITCH", None)
+    else:
+        os.environ["EXOARMUR_TESTING_KILL_SWITCH"] = original_testing_flag
+
+
+@pytest.fixture
+def kill_switch_test_mode():
+    """Enable kill switch testing mode"""
+    import os
+    os.environ["EXOARMUR_TESTING_KILL_SWITCH"] = "1"
+    yield
+    os.environ.pop("EXOARMUR_TESTING_KILL_SWITCH", None)

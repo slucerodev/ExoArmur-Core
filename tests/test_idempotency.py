@@ -153,7 +153,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=benign_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A0_observe"
@@ -177,7 +177,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=suspicious_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A1_soft_containment"
@@ -201,7 +201,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=malicious_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A2_hard_containment"

@@ -203,7 +203,7 @@ class TestIdentityHandshakeStateMachine:
         message_data = {
             "cell_identity": {
                 "cell_id": "cell-us-east-1-cluster-01-node-01",
-                "cell_public_key": base64_public_key,
+                "cell_public_key": base64_public_identifier,
                 "cell_certificate_chain": ["-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"],
                 "capabilities": ["belief_aggregation"],
                 "trust_score": 0.8

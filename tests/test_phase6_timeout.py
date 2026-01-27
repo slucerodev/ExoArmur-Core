@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from src.reliability import (
     TimeoutCategory,
     TimeoutConfig,
     TimeoutError,
@@ -145,7 +145,7 @@ async def test_timeout_decorator():
     """Test timeout decorator functionality"""
     print("Testing timeout decorator...")
     
-    manager = TimeoutManager()
+    manager = get_timeout_manager()
     mock_emitter = MockAuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     

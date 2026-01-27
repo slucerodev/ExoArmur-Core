@@ -86,14 +86,14 @@ class IdentityContainmentExecutor:
         # PHASE 5: Enforce execution gate BEFORE any side effects
         gate_result = await enforce_execution_gate(
             action_type=ExecutionActionType.IDENTITY_CONTAINMENT_APPLY,
-            tenant_id=intent.tenant_id,
-            correlation_id=intent.correlation_id,
-            trace_id=intent.trace_id,
+            tenant_id=intent.subject_id,  # Use subject_id as tenant identifier
+            correlation_id=intent.metadata.get("correlation_id", ""),
+            trace_id=intent.metadata.get("trace_id", ""),
             principal_id=approval.approver_id,
             additional_context={
                 "approval_id": approval_id,
                 "intent_id": intent.intent_id,
-                "subject": intent.subject
+                "subject": intent.subject_id
             }
         )
         

@@ -240,15 +240,20 @@ class RetryManager:
     
     def _is_retryable_exception(self, exception: Exception, policy: RetryPolicy) -> bool:
         """Check if exception is retryable according to policy"""
-        # Check non-retryable exceptions first
+        # If retryable_exceptions is explicitly set (non-empty), treat as allowlist
+        if policy.retryable_exceptions:
+            # Check retryable exceptions first (takes precedence)
+            for retryable in policy.retryable_exceptions:
+                if isinstance(exception, retryable):
+                    return True
+            
+            # If retryable_exceptions is set and exception not in it, don't retry
+            return False
+        
+        # Check non-retryable exceptions
         for non_retryable in policy.non_retryable_exceptions:
             if isinstance(exception, non_retryable):
                 return False
-        
-        # Check retryable exceptions
-        for retryable in policy.retryable_exceptions:
-            if isinstance(exception, retryable):
-                return True
         
         # Default: retry all exceptions
         return True
@@ -301,8 +306,8 @@ class RetryManager:
         
         for attempt in range(1, effective_policy.max_attempts + 1):
             try:
-                # Execute operation
-                result = await coro
+                # Execute operation (call coro to get fresh coroutine)
+                result = await coro()
                 
                 # Record result for idempotency
                 if idempotency_key:
@@ -503,7 +508,7 @@ def with_retry(
             return await retry_mgr.execute_with_retry(
                 category=category,
                 operation=operation,
-                coro=func(*args, **kwargs),
+                coro=lambda: func(*args, **kwargs),
                 policy=policy,
                 idempotency_key=idempotency_key,
                 tenant_id=ctx_tenant_id,

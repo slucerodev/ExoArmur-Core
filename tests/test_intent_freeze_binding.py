@@ -151,7 +151,7 @@ class TestIntentFreezeBinding:
             intent = execution_kernel.create_execution_intent(
                 local_decision=sample_local_decision,
                 safety_verdict=safety_verdict,
-                idempotency_key="test-key-001"
+                idempotency_identifier="test-key-001"
             )
             
             # Modify intent to be A1 (requires approval)
@@ -208,7 +208,7 @@ class TestIntentFreezeBinding:
         intent = execution_kernel.create_execution_intent(
             local_decision=sample_local_decision,
             safety_verdict=safety_verdict,
-            idempotency_key="test-key-002"
+            idempotency_identifier="test-key-002"
         )
         
         # Modify intent to be A1 (requires approval)
@@ -267,7 +267,7 @@ class TestIntentFreezeBinding:
             intent = execution_kernel.create_execution_intent(
                 local_decision=sample_local_decision,
                 safety_verdict=safety_verdict,
-                idempotency_key="test-key-003"
+                idempotency_identifier="test-key-003"
             )
             
             # Modify intent to be A1 (requires approval)

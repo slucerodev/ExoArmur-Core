@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from src.reliability import (
     RetryCategory,
     RetryPolicy,
     RetryAttempt,
@@ -120,7 +120,7 @@ async def test_retry_success():
     result = await manager.execute_with_retry(
         category=RetryCategory.NATS_PUBLISH,
         operation="Successful operation",
-        coro=successful_operation(),
+        coro=successful_operation,
         tenant_id="test-tenant",
         correlation_id="test-corr",
         trace_id="test-trace"
@@ -153,7 +153,7 @@ async def test_retry_with_failures():
     result = await manager.execute_with_retry(
         category=RetryCategory.KV_GET,
         operation="Failing operation",
-        coro=failing_operation(),
+        coro=failing_operation,
         tenant_id="test-tenant",
         correlation_id="test-corr",
         trace_id="test-trace"
@@ -193,7 +193,7 @@ async def test_retry_exhaustion():
         await manager.execute_with_retry(
             category=RetryCategory.NATS_PUBLISH,
             operation="Always failing operation",
-            coro=always_failing_operation(),
+            coro=always_failing_operation,
             tenant_id="test-tenant",
             correlation_id="test-corr",
             trace_id="test-trace"
@@ -242,7 +242,7 @@ async def test_retry_with_idempotency():
     result1 = await manager.execute_with_retry(
         category=RetryCategory.KV_PUT,
         operation="Idempotent operation",
-        coro=idempotent_operation(),
+        coro=lambda: idempotent_operation(),
         idempotency_key=idempotency_key,
         tenant_id="tenant1",
         correlation_id="corr1",
@@ -259,7 +259,7 @@ async def test_retry_with_idempotency():
     result2 = await manager.execute_with_retry(
         category=RetryCategory.KV_PUT,
         operation="Idempotent operation",
-        coro=idempotent_operation(),
+        coro=lambda: idempotent_operation(),
         idempotency_key=idempotency_key,
         tenant_id="tenant1",
         correlation_id="corr1",
@@ -334,6 +334,7 @@ async def test_retry_exception_classification():
     
     # Test non-retryable exceptions
     non_retry_policy = RetryPolicy(
+        retryable_exceptions=[],  # Clear default retryable exceptions
         non_retryable_exceptions=[ValueError, TypeError]
     )
     

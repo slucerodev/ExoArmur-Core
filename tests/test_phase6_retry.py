@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from src.reliability import (
     RetryCategory,
     RetryPolicy,
     RetryAttempt,
@@ -20,7 +20,9 @@ from reliability import (
     IdempotencyManager,
     RetryManager,
     get_retry_manager,
-    with_retry
+    with_retry,
+    execute_with_nats_retry,
+    execute_with_kv_retry
 )
 
 
@@ -136,7 +138,7 @@ async def test_retry_success():
     result = await manager.execute_with_retry(
         category=RetryCategory.NATS_PUBLISH,
         operation="Successful operation",
-        coro=successful_operation(),
+        coro=successful_operation,
         tenant_id="test-tenant",
         correlation_id="test-corr",
         trace_id="test-trace"
@@ -162,7 +164,7 @@ async def test_retry_with_failures():
     result = await manager.execute_with_retry(
         category=RetryCategory.KV_GET,
         operation="Failing operation",
-        coro=failing_op.execute(),
+        coro=lambda: failing_op.execute(),
         tenant_id="test-tenant",
         correlation_id="test-corr",
         trace_id="test-trace"
@@ -201,7 +203,7 @@ async def test_retry_exhaustion():
         await manager.execute_with_retry(
             category=RetryCategory.NATS_PUBLISH,
             operation="Always failing operation",
-            coro=failing_op.execute(),
+            coro=lambda: failing_op.execute(),
             tenant_id="test-tenant",
             correlation_id="test-corr",
             trace_id="test-trace"
@@ -243,7 +245,7 @@ async def test_retry_with_idempotency():
     result1 = await manager.execute_with_retry(
         category=RetryCategory.KV_PUT,
         operation="Idempotent operation",
-        coro=failing_op.execute(),
+        coro=lambda: failing_op.execute(),
         idempotency_key=idempotency_key,
         tenant_id="tenant1",
         correlation_id="corr1",
@@ -260,7 +262,7 @@ async def test_retry_with_idempotency():
     result2 = await manager.execute_with_retry(
         category=RetryCategory.KV_PUT,
         operation="Idempotent operation",
-        coro=failing_op.execute(),
+        coro=lambda: failing_op.execute(),
         idempotency_key=idempotency_key,
         tenant_id="tenant1",
         correlation_id="corr1",
@@ -303,12 +305,13 @@ async def test_retry_decorator():
     assert result == "decorated_success", "Decorated function should succeed"
     
     # Test failing decorated function
+    failing_op = FailingOperation(fail_count=2)
+    
     @with_retry(
         category=RetryCategory.KV_PUT,
         operation="Decorated retry test"
     )
     async def failing_decorated_function():
-        failing_op = FailingOperation(fail_count=2)
         return await failing_op.execute()
     
     result = await failing_decorated_function()
@@ -369,6 +372,7 @@ async def test_retry_exception_classification():
     
     # Test non-retryable exceptions
     non_retry_policy = RetryPolicy(
+        retryable_exceptions=[],  # Clear default retryable exceptions
         non_retryable_exceptions=[ValueError, TypeError]
     )
     
