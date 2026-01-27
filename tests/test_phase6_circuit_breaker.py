@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from src.reliability import (
     CircuitState,
     CircuitBreakerError,
     CircuitBreakerConfig,
@@ -314,11 +314,14 @@ async def test_circuit_breaker_reset():
     assert breaker.is_open == True, "Should be OPEN"
     
     # Reset the circuit
-    breaker.reset()
+    await breaker.reset()
     
     assert breaker.is_closed == True, "Should be CLOSED after reset"
-    assert breaker.failure_count == 0, "Failure count should be reset"
-    assert breaker.success_count == 0, "Success count should be reset"
+    
+    # Check counts via get_stats
+    stats = breaker.get_stats()
+    assert stats["failure_count"] == 0, "Failure count should be reset"
+    assert stats["success_count"] == 0, "Success count should be reset"
     
     print("✓ Circuit breaker reset works correctly")
 
