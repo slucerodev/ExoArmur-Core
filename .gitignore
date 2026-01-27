@@ -87,6 +87,10 @@ test_*.sh
 # Local environments (additional entries)
 .venv/
 .venv_clean_install/
+.venv_test/
+
+# IDE configurations
+.windsurf/
 
 # Local scratch / outputs
 test_output.txt

@@ -87,6 +87,24 @@ class FeatureFlags:
                 'dependencies': [],
                 'risk_level': 'medium',
                 'owner': 'safety_team'
+            },
+            'v2_advanced_topology_enabled': {
+                'description': 'Enable advanced federation topologies (hierarchical, hub-spoke)',
+                'default_value': False,
+                'current_value': False,
+                'rollout_strategy': 'experimental',
+                'dependencies': ['v2_federation_enabled'],
+                'risk_level': 'low',
+                'owner': 'federation_team'
+            },
+            'v2_performance_monitoring_enabled': {
+                'description': 'Enable V2 performance monitoring and metrics',
+                'default_value': False,
+                'current_value': False,
+                'rollout_strategy': 'gradual',
+                'dependencies': [],
+                'risk_level': 'low',
+                'owner': 'observability_team'
             }
         }
     

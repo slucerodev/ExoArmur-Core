@@ -5,10 +5,11 @@ Verify All - Comprehensive validation script for ExoArmur
 Runs verify_all test suite (full suite, no ignores) as defined in docs/TEST_SUITES.md
 """
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
+
 
 def run_command(cmd, description, check=True):
     """Run a command and handle errors"""
