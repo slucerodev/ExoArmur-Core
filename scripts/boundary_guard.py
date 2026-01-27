@@ -11,11 +11,11 @@ Exit codes:
 """
 
 import os
-import re
 import subprocess
 import sys
+import ast
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 
 def run_git_command(args: List[str]) -> str:
@@ -64,6 +64,7 @@ def check_forbidden_patterns(tracked_files: List[str]) -> List[Tuple[str, str]]:
         (r'^htmlcov/', 'Coverage HTML reports (htmlcov/) should not be committed'),
     ]
     
+    import re
     for file_path in tracked_files:
         for pattern, reason in forbidden_patterns:
             if re.match(pattern, file_path):
@@ -92,22 +93,22 @@ def check_forbidden_directories() -> List[Tuple[str, str]]:
 
 
 def check_disallowed_imports() -> List[Tuple[str, str]]:
-    """Check for disallowed imports in Python source files."""
+    """Check for disallowed imports in Python source files using AST parsing."""
     violations = []
     
-    # Disallowed import patterns and their reasons
-    disallowed_imports = [
-        (r'\bboto3\b', 'AWS SDK (boto3) - not allowed in core'),
-        (r'\bgoogle\.cloud\b', 'Google Cloud SDK - not allowed in core'),
-        (r'\bazure\b', 'Azure SDK - not allowed in core'),
-        (r'\bkubernetes\b', 'Kubernetes client - not allowed in core'),
-        (r'\bsklearn\b', 'Scikit-learn - not allowed in core'),
-        (r'\btensorflow\b', 'TensorFlow - not allowed in core'),
-        (r'\btorch\b', 'PyTorch - not allowed in core'),
-        (r'\bpandas\b', 'Pandas - not allowed in core'),
-        (r'\bnumpy\b', 'NumPy - not allowed in core'),
-        (r'\bscipy\b', 'SciPy - not allowed in core'),
-    ]
+    # Disallowed import names and their reasons
+    disallowed_imports = {
+        'boto3': 'AWS SDK (boto3) - not allowed in core',
+        'google.cloud': 'Google Cloud SDK - not allowed in core',
+        'azure': 'Azure SDK - not allowed in core',
+        'kubernetes': 'Kubernetes client - not allowed in core',
+        'sklearn': 'Scikit-learn - not allowed in core',
+        'tensorflow': 'TensorFlow - not allowed in core',
+        'torch': 'PyTorch - not allowed in core',
+        'pandas': 'Pandas - not allowed in core',
+        'numpy': 'NumPy - not allowed in core',
+        'scipy': 'SciPy - not allowed in core',
+    }
     
     src_dir = Path('src')
     if not src_dir.is_dir():
@@ -118,11 +119,38 @@ def check_disallowed_imports() -> List[Tuple[str, str]]:
         try:
             with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
+            
+            # Parse AST to find real import statements
+            try:
+                tree = ast.parse(content)
+            except SyntaxError:
+                # Skip files with syntax errors
+                continue
+            
+            # Walk AST to find import nodes
+            for node in ast.walk(tree):
+                module_name = None
                 
-                for pattern, reason in disallowed_imports:
-                    if re.search(pattern, content):
-                        violations.append((str(py_file), reason))
-                        break  # One violation per file is enough
+                if isinstance(node, ast.Import):
+                    # Handle: import module
+                    for alias in node.names:
+                        module_name = alias.name
+                        break
+                elif isinstance(node, ast.ImportFrom):
+                    # Handle: from module import ...
+                    if node.module:
+                        module_name = node.module
+                
+                # Check if disallowed
+                if module_name:
+                    for disallowed, reason in disallowed_imports.items():
+                        if module_name == disallowed or module_name.startswith(disallowed + '.'):
+                            violations.append((str(py_file), reason))
+                            break  # One violation per file is enough
+                    
+                    if violations and violations[-1][0] == str(py_file):
+                        break  # Found violation for this file, move to next file
+                        
         except (OSError, UnicodeDecodeError):
             # Skip files we can't read
             continue

@@ -1,0 +1,12 @@
+{
+  "pyproject.toml": "db5c2c28bae5d4f4a21445a33d07144a93db9dd048b6b21f773407a2227f19bb",
+  "requirements.txt": "b64c8a8ed39567e1395ef84ec9ac4f47c9043f1393d7c91a84c1384a1ccffe37",
+  ".gitignore": "c40aceb7911cd659160b61e9cfb80aa8fa2f45368dab891a27ae80e9c6313ef5",
+  "scripts/phase6_final_reality_run.py": "4a195aa8e5c5dc4fa642b2a1eaba1de0ac3e51200960ce2db59acf51a2a14224",
+  "scripts/boundary_guard.py": "713ab3ae5f07dec760957a618c568fdda2859e9d320c76143bb5499320c3f9fe",
+  "spec/contracts/models_v1.py": "a0fae91f831fb81851cc6515f36606b8a3a8d6c766c367cd1f229d98c014c172",
+  "artifacts/openapi_v1.json": "f02f97ea65551c81a0d60fe204eb304bed666c8ec00a28b55510edc877c26227",
+  "README.md": "bf89ce4ad8c070d1919c1f26796fca51aec6d5145993ffd8515d2e105cc63a45",
+  "docs/PHASE_STATUS.md": "178e6f8e68a40a97776d7d07fc7e1a548749f112976dccf121d901341a9744e5",
+  "docs/REPO_STRUCTURE.md": "fc9f411f8784d66250547a3af419fa3c7d63415f6f37f5ab80920f9fd048aabe"
+}

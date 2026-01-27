@@ -35,8 +35,9 @@ def get_nats_store_dir():
     except:
         pass
     
-    # Fallback to known default
-    return "/home/oem/CascadeProjects/ExoArmur/data/jetstream"
+    # Fallback to repo-relative default
+    repo_root = Path(__file__).parent.parent
+    return str(repo_root / "data" / "jetstream")
 
 
 def capture_store_dir_listing(store_dir, artifacts_dir):
@@ -80,7 +81,8 @@ async def test_audit_persistence():
     # Initialize NATS client and audit logger
     config = NATSConfig()
     nats_client = ExoArmurNATSClient(config)
-    nats_start_cmd = "./nats-server-v2.10.9-linux-amd64/nats-server -js -sd /home/oem/CascadeProjects/ExoArmur/data/jetstream -m 8222"
+    repo_root = Path(__file__).parent.parent
+    nats_start_cmd = f"./nats-server-v2.10.9-linux-amd64/nats-server -js -sd {repo_root}/data/jetstream -m 8222"
     nats_stop_cmd = "pkill -f nats-server"
     
     try:
@@ -219,9 +221,10 @@ async def restart_and_verify(store_dir, pre_restart_msg_count):
     time.sleep(2)
     
     # Start NATS
+    repo_root = Path(__file__).parent.parent
     subprocess.run(
-        "./nats-server-v2.10.9-linux-amd64/nats-server -js -sd /home/oem/CascadeProjects/ExoArmur/data/jetstream -m 8222 &",
-        shell=True, cwd=Path(__file__).parent.parent
+        f"./nats-server-v2.10.9-linux-amd64/nats-server -js -sd {repo_root}/data/jetstream -m 8222 &",
+        shell=True, cwd=repo_root
     )
     time.sleep(3)
     
@@ -269,16 +272,17 @@ if __name__ == "__main__":
         run_id = "reality_run_002"
         artifacts_dir = Path(__file__).parent.parent / "artifacts" / run_id
         
-        restart_result = asyncio.run(restart_and_verify("/home/oem/CascadeProjects/ExoArmur/data/jetstream", pre_restart_msg_count))
+        restart_result = asyncio.run(restart_and_verify(str(repo_root / "data" / "jetstream"), pre_restart_msg_count))
         
         # Write enhanced evidence.json
+        repo_root = Path(__file__).parent.parent
         evidence = {
             "run_id": run_id,
             "pre_shutdown_utc": pre_shutdown_utc,
             "post_restart_utc": restart_result["post_restart_utc"],
-            "nats_start_cmd": "./nats-server-v2.10.9-linux-amd64/nats-server -js -sd /home/oem/CascadeProjects/ExoArmur/data/jetstream -m 8222",
+            "nats_start_cmd": f"./nats-server-v2.10.9-linux-amd64/nats-server -js -sd {repo_root}/data/jetstream -m 8222",
             "nats_stop_cmd": "pkill -f nats-server",
-            "store_dir": "/home/oem/CascadeProjects/ExoArmur/data/jetstream",
+            "store_dir": str(repo_root / "data" / "jetstream"),
             "restart_confirmed": restart_result["restart_confirmed"],
             "restart_method": "message_count_comparison",
             "pre_restart_msg_count": pre_restart_msg_count,
@@ -296,7 +300,7 @@ if __name__ == "__main__":
                 f.write("GATE 1: PASS\n")
                 f.write("Evidence: Audit record persisted to JetStream file storage and survived restart\n")
                 f.write(f"Storage: file\n")
-                f.write(f"Store directory: /home/oem/CascadeProjects/ExoArmur/data/jetstream\n")
+                f.write(f"Store directory: {repo_root}/data/jetstream\n")
                 f.write(f"Messages before/after: {pre_restart_msg_count}/{restart_result['post_restart_msg_count']}\n")
             else:
                 f.write("GATE 1: FAIL\n")

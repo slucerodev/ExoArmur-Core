@@ -332,8 +332,10 @@ def generate_evidence_bundle(test_results, gates):
 
 async def main():
     """Run Phase 6 final reality run"""
-    # Ensure artifacts directory exists
-    artifacts_dir = Path("/home/oem/CascadeProjects/ExoArmur/artifacts/reality_run_008")
+    # Resolve repository root from script location for portable paths
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+    artifacts_dir = repo_root / "artifacts" / "reality_run_008"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     
     # Run all tests

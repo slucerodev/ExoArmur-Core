@@ -74,10 +74,11 @@
 2. **OSS Dependencies**: Uses open-source Python dependencies declared in requirements files
 3. **Runtime Requirements**: Requires NATS JetStream for Golden Demo and Phase 6 verification
 4. **No Proprietary Dependencies**: No paid or commercial dependencies in core
-5. **Well-Documented**: Complete documentation and examples
-6. **Fully Tested**: Comprehensive test coverage
-7. **Stable API**: No breaking changes between versions
-8. **Truth Enforcement**: Contains all verification and testing infrastructure
+5. **Numerical / data-science libraries (numpy, pandas, scipy) are prohibited in core to preserve deterministic minimal-runtime guarantees**
+6. **Well-Documented**: Complete documentation and examples
+7. **Fully Tested**: Comprehensive test coverage
+8. **Stable API**: No breaking changes between versions
+9. **Truth Enforcement**: Contains all verification and testing infrastructure
 
 ### What Defines "Excluded"
 1. **Internal Tools**: Tools for internal development only

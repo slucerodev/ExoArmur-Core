@@ -667,7 +667,10 @@ async def main():
         print("❌ GATE 7 REQUIREMENTS NOT MET")
     
     # Save results to file
-    results_file = "/home/oem/CascadeProjects/ExoArmur/artifacts/reality_run_008/11_chaos_test_results.json"
+    # Resolve repo-relative paths for portability
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+    results_file = repo_root / "artifacts" / "reality_run_008" / "11_chaos_test_results.json"
     with open(results_file, 'w') as f:
         json.dump({
             "timestamp": datetime.now(timezone.utc).isoformat(),

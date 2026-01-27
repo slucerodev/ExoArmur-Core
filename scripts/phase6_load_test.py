@@ -511,7 +511,10 @@ async def main():
     print(f"  Total Audit Events: {reliability_stats['total_audit_events']}")
     
     # Save results to file
-    results_file = "/home/oem/CascadeProjects/ExoArmur/artifacts/reality_run_008/09_load_test_results.json"
+    # Resolve repo-relative paths for portability
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+    results_file = repo_root / "artifacts" / "reality_run_008" / "09_load_test_results.json"
     with open(results_file, 'w') as f:
         json.dump({
             "timestamp": datetime.now(timezone.utc).isoformat(),
