@@ -270,6 +270,9 @@ async def test_tenant_scoped_decorator():
     """Test tenant-scoped decorator"""
     print("Testing tenant-scoped decorator...")
     
+    # Clear any existing context first
+    get_tenant_manager().clear_context()
+    
     # Test scoped decorator with context
     set_tenant_context(TenantContext(tenant_id="tenant-scoped"))
     result = await test_scoped_function()
