@@ -75,3 +75,41 @@ Public interfaces may evolve based on early adopter feedback.
 
 ```bash
 docker compose up -d
+```
+
+---
+
+## Quick Start
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install ExoArmur Core
+pip install -e .
+
+# Run tests
+python -m pytest tests/ -v
+
+# Run Golden Demo (live NATS JetStream acceptance test)
+python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
+```
+
+---
+
+## Reality / Status
+
+**WHAT EXISTS (V1):**
+- V1 core is implemented and immutable
+- Golden Demo uses real NATS JetStream semantics  
+- Feature flags default OFF
+
+**WHAT IS GATED (V2):**
+- V2 scaffolding exists behind feature flags
+- Optional extra: `pip install -e ".[v2]"`
+
+**WHAT IS NOT IMPLEMENTED YET:**
+- Federation logic not implemented
+- Control plane logic not implemented  
+- Operator orchestration runtime not implemented
