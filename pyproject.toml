@@ -27,18 +27,15 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
-    "python-ulid>=1.2.0",
+    "python-ulid>=2.0.0",
     "click>=8.1.0",
     "pytest-asyncio>=0.21.0",
     "httpx>=0.25.0",
-    "cryptography>=41.0.0",
     "nats-py>=2.7.0",
     "python-json-logger>=2.0.0",
     "black>=23.11.0",
     "isort>=5.12.0",
     "mypy>=1.7.0",
-    "python-ulid>=2.0.0",
-    "click>=8.0.0",
 ]
 
 [project.scripts]
@@ -52,6 +49,9 @@ dev = [
     "black>=23.11.0",
     "isort>=5.12.0",
     "mypy>=1.7.0",
+]
+v2 = [
+    "cryptography>=41.0.0",
 ]
 
 [tool.setuptools.packages.find]
