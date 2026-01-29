@@ -393,6 +393,53 @@ class ExoArmurNATSClient:
             payload=intent_bytes
         )
     
+    async def publish_audit_record(self, record) -> bool:
+        """Publish an AuditRecordV1 to JetStream with timeout enforcement"""
+        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        
+        if not self.nc or not self.connected:
+            logger.error("Not connected to NATS")
+            return False
+        
+        if not self.js:
+            logger.error("JetStream context not initialized")
+            return False
+        
+        timeout_mgr = get_timeout_manager()
+        
+        try:
+            # Use timeout enforcement for audit publishing
+            await timeout_mgr.execute_with_timeout(
+                category=TimeoutCategory.NATS_PUBLISH,
+                operation=f"Publish audit {record.audit_id}",
+                coro=self._do_publish_audit_record(record),
+                tenant_id=None,
+                correlation_id=None,
+                trace_id=None
+            )
+            
+            logger.debug(f"Published audit {record.audit_id} to {self.subjects['audit_append']}")
+            return True
+            
+        except TimeoutError as e:
+            logger.error(f"Audit publish timed out: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to publish audit: {e}")
+            return False
+    
+    async def _do_publish_audit_record(self, record) -> None:
+        """Internal audit publish logic without timeout"""
+        # Serialize audit record deterministically
+        audit_data = record.model_dump(mode="json")
+        audit_bytes = json.dumps(audit_data).encode('utf-8')
+        
+        # Publish via JetStream to audit append subject
+        await self.js.publish(
+            subject=self.subjects["audit_append"],
+            payload=audit_bytes
+        )
+    
     async def get_beliefs(self, correlation_id: str, max_messages: int = 10, timeout_seconds: float = 2.0) -> list:
         """Get beliefs from JetStream stream filtered by correlation_id using pull consumer"""
         if not self.js:
@@ -479,6 +526,94 @@ class ExoArmurNATSClient:
             
         except Exception as e:
             logger.error(f"Failed to get beliefs: {e}")
+            return []
+    
+    async def get_audit_records(self, correlation_id: str, max_messages: int = 10, timeout_seconds: float = 2.0) -> list:
+        """Get audit records from JetStream stream filtered by correlation_id using pull consumer"""
+        if not self.js:
+            logger.error("JetStream context not initialized")
+            return []
+        
+        try:
+            logger.info(f"Looking for audit records with correlation_id: {correlation_id}")
+            
+            # Create ephemeral pull consumer for audit stream
+            consumer_name = f"audit-retriever-{correlation_id}"
+            consumer_info = await self.js.add_consumer(
+                stream="EXOARMUR_AUDIT_V1",
+                config=nats.js.api.ConsumerConfig(
+                    name=consumer_name,  # Ephemeral consumer
+                    ack_policy="none",  # No ack needed for pull consumer
+                    replay_policy="instant",
+                    deliver_policy="all",
+                    filter_subject=self.subjects["audit_append"],  # Filter to audit subject only
+                    max_waiting=max_messages,
+                    max_deliver=max_messages
+                )
+            )
+            
+            # Create pull subscription for the consumer
+            sub = await self.js.pull_subscribe(
+                subject=self.subjects["audit_append"],
+                durable=consumer_name,
+                stream="EXOARMUR_AUDIT_V1"
+            )
+            
+            audit_records = []
+            end_time = asyncio.get_event_loop().time() + timeout_seconds
+            
+            # Fetch messages with timeout
+            while len(audit_records) < max_messages and asyncio.get_event_loop().time() < end_time:
+                try:
+                    # Calculate remaining timeout
+                    remaining_timeout = max(0.1, end_time - asyncio.get_event_loop().time())
+                    
+                    # Fetch messages
+                    messages = await sub.fetch(
+                        batch=max_messages - len(audit_records), 
+                        timeout=remaining_timeout
+                    )
+                    
+                    for msg in messages:
+                        try:
+                            # Parse audit data
+                            audit_data = json.loads(msg.data.decode('utf-8'))
+                            
+                            # Validate correlation_id matches
+                            if audit_data.get('correlation_id') == correlation_id:
+                                # Convert to AuditRecordV1
+                                from models_v1 import AuditRecordV1
+                                audit_record = AuditRecordV1.model_validate(audit_data)
+                                audit_records.append(audit_record)
+                                logger.info(f"Found matching audit record: {audit_record.audit_id}")
+                            
+                        except (json.JSONDecodeError, Exception) as e:
+                            logger.warning(f"Failed to parse audit message: {e}")
+                            continue
+                    
+                    # If no messages received, break
+                    if not messages:
+                        break
+                        
+                except nats.js.errors.FetchTimeoutError:
+                    # Timeout is expected when no more messages
+                    break
+                except Exception as e:
+                    logger.error(f"Error fetching audit records: {e}")
+                    break
+            
+            # Clean up subscription and consumer
+            try:
+                await sub.unsubscribe()
+                await self.js.delete_consumer("EXOARMUR_AUDIT_V1", consumer_name)
+            except Exception:
+                pass  # Best-effort cleanup
+            
+            logger.info(f"Retrieved {len(audit_records)} audit records for correlation {correlation_id}")
+            return audit_records
+            
+        except Exception as e:
+            logger.error(f"Failed to get audit records: {e}")
             return []
     
     async def subscribe(

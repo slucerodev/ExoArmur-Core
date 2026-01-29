@@ -149,6 +149,7 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
     
     Each step must pass with explicit assertions.
     """
+    import ulid
     
     cell_a = cell_clients["cell-a"]
     cell_b = cell_clients["cell-b"]
@@ -174,6 +175,28 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
     
     # Publish belief to mesh
     await cell_b.publish_belief(belief_b)
+    
+    # Publish audit record for belief publication
+    audit_belief = AuditRecordV1(
+        schema_version="1.0.0",
+        audit_id=str(ulid.ULID()),
+        tenant_id=sample_telemetry_b.tenant_id,
+        cell_id="cell-b",
+        idempotency_key=f"belief_publish_{sample_telemetry_b.correlation_id}",
+        recorded_at=datetime.now(timezone.utc),
+        event_kind="belief_published",
+        payload_ref={
+            "kind": "inline",
+            "ref": belief_b.belief_id
+        },
+        hashes={
+            "sha256": "demo-hash-belief",
+            "upstream_hashes": []
+        },
+        correlation_id=sample_telemetry_b.correlation_id,
+        trace_id="trace-golden-belief-b"
+    )
+    await cell_b.publish_audit_record(audit_belief)
     
     # Verify belief was published to mesh
     mesh_beliefs = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
@@ -237,6 +260,28 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
     await cell_b.publish_execution_intent(a2_intent)
     a2_result = await _execute_intent(cell_b, a2_intent)
     
+    # Publish audit record for A2 execution
+    audit_a2 = AuditRecordV1(
+        schema_version="1.0.0",
+        audit_id=str(ulid.ULID()),
+        tenant_id=sample_telemetry_a.tenant_id,
+        cell_id="cell-b",
+        idempotency_key=f"a2_execution_{sample_telemetry_a.correlation_id}",
+        recorded_at=datetime.now(timezone.utc),
+        event_kind="intent_executed",
+        payload_ref={
+            "kind": "inline",
+            "ref": a2_intent.intent_id
+        },
+        hashes={
+            "sha256": "demo-hash-a2",
+            "upstream_hashes": []
+        },
+        correlation_id=sample_telemetry_a.correlation_id,
+        trace_id="trace-golden-a2-exec"
+    )
+    await cell_b.publish_audit_record(audit_a2)
+    
     assert a2_result["executed"] == True, "A2 should execute without approval"
     assert a2_result["action_class"] == "A2_hard_containment", "Should be A2 hard containment"
     print("✅ STEP 4 PASSED: A2 containment executed")
@@ -272,6 +317,28 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
     
     # Try to execute A3 without approval
     a3_result = await _execute_intent(cell_b, a3_intent)
+    
+    # Publish audit record for A3 attempt (blocked)
+    audit_a3 = AuditRecordV1(
+        schema_version="1.0.0",
+        audit_id=str(ulid.ULID()),
+        tenant_id=sample_telemetry_a.tenant_id,
+        cell_id="cell-b",
+        idempotency_key=f"a3_attempt_{sample_telemetry_a.correlation_id}",
+        recorded_at=datetime.now(timezone.utc),
+        event_kind="intent_blocked",
+        payload_ref={
+            "kind": "inline",
+            "ref": a3_intent.intent_id
+        },
+        hashes={
+            "sha256": "demo-hash-a3",
+            "upstream_hashes": []
+        },
+        correlation_id=sample_telemetry_a.correlation_id,
+        trace_id="trace-golden-a3-blocked"
+    )
+    await cell_b.publish_audit_record(audit_a3)
     
     assert a3_result["executed"] == False, "A3 should not execute without approval"
     assert a3_result["approval_required"] == True, "A3 should require approval"
@@ -363,10 +430,7 @@ async def _execute_intent(client: ExoArmurNATSClient, intent: ExecutionIntentV1)
 
 async def _get_audit_chain(client: ExoArmurNATSClient, correlation_id: str) -> List[AuditRecordV1]:
     """Get audit chain for correlation"""
-    # In real implementation, this would query audit stream
-    # For demo, return mock audit records
-    await asyncio.sleep(0.1)
-    return []
+    return await client.get_audit_records(correlation_id=correlation_id, max_messages=10, timeout_seconds=2.0)
 
 
 async def _replay_audit_chain(client: ExoArmurNATSClient, audit_chain: List[AuditRecordV1]) -> Dict[str, Any]:
