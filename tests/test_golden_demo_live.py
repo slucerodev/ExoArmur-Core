@@ -212,19 +212,25 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
         intent_id="01J4NR5X9Z8GABCDEF12345680",
         tenant_id="tenant_demo",
         cell_id="cell-b",
+        idempotency_key=f"a2_containment_{sample_telemetry_a.correlation_id}",
+        subject={"subject_type": "host", "subject_id": "host-123"},
         intent_type="isolate_host",
         action_class="A2_hard_containment",
-        target_entity={"subject_type": "host", "subject_id": "host-123"},
-        confidence=collective_state["aggregate_score"],
-        idempotency_key=f"a2_containment_{sample_telemetry_a.correlation_id}",
         requested_at=datetime.now(timezone.utc),
-        evidence_refs={
-            "belief_ids": [belief_a.belief_id, belief_b.belief_id],
-            "correlation_id": sample_telemetry_a.correlation_id
+        ttl_seconds=None,
+        parameters=None,
+        policy_context={
+            "bundle_hash_sha256": "demo-bundle-hash",
+            "rule_ids": ["rule-a2-001", "rule-a2-002"]
         },
-        approval_required=False,  # A2 does not require approval
-        approved_by=None,
-        approved_at=None
+        safety_context={
+            "safety_verdict": "allow",
+            "rationale": "Collective confidence threshold met",
+            "quorum_status": "satisfied",
+            "human_approval_id": None
+        },
+        correlation_id=sample_telemetry_a.correlation_id,
+        trace_id="trace-golden-a2-001"
     )
     
     # Execute A2 intent
