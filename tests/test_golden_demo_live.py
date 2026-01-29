@@ -286,31 +286,23 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
 async def _process_telemetry_to_belief(telemetry: TelemetryEventV1) -> BeliefV1:
     """Process telemetry to create a belief"""
     import ulid
+    from datetime import datetime, timezone
     
     return BeliefV1(
-        schema_version="1.0.0",
+        schema_version="2.0.0",
         belief_id=str(ulid.ULID()),
-        tenant_id=telemetry.tenant_id,
-        emitter_node_id=telemetry.cell_id,
-        subject=telemetry.entity_refs or {},
-        claim_type="suspicious_activity",
+        belief_type="suspicious_activity",
         confidence=0.85,
-        severity=telemetry.severity,
-        first_seen=telemetry.observed_at,
-        last_seen=telemetry.observed_at,
-        evidence_refs={
-            "event_ids": [telemetry.event_id],
-            "feature_hashes": [],
-            "artifact_refs": []
-        },
-        policy_context={
-            "bundle_hash_sha256": "demo-bundle-hash",
-            "rule_ids": ["rule-demo-001"],
-            "policy_version": "1.0.0"
-        },
-        derived_from_event_ids=[telemetry.event_id],
+        source_observations=[telemetry.event_id],
+        derived_at=telemetry.observed_at,
         correlation_id=telemetry.correlation_id,
-        trace_id=telemetry.trace_id
+        evidence_summary=f"Suspicious activity detected from telemetry event {telemetry.event_id}",
+        conflicts=[],
+        metadata={
+            "source_telemetry_type": telemetry.event_type,
+            "source_severity": telemetry.severity,
+            "source_cell_id": telemetry.cell_id
+        }
     )
 
 
