@@ -300,6 +300,74 @@ class ExoArmurNATSClient:
             payload=belief_bytes
         )
     
+    async def get_beliefs(self, correlation_id: str, max_messages: int = 10, timeout_seconds: float = 2.0) -> list:
+        """Get beliefs from JetStream stream filtered by correlation_id"""
+        if not self.js:
+            logger.error("JetStream context not initialized")
+            return []
+        
+        try:
+            logger.info(f"Looking for beliefs with correlation_id: {correlation_id}")
+            
+            # Get stream info to access messages
+            stream_info = await self.js.stream_info("EXOARMUR_BELIEFS_V1")
+            logger.info(f"Stream info: {stream_info.config.name}, subjects: {stream_info.config.subjects}")
+            
+            beliefs = []
+            
+            # Use the stream's get_last_for_subject method to find messages
+            # This is a simpler approach for demo purposes
+            try:
+                # Try to get messages from the stream directly
+                # We'll use a simple approach: get the last messages and filter
+                for i in range(min(max_messages, 100)):  # Limit to prevent excessive calls
+                    try:
+                        # Get the last message (this is a simplified approach)
+                        # In a real implementation, we'd use proper consumer filtering
+                        msg = await self.js.get_last_msg(
+                            stream_name="EXOARMUR_BELIEFS_V1",
+                            subject=self.subjects["beliefs_emit"]
+                        )
+                        
+                        if msg:
+                            logger.info(f"Found message in stream, data length: {len(msg.data)}")
+                            try:
+                                # Parse belief data
+                                belief_data = json.loads(msg.data.decode('utf-8'))
+                                logger.info(f"Parsed belief data, correlation_id: {belief_data.get('correlation_id')}")
+                                
+                                # Validate correlation_id matches
+                                if belief_data.get('correlation_id') == correlation_id:
+                                    # Convert to BeliefV1
+                                    from models_v1 import BeliefV1
+                                    belief = BeliefV1.model_validate(belief_data)
+                                    beliefs.append(belief)
+                                    logger.info(f"Found matching belief: {belief.belief_id}")
+                                    break  # For demo, just get one matching belief
+                                else:
+                                    logger.info(f"Correlation ID mismatch: {belief_data.get('correlation_id')} != {correlation_id}")
+                                
+                            except (json.JSONDecodeError, Exception) as e:
+                                logger.warning(f"Failed to parse belief message: {e}")
+                                continue
+                        else:
+                            logger.info("No more messages in stream")
+                            break  # No more messages
+                            
+                    except Exception as e:
+                        logger.error(f"Error getting message: {e}")
+                        break  # Stop on any error
+                        
+            except Exception as e:
+                logger.error(f"Error in simplified belief retrieval: {e}")
+            
+            logger.info(f"Retrieved {len(beliefs)} beliefs for correlation {correlation_id}")
+            return beliefs
+            
+        except Exception as e:
+            logger.error(f"Failed to get beliefs: {e}")
+            return []
+    
     async def subscribe(
         self,
         subject: str,
