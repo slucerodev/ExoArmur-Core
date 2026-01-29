@@ -289,7 +289,7 @@ async def _process_telemetry_to_belief(telemetry: TelemetryEventV1) -> BeliefV1:
     
     return BeliefV1(
         schema_version="1.0.0",
-        belief_id=str(ulid.new()),
+        belief_id=str(ulid.ULID()),
         tenant_id=telemetry.tenant_id,
         emitter_node_id=telemetry.cell_id,
         subject=telemetry.entity_refs or {},
