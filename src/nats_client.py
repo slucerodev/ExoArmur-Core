@@ -5,6 +5,7 @@ Phase 6: Enhanced with timeout enforcement and reliability
 
 import logging
 import asyncio
+import json
 from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass
 
@@ -192,6 +193,53 @@ class ExoArmurNATSClient:
     async def _do_publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> None:
         """Internal publish logic without timeout"""
         await self.nc.publish(subject, data, headers=headers)
+    
+    async def publish_belief(self, belief) -> bool:
+        """Publish a BeliefV1 to JetStream with timeout enforcement"""
+        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        
+        if not self.nc or not self.connected:
+            logger.error("Not connected to NATS")
+            return False
+        
+        if not self.js:
+            logger.error("JetStream context not initialized")
+            return False
+        
+        timeout_mgr = get_timeout_manager()
+        
+        try:
+            # Use timeout enforcement for belief publishing
+            await timeout_mgr.execute_with_timeout(
+                category=TimeoutCategory.NATS_PUBLISH,
+                operation=f"Publish belief {belief.belief_id}",
+                coro=self._do_publish_belief(belief),
+                tenant_id=None,
+                correlation_id=None,
+                trace_id=None
+            )
+            
+            logger.debug(f"Published belief {belief.belief_id} to {self.subjects['beliefs_emit']}")
+            return True
+            
+        except TimeoutError as e:
+            logger.error(f"Belief publish timed out: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to publish belief: {e}")
+            return False
+    
+    async def _do_publish_belief(self, belief) -> None:
+        """Internal belief publish logic without timeout"""
+        # Serialize belief deterministically
+        belief_data = belief.model_dump(mode="json")
+        belief_bytes = json.dumps(belief_data).encode('utf-8')
+        
+        # Publish via JetStream to beliefs emit subject
+        await self.js.publish(
+            subject=self.subjects["beliefs_emit"],
+            payload=belief_bytes
+        )
     
     async def subscribe(
         self,
