@@ -249,19 +249,25 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
         intent_id="01J4NR5X9Z8GABCDEF12345681",
         tenant_id="tenant_demo",
         cell_id="cell-b",
+        idempotency_key=f"a3_terminate_{sample_telemetry_a.correlation_id}",
+        subject={"subject_type": "process", "subject_id": "suspicious.exe"},
         intent_type="terminate_process",
         action_class="A3_irreversible",
-        target_entity={"subject_type": "process", "subject_id": "suspicious.exe"},
-        confidence=0.95,
-        idempotency_key=f"a3_terminate_{sample_telemetry_a.correlation_id}",
         requested_at=datetime.now(timezone.utc),
-        evidence_refs={
-            "belief_ids": [belief_a.belief_id, belief_b.belief_id],
-            "correlation_id": sample_telemetry_a.correlation_id
+        ttl_seconds=None,
+        parameters=None,
+        policy_context={
+            "bundle_hash_sha256": "demo-bundle-hash",
+            "rule_ids": ["rule-a3-001", "rule-a3-002"]
         },
-        approval_required=True,  # A3 requires human approval
-        approved_by=None,
-        approved_at=None
+        safety_context={
+            "safety_verdict": "require_approval",
+            "rationale": "Irreversible action requires human approval",
+            "quorum_status": "pending_approval",
+            "human_approval_id": None
+        },
+        correlation_id=sample_telemetry_a.correlation_id,
+        trace_id="trace-golden-a3-001"
     )
     
     # Try to execute A3 without approval
