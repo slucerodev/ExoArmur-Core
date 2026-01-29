@@ -308,8 +308,6 @@ async def _process_telemetry_to_belief(telemetry: TelemetryEventV1) -> BeliefV1:
 
 async def _get_mesh_beliefs(client: ExoArmurNATSClient, correlation_id: str) -> List[BeliefV1]:
     """Get beliefs from mesh for correlation"""
-    # Small delay to ensure belief is persisted in JetStream
-    await asyncio.sleep(0.5)
     return await client.get_beliefs(correlation_id=correlation_id, max_messages=10, timeout_seconds=2.0)
 
 
