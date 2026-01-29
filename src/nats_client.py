@@ -38,7 +38,8 @@ class ExoArmurNATSClient:
             "beliefs_emit": "exoarmur.beliefs.emit.v1",
             "audit_append": "exoarmur.audit.append.v1",
             "beliefs_stream": "exoarmur.beliefs.stream.v1",
-            "audit_stream": "exoarmur.audit.stream.v1"
+            "audit_stream": "exoarmur.audit.stream.v1",
+            "intents_execute": "exoarmur.intents.execute.v1"
         }
         
         logger.info("ExoArmurNATSClient initialized")
@@ -217,6 +218,51 @@ class ExoArmurNATSClient:
         except Exception as e:
             logger.error(f"Failed to ensure audit stream: {e}")
             # Don't raise for audit stream - beliefs stream is the critical one
+        
+        # Create intents stream
+        try:
+            try:
+                existing_stream = await self.js.stream_info("EXOARMUR_INTENTS_V1")
+                logger.info(f"Found existing intents stream: {existing_stream.config.name}")
+                
+                current_subjects = set(existing_stream.config.subjects)
+                required_subject = self.subjects["intents_execute"]
+                
+                if required_subject not in current_subjects:
+                    logger.info(f"Adding subject {required_subject} to existing intents stream")
+                    current_subjects.add(required_subject)
+                    await self.js.update_stream(
+                        StreamConfig(
+                            name="EXOARMUR_INTENTS_V1",
+                            subjects=list(current_subjects),
+                            retention="interest",
+                            max_age=168 * 3600,  # 7 days
+                            max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
+                            storage="file",
+                            num_replicas=1
+                        )
+                    )
+                else:
+                    logger.info(f"Intents stream already includes subject {required_subject}")
+                    
+            except nats.js.errors.NotFoundError:
+                logger.info("Creating new intents stream")
+                await self.js.add_stream(
+                    StreamConfig(
+                        name="EXOARMUR_INTENTS_V1",
+                        subjects=[self.subjects["intents_execute"]],
+                        retention="interest",
+                        max_age=168 * 3600,  # 7 days
+                        max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
+                        storage="file",
+                        num_replicas=1
+                    )
+                )
+                logger.info("Created intents stream")
+                
+        except Exception as e:
+            logger.error(f"Failed to ensure intents stream: {e}")
+            # Don't raise for intents stream - beliefs stream is the critical one
     
     async def publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> bool:
         """Publish message to subject with timeout enforcement"""
@@ -298,6 +344,53 @@ class ExoArmurNATSClient:
         await self.js.publish(
             subject=self.subjects["beliefs_emit"],
             payload=belief_bytes
+        )
+    
+    async def publish_execution_intent(self, intent) -> bool:
+        """Publish an ExecutionIntentV1 to JetStream with timeout enforcement"""
+        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        
+        if not self.nc or not self.connected:
+            logger.error("Not connected to NATS")
+            return False
+        
+        if not self.js:
+            logger.error("JetStream context not initialized")
+            return False
+        
+        timeout_mgr = get_timeout_manager()
+        
+        try:
+            # Use timeout enforcement for intent publishing
+            await timeout_mgr.execute_with_timeout(
+                category=TimeoutCategory.NATS_PUBLISH,
+                operation=f"Publish intent {intent.intent_id}",
+                coro=self._do_publish_execution_intent(intent),
+                tenant_id=None,
+                correlation_id=None,
+                trace_id=None
+            )
+            
+            logger.debug(f"Published intent {intent.intent_id} to {self.subjects['intents_execute']}")
+            return True
+            
+        except TimeoutError as e:
+            logger.error(f"Intent publish timed out: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to publish intent: {e}")
+            return False
+    
+    async def _do_publish_execution_intent(self, intent) -> None:
+        """Internal intent publish logic without timeout"""
+        # Serialize intent deterministically
+        intent_data = intent.model_dump(mode="json")
+        intent_bytes = json.dumps(intent_data).encode('utf-8')
+        
+        # Publish via JetStream to intents execute subject
+        await self.js.publish(
+            subject=self.subjects["intents_execute"],
+            payload=intent_bytes
         )
     
     async def get_beliefs(self, correlation_id: str, max_messages: int = 10, timeout_seconds: float = 2.0) -> list:
