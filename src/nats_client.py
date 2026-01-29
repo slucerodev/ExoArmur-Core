@@ -125,39 +125,98 @@ class ExoArmurNATSClient:
     
     async def _do_ensure_streams(self) -> None:
         """Internal stream creation logic without timeout"""
-        # Create beliefs stream
+        # Create/update beliefs stream
         try:
-            await self.js.add_stream(
-                StreamConfig(
-                    name="EXOARMUR_BELIEFS_V1",
-                    subjects=[self.subjects["beliefs_emit"]],
-                    retention="limits",
-                    max_age=24 * 3600,  # 24 hours
-                    max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
-                    storage="file",
-                    replicas=1
+            # Try to get existing stream info first
+            try:
+                existing_stream = await self.js.stream_info("EXOARMUR_BELIEFS_V1")
+                logger.info(f"Found existing beliefs stream: {existing_stream.config.name}")
+                
+                # Update stream if needed to include our subject
+                current_subjects = set(existing_stream.config.subjects)
+                required_subject = self.subjects["beliefs_emit"]
+                
+                if required_subject not in current_subjects:
+                    logger.info(f"Adding subject {required_subject} to existing beliefs stream")
+                    current_subjects.add(required_subject)
+                    await self.js.update_stream(
+                        StreamConfig(
+                            name="EXOARMUR_BELIEFS_V1",
+                            subjects=list(current_subjects),
+                            retention="limits",
+                            max_age=24 * 3600,  # 24 hours
+                            max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
+                            storage="file",
+                            num_replicas=1
+                        )
+                    )
+                else:
+                    logger.info(f"Beliefs stream already includes subject {required_subject}")
+                    
+            except nats.js.errors.NotFoundError:
+                # Stream doesn't exist, create it
+                logger.info("Creating new beliefs stream")
+                await self.js.add_stream(
+                    StreamConfig(
+                        name="EXOARMUR_BELIEFS_V1",
+                        subjects=[self.subjects["beliefs_emit"]],
+                        retention="limits",
+                        max_age=24 * 3600,  # 24 hours
+                        max_bytes=2 * 1024 * 1024 * 1024,  # 2GB
+                        storage="file",
+                        num_replicas=1
+                    )
                 )
-            )
-            logger.info("Created beliefs stream")
+                logger.info("Created beliefs stream")
+                
         except Exception as e:
-            logger.info(f"Beliefs stream may already exist: {e}")
+            logger.error(f"Failed to ensure beliefs stream: {e}")
+            raise
         
         # Create audit stream
         try:
-            await self.js.add_stream(
-                StreamConfig(
-                    name="EXOARMUR_AUDIT_V1",
-                    subjects=[self.subjects["audit_append"]],
-                    retention="limits",
-                    max_age=365 * 24 * 3600,  # 1 year
-                    max_bytes=10 * 1024 * 1024 * 1024,  # 10GB
-                    storage="file",
-                    replicas=1
+            try:
+                existing_stream = await self.js.stream_info("EXOARMUR_AUDIT_V1")
+                logger.info(f"Found existing audit stream: {existing_stream.config.name}")
+                
+                current_subjects = set(existing_stream.config.subjects)
+                required_subject = self.subjects["audit_append"]
+                
+                if required_subject not in current_subjects:
+                    logger.info(f"Adding subject {required_subject} to existing audit stream")
+                    current_subjects.add(required_subject)
+                    await self.js.update_stream(
+                        StreamConfig(
+                            name="EXOARMUR_AUDIT_V1",
+                            subjects=list(current_subjects),
+                            retention="limits",
+                            max_age=365 * 24 * 3600,  # 1 year
+                            max_bytes=10 * 1024 * 1024 * 1024,  # 10GB
+                            storage="file",
+                            num_replicas=1
+                        )
+                    )
+                else:
+                    logger.info(f"Audit stream already includes subject {required_subject}")
+                    
+            except nats.js.errors.NotFoundError:
+                logger.info("Creating new audit stream")
+                await self.js.add_stream(
+                    StreamConfig(
+                        name="EXOARMUR_AUDIT_V1",
+                        subjects=[self.subjects["audit_append"]],
+                        retention="limits",
+                        max_age=365 * 24 * 3600,  # 1 year
+                        max_bytes=10 * 1024 * 1024 * 1024,  # 10GB
+                        storage="file",
+                        num_replicas=1
+                    )
                 )
-            )
-            logger.info("Created audit stream")
+                logger.info("Created audit stream")
+                
         except Exception as e:
-            logger.info(f"Audit stream may already exist: {e}")
+            logger.error(f"Failed to ensure audit stream: {e}")
+            # Don't raise for audit stream - beliefs stream is the critical one
     
     async def publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> bool:
         """Publish message to subject with timeout enforcement"""
