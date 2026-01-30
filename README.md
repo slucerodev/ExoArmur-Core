@@ -86,7 +86,8 @@ docker compose up -d
 python3 -m venv venv
 source venv/bin/activate
 
-# Install ExoArmur Core
+# Install ExoArmur Core (pip 24.0 required due to known pip 25.x regression)
+pip install --upgrade pip -c constraints.txt
 pip install -e .
 
 # Run tests

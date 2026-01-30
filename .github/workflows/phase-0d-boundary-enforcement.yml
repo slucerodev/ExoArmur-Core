@@ -30,7 +30,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip -c constraints.txt
         pip install -e .
     
     - name: Run Boundary Gate
@@ -69,7 +69,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip -c constraints.txt
         pip install -e .
     
     - name: Run Protocol Enforcer Boundary Check
@@ -106,7 +106,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip -c constraints.txt
         pip install -e .
     
     - name: Check test collection count
@@ -148,7 +148,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip -c constraints.txt
         pip install -e .
     
     - name: Run full test suite

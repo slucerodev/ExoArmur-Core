@@ -25,9 +25,9 @@ python3 -m venv "$VENV_DIR"
 echo "🔌 Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
-# Upgrade pip
-echo "⬆️  Upgrading pip..."
-pip install --upgrade pip
+# Upgrade pip with constraints (avoid pip 25.x regression)
+echo "⬆️  Upgrading pip with constraints..."
+pip install --upgrade pip -c "$PROJECT_ROOT/constraints.txt"
 
 # Install editable
 echo "📥 Installing ExoArmur in editable mode..."

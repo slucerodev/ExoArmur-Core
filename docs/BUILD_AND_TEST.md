@@ -5,7 +5,8 @@ This guide covers how to build, test, and validate ExoArmur ADMO V2.
 ## Quick Start
 
 ```bash
-# Install in development mode
+# Install in development mode (pip 24.0 required due to known pip 25.x regression)
+pip install --upgrade pip -c constraints.txt
 pip install -e .
 
 # Run all tests
