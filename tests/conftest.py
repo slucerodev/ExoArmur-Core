@@ -7,7 +7,7 @@ import os
 import faulthandler
 from unittest.mock import patch
 
-from src.feature_flags import get_feature_flags
+from exoarmur.feature_flags import get_feature_flags
 
 
 def pytest_sessionstart(session):
@@ -43,7 +43,7 @@ def reset_feature_flags_isolation():
     os.environ.setdefault('EXOARMUR_TEST_API_KEY', 'test-api-key-12345')
     
     # Reset global feature flags instance
-    from src.feature_flags.feature_flags import _feature_flags_instance
+    from exoarmur.feature_flags.feature_flags import _feature_flags_instance
     original_instance = _feature_flags_instance
     _feature_flags_instance = None
     
@@ -63,7 +63,7 @@ def reset_feature_flags_isolation():
 @pytest.fixture(autouse=True)
 def override_execution_gate():
     """Override execution gate to allow tests without NATS"""
-    from src.safety import GateDecision, DenialReason, GateResult
+    from exoarmur.safety import GateDecision, DenialReason, GateResult
     from unittest.mock import patch
     import os
     

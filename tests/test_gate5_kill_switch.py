@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from src.safety import (
+from exoarmur.safety import (
     ExecutionGate, 
     ExecutionContext, 
     ExecutionActionType,
@@ -201,7 +201,7 @@ async def test_convenience_function():
     mock_nats = MockNATSClient()
     
     # Override global gate for testing
-    from src.safety import _execution_gate
+    from exoarmur.safety import _execution_gate
     _execution_gate = ExecutionGate(nats_client=mock_nats)
     
     # Set global kill switch to INACTIVE
@@ -210,7 +210,7 @@ async def test_convenience_function():
     await _execution_gate._tenant_kill_switch_kv.put("tenant-123_switch_all_execution", "inactive")
     
     # Import convenience function after gate is set up
-    from src.safety import enforce_execution_gate
+    from exoarmur.safety import enforce_execution_gate
     
     # Test convenience function
     result = await enforce_execution_gate(

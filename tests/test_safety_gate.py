@@ -5,14 +5,14 @@ Unit tests for safety gate arbitration precedence enforcement
 import pytest
 from datetime import datetime
 
-from src.safety.safety_gate import (
+from exoarmur.safety.safety_gate import (
     SafetyGate,
     SafetyVerdict,
     PolicyState,
     TrustState,
     EnvironmentState
 )
-from src.collective_confidence.aggregator import CollectiveState
+from exoarmur.collective_confidence.aggregator import CollectiveState
 
 # Import contract models
 import sys

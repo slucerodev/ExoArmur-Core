@@ -12,7 +12,6 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from tests.factories import create_identity_subject, make_observation_v1
 from spec.contracts.models_v1 import (
@@ -43,11 +42,11 @@ def create_sessions_scope():
         effectors=["identity_provider"],
         conditions={"min_risk_score": 0.7}
     )
-from federation.observation_store import ObservationStore
-from federation.clock import FixedClock
-from federation.audit import AuditService, AuditEventType
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.audit import AuditService, AuditEventType
 from safety.safety_gate import SafetyGate, SafetyVerdict
-from control_plane.approval_service import ApprovalService, ApprovalRequest
+from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
 from identity_containment.recommender import IdentityContainmentRecommender
 from identity_containment.intent_service import IdentityContainmentIntentService
 from identity_containment.effector import SimulatedIdentityProviderEffector
@@ -419,13 +418,13 @@ class TestIdentityContainmentReplay:
     @pytest.fixture
     def replay_engine(self, mock_audit_store):
         """Replay engine for testing"""
-        from src.replay.replay_engine import ReplayEngine
+        from exoarmur.replay.replay_engine import ReplayEngine
         return ReplayEngine(audit_store=mock_audit_store)
     
     def test_replay_reproduces_apply_and_revert_outcome(self, fixed_clock, audit_service, mock_audit_store, replay_engine):
         """Test that replay reproduces ICW apply and revert outcomes exactly"""
-        from src.replay.replay_engine import ReplayReport
-        from src.federation.audit import AuditEventType
+        from exoarmur.replay.replay_engine import ReplayReport
+        from exoarmur.federation.audit import AuditEventType
         from spec.contracts.models_v1 import AuditRecordV1
         
         # Create ICW components

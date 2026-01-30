@@ -12,12 +12,11 @@ from pydantic import ValidationError
 
 # Add paths for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
-from src.clock import utc_now
+from exoarmur.clock import utc_now
 
-from src.api_models import (
+from exoarmur.api_models import (
     TelemetryIngestResponseV1,
     AuditResponseV1,
     ErrorResponseV1

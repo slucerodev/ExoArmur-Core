@@ -11,11 +11,10 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from federation.federation_identity_manager import FederationIdentityManager
-from federation.identity_handshake_state_machine import HandshakeConfig
-from federation.models.federation_identity_v2 import HandshakeState
+from exoarmur.federation.federation_identity_manager import FederationIdentityManager
+from exoarmur.federation.identity_handshake_state_machine import HandshakeConfig
+from exoarmur.federation.models.federation_identity_v2 import HandshakeState
 
 
 class TestFederationIdentityManager:

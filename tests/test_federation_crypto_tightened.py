@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 
 pytestmark = pytest.mark.sensitive
 
-from src.federation.crypto import (
+from exoarmur.federation.crypto import (
     FederateKeyPair,
     sign_message,
     verify_message_signature,
@@ -19,7 +19,7 @@ from src.federation.crypto import (
     serialize_public_key_for_identity,
     deserialize_public_key_from_identity
 )
-from src.federation.messages import (
+from exoarmur.federation.messages import (
     IdentityExchangeMessage,
     SignatureAlgorithm,
     SignatureInfo,
@@ -39,7 +39,7 @@ from tests.federation_fixtures import (
     future_timestamp,
     MockFeatureFlags
 )
-from src.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
 
 
 class TestFederateKeyPair:
@@ -594,7 +594,7 @@ class TestUtilityFunctions:
     
     def test_generate_nonce(self):
         """Test nonce generation"""
-        from src.federation.crypto import generate_nonce
+        from exoarmur.federation.crypto import generate_nonce
         
         nonce1 = generate_nonce()
         nonce2 = generate_nonce()

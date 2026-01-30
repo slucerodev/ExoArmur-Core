@@ -7,9 +7,9 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock
 
-from src.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
 from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
-from src.federation.clock import FixedClock
+from exoarmur.federation.clock import FixedClock
 from tests.federation_fixtures import MockFeatureFlags
 
 

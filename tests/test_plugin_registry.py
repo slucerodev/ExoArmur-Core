@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.plugins.registry import (
+from exoarmur.plugins.registry import (
     PluginRegistry,
     get_plugin_registry,
     get_provider_summary,

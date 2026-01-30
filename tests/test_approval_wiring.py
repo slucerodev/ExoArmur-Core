@@ -12,14 +12,13 @@ from typing import Dict, Any
 from fastapi.testclient import TestClient
 
 # Add src and spec to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec'))
 
 from contracts.models_v1 import TelemetryEventV1, ExecutionIntentV1
 from safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 from execution.execution_kernel import ExecutionKernel
-from control_plane.approval_service import ApprovalService
-from audit.audit_logger import AuditLogger
+from exoarmur.control_plane.approval_service import ApprovalService
+from exoarmur.audit.audit_logger import AuditLogger
 from main import app
 
 

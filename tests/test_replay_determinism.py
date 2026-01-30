@@ -15,9 +15,9 @@ from spec.contracts.models_v1 import (
     TelemetrySummaryPayloadV1,
     ThreatIntelPayloadV1
 )
-from src.federation.belief_aggregation import BeliefAggregationService
-from src.federation.observation_store import ObservationStore
-from src.federation.clock import FixedClock
+from exoarmur.federation.belief_aggregation import BeliefAggregationService
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.clock import FixedClock
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def observation_store(fixed_clock):
 @pytest.fixture
 def belief_aggregation_service(observation_store, fixed_clock):
     """Belief aggregation service for testing"""
-    from src.federation.belief_aggregation import BeliefAggregationConfig
+    from exoarmur.federation.belief_aggregation import BeliefAggregationConfig
     config = BeliefAggregationConfig(
         feature_enabled=True,
         min_observations_for_belief=1,

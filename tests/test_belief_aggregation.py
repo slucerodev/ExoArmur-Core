@@ -17,9 +17,9 @@ from spec.contracts.models_v1 import (
     SystemHealthPayloadV1,
     NetworkActivityPayloadV1
 )
-from src.federation.belief_aggregation import BeliefAggregationService, BeliefAggregationConfig
-from src.federation.observation_store import ObservationStore
-from src.federation.clock import FixedClock
+from exoarmur.federation.belief_aggregation import BeliefAggregationService, BeliefAggregationConfig
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.clock import FixedClock
 
 
 @pytest.fixture

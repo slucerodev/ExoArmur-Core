@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from src.auth import (
+from exoarmur.auth import (
     AuthError,
     Permission,
     APIKey,
@@ -238,7 +238,7 @@ async def test_auth_decorator():
     store = APIKeyStore()
     
     # Override global auth service for testing
-    import src.auth.auth_service as auth_module
+    import exoarmur.auth.auth_service as auth_module
     original_service = auth_module._auth_service
     auth_module._auth_service = AuthService(store)
     

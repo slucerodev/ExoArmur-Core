@@ -13,7 +13,6 @@ from typing import Dict, Any
 
 # Add src to path and ensure src is in Python path for relative imports
 src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
-sys.path.insert(0, src_path)
 sys.path.insert(0, os.path.dirname(__file__))  # Add scripts dir too
 
 # Import ICW components

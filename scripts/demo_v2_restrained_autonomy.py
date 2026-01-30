@@ -31,7 +31,6 @@ from datetime import datetime, timezone
 from typing import Optional
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 from models_v1 import TelemetryEventV1

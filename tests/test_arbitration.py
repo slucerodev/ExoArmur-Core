@@ -22,12 +22,12 @@ from spec.contracts.models_v1 import (
     ObservationType,
     TelemetrySummaryPayloadV1
 )
-from src.federation.arbitration_store import ArbitrationStore
-from src.federation.arbitration_service import ArbitrationService
-from src.federation.conflict_detection import ConflictDetectionService
-from src.federation.audit import AuditService, AuditEventEnvelope, AuditEventType
-from src.federation.observation_store import ObservationStore
-from src.federation.clock import FixedClock
+from exoarmur.federation.arbitration_store import ArbitrationStore
+from exoarmur.federation.arbitration_service import ArbitrationService
+from exoarmur.federation.conflict_detection import ConflictDetectionService
+from exoarmur.federation.audit import AuditService, AuditEventEnvelope, AuditEventType
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.clock import FixedClock
 
 
 @pytest.fixture

@@ -32,7 +32,6 @@ except subprocess.CalledProcessError as e:
     sys.exit(1)
 
 # Add src to path for module imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from reliability import (
     get_timeout_manager,

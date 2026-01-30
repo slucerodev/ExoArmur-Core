@@ -35,7 +35,7 @@ dependencies = [
 ]
 
 [project.scripts]
-exoarmur = "src.cli:main"
+exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
 v2 = [

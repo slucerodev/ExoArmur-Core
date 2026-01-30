@@ -23,16 +23,16 @@ from spec.contracts.models_v1 import (
     FederationRole,
     CellStatus
 )
-from src.federation.handshake_controller import HandshakeController, HandshakeResult
-from src.federation.handshake_state_machine import HandshakeConfig, HandshakeTransitionReason
-from src.federation.crypto import VerificationFailureReason
-from src.federation.messages import (
+from exoarmur.federation.handshake_controller import HandshakeController, HandshakeResult
+from exoarmur.federation.handshake_state_machine import HandshakeConfig, HandshakeTransitionReason
+from exoarmur.federation.crypto import VerificationFailureReason
+from exoarmur.federation.messages import (
     MessageType,
     create_identity_exchange_message,
     create_capability_negotiate_message,
     create_trust_establish_message
 )
-from src.federation.clock import FixedClock
+from exoarmur.federation.clock import FixedClock
 from tests.federation_fixtures import (
     fixed_clock,
     handshake_context,
@@ -107,7 +107,7 @@ class TestHandshakeController:
             trust_score=0.8,
             timestamp=controller.clock.now()
         )
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_message = sign_message(message, test_key_pair.private_key)
         
         # Start handshake and process message
@@ -165,7 +165,7 @@ class TestHandshakeController:
             trust_score=0.8,
             timestamp=controller.clock.now()
         )
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_identity = sign_message(identity_message, test_key_pair.private_key)
         
         result1 = controller.process_message(correlation_id, signed_identity)
@@ -235,7 +235,7 @@ class TestHandshakeController:
         )
         
         # Sign with wrong key
-        from src.federation.crypto import FederateKeyPair, sign_message
+        from exoarmur.federation.crypto import FederateKeyPair, sign_message
         wrong_key = FederateKeyPair()
         signed_message = sign_message(message, wrong_key.private_key)
         
@@ -286,7 +286,7 @@ class TestHandshakeController:
             trust_score=0.8,
             timestamp=old_timestamp
         )
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_message = sign_message(message, test_key_pair.private_key)
         
         # First attempt should fail with retry
@@ -339,7 +339,7 @@ class TestHandshakeController:
             trust_score=0.8,
             timestamp=fixed_clock.now()
         )
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_message = sign_message(message, test_key_pair.private_key)
         
         result = controller.process_message(correlation_id, signed_message)
@@ -402,7 +402,7 @@ class TestHandshakeController:
             )
         ]
         
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_messages = [
             sign_message(msg, test_key_pair.private_key)
             for msg in messages
@@ -522,7 +522,7 @@ class TestHandshakeController:
             required_capabilities=["belief_aggregation"],
             timestamp=controller.clock.now()
         )
-        from src.federation.crypto import sign_message
+        from exoarmur.federation.crypto import sign_message
         signed_message = sign_message(message, test_key_pair.private_key)
         
         result = controller.process_message(correlation_id, signed_message)

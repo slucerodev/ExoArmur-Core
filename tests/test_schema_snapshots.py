@@ -14,7 +14,6 @@ from typing import Dict, Any
 import pytest
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Add contracts to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))

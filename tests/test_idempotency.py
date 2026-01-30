@@ -5,7 +5,7 @@ Unit tests for idempotency enforcement
 import pytest
 from datetime import datetime
 
-from src.execution.execution_kernel import ExecutionKernel
+from exoarmur.execution.execution_kernel import ExecutionKernel
 
 # Import contract models
 import sys

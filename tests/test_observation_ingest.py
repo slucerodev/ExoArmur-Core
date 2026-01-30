@@ -17,11 +17,11 @@ from spec.contracts.models_v1 import (
     FederationRole,
     CellStatus
 )
-from src.federation.observation_ingest import ObservationIngestService, ObservationIngestConfig
-from src.federation.observation_store import ObservationStore
-from src.federation.federate_identity_store import FederateIdentityStore
-from src.federation.clock import FixedClock
-from src.federation.crypto import FederateKeyPair, sign_message, serialize_public_key_for_identity, deserialize_public_key_from_identity
+from exoarmur.federation.observation_ingest import ObservationIngestService, ObservationIngestConfig
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.crypto import FederateKeyPair, sign_message, serialize_public_key_for_identity, deserialize_public_key_from_identity
 
 
 @pytest.fixture

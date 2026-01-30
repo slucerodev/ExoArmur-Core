@@ -24,7 +24,6 @@ from nats.js.api import StreamConfig, ConsumerConfig
 # Add src to path for imports
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 from models_v1 import (

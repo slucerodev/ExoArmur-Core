@@ -64,17 +64,17 @@ def main():
 from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
 
 # Core system imports  
-from src.audit import AuditLogger, NoOpAuditInterface, FederationAuditInterface
-from src.replay import ReplayEngine
-from src.safety import SafetyGate
+from exoarmur.audit import AuditLogger, NoOpAuditInterface, FederationAuditInterface
+from exoarmur.replay import ReplayEngine
+from exoarmur.safety import SafetyGate
 
 # Federation interface imports
-from src.federation import FederateIdentityStore, HandshakeStateMachine
+from exoarmur.federation import FederateIdentityStore, HandshakeStateMachine
 
 # Approval/safety gate imports
-from src.analysis import FactsDeriver
-from src.beliefs import BeliefGenerator
-from src.collective_confidence import CollectiveConfidenceAggregator
+from exoarmur.analysis import FactsDeriver
+from exoarmur.beliefs import BeliefGenerator
+from exoarmur.collective_confidence import CollectiveConfidenceAggregator
 
 print('✅ All core imports successful')
 print('✅ V1 Core: TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1')

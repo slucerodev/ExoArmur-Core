@@ -11,10 +11,9 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from federation.federation_manager import FederationManager, FederationConfig
-from federation.federation_identity_manager import FederationIdentityManager
+from exoarmur.federation.federation_manager import FederationManager, FederationConfig
+from exoarmur.federation.federation_identity_manager import FederationIdentityManager
 
 
 class TestFederationIdentityIntegration:
@@ -70,7 +69,6 @@ class TestFederationIdentityIntegration:
         # Mock Phase Gate to allow Phase 2
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
         from core.phase_gate import SystemPhase
         
         # Mock NATS completely to avoid all connection issues

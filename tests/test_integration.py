@@ -15,13 +15,12 @@ from httpx import AsyncClient
 
 # Add paths for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
-from src.clock import utc_now
+from exoarmur.clock import utc_now
 
 # Import the main app
-from src.main import app, initialize_components
+from exoarmur.main import app, initialize_components
 from models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
 
 

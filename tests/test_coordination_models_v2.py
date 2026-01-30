@@ -9,9 +9,8 @@ from datetime import datetime, timezone, timedelta
 from pydantic import ValidationError
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from federation.coordination.coordination_models_v2 import (
+from exoarmur.federation.coordination.coordination_models_v2 import (
     CoordinationType, CoordinationState, CoordinationRole,
     CoordinationScope, CoordinationAnnouncement, CoordinationClaim,
     CoordinationRelease, CoordinationObservation, CoordinationIntentBroadcast,

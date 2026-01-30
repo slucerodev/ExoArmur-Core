@@ -5,7 +5,7 @@ Basic Tests for Federate Identity Store
 import pytest
 from unittest.mock import Mock
 
-from src.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
 from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
