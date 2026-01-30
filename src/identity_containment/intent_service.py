@@ -18,10 +18,10 @@ from spec.contracts.models_v1 import (
     IdentitySubjectV1,
     IdentityContainmentScopeV1
 )
-from src.federation.clock import Clock
-from src.federation.audit import AuditService, AuditEventType
-from src.safety.safety_gate import SafetyGate, SafetyVerdict
-from src.control_plane.approval_service import ApprovalService, ApprovalRequest
+from federation.clock import Clock
+from federation.audit import AuditService, AuditEventType
+from safety.safety_gate import SafetyGate, SafetyVerdict
+from control_plane.approval_service import ApprovalService, ApprovalRequest
 
 logger = logging.getLogger(__name__)
 

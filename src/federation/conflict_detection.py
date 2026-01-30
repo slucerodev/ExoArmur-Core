@@ -18,10 +18,10 @@ from spec.contracts.models_v1 import (
     ArbitrationStatus,
     ArbitrationConflictType
 )
-from src.federation.audit import AuditEventEnvelope, AuditEventType
-from src.federation.clock import Clock
-from src.federation.arbitration_store import ArbitrationStore
-from src.federation.audit import AuditService
+from federation.audit import AuditEventEnvelope, AuditEventType
+from federation.clock import Clock
+from federation.arbitration_store import ArbitrationStore
+from federation.audit import AuditService
 
 logger = logging.getLogger(__name__)
 

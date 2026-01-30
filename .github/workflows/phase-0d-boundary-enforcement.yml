@@ -115,14 +115,14 @@ jobs:
         COLLECTED=$(python -m pytest --collect-only -q | tail -1)
         echo "Collected: $COLLECTED"
         
-        if [[ "$COLLECTED" != *"417 tests collected"* ]]; then
-          echo "❌ Test collection count changed from expected 417"
-          echo "   Expected: 417 tests collected"
+        if [[ "$COLLECTED" != *"580 tests collected"* ]]; then
+          echo "❌ Test collection count changed from expected 580"
+          echo "   Expected: 580 tests collected"
           echo "   Actual: $COLLECTED"
           exit 1
         fi
         
-        echo "✅ Test collection count stable: 417 tests"
+        echo "✅ Test collection count stable: 580 tests"
 
   full-test-suite:
     runs-on: ubuntu-latest

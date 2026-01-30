@@ -83,9 +83,9 @@ from spec.contracts.models_v1 import (
     AnomalyDetectionPayloadV1,
     SystemHealthPayloadV1
 )
-from src.federation.observation_store import ObservationStore
-from src.federation.clock import Clock
-from src.federation.audit import AuditService, AuditEventType
+from federation.observation_store import ObservationStore
+from federation.clock import Clock
+from federation.audit import AuditService, AuditEventType
 
 logger = logging.getLogger(__name__)
 
