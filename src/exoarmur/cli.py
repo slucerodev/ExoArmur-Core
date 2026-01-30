@@ -76,7 +76,6 @@ def verify_all(verbose: bool, fast: bool):
             'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
             'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
             'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
-            'PYTHONPATH': f"{Path(__file__).parent}:{Path(__file__).parent.parent / 'spec' / 'contracts'}"
         })
         
         result = subprocess.run(demo_cmd, cwd=Path(__file__).parent.parent, 
@@ -177,7 +176,7 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
                 'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
                 'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
             })
-        env['PYTHONPATH'] = f"{Path(__file__).parent}:{Path(__file__).parent.parent / 'spec' / 'contracts'}"
+        # Scripts should use proper package imports, no PYTHONPATH manipulation needed
         
         result = subprocess.run(cmd, cwd=Path(__file__).parent.parent, env=env)
         sys.exit(result.returncode)

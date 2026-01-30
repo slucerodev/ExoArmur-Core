@@ -8,7 +8,9 @@ import sys
 import os
 from pathlib import Path
 
-# Add src to path
+# Add repo root and contracts to path for imports
+repo_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(repo_root))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 def main():
@@ -20,7 +22,7 @@ def main():
     )
     
     # Import API models
-    from api_models import (
+    from exoarmur.api_models import (
         TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1
     )
     

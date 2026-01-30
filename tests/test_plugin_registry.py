@@ -162,7 +162,7 @@ class TestPluginRegistry:
     
     def test_provider_summary(self):
         """Test provider summary functionality"""
-        with patch('src.plugins.registry.get_plugin_registry') as mock_get_registry:
+        with patch('exoarmur.plugins.registry.get_plugin_registry') as mock_get_registry:
             mock_registry = MagicMock()
             mock_registry.get_provider_count.return_value = 2
             mock_registry.get_groups_count.return_value = {"exoarmur.temporal": 1, "exoarmur.analyst": 1}

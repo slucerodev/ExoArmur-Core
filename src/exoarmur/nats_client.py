@@ -46,7 +46,7 @@ class ExoArmurNATSClient:
     
     async def connect(self) -> bool:
         """Connect to NATS server with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         timeout_mgr = get_timeout_manager()
         
@@ -100,7 +100,7 @@ class ExoArmurNATSClient:
     
     async def ensure_streams(self) -> None:
         """Ensure required streams exist with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         timeout_mgr = get_timeout_manager()
         
@@ -266,7 +266,7 @@ class ExoArmurNATSClient:
     
     async def publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> bool:
         """Publish message to subject with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
@@ -301,7 +301,7 @@ class ExoArmurNATSClient:
     
     async def publish_belief(self, belief) -> bool:
         """Publish a BeliefV1 to JetStream with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
@@ -348,7 +348,7 @@ class ExoArmurNATSClient:
     
     async def publish_execution_intent(self, intent) -> bool:
         """Publish an ExecutionIntentV1 to JetStream with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
@@ -395,7 +395,7 @@ class ExoArmurNATSClient:
     
     async def publish_audit_record(self, record) -> bool:
         """Publish an AuditRecordV1 to JetStream with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
@@ -623,7 +623,7 @@ class ExoArmurNATSClient:
         queue_group: Optional[str] = None
     ) -> bool:
         """Subscribe to subject with handler with timeout enforcement"""
-        from reliability import get_timeout_manager, TimeoutCategory, TimeoutError
+        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
         
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")

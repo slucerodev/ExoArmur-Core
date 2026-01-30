@@ -216,7 +216,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
         collective_state = collective_aggregator.compute_collective_state(belief)
         
         # Step 6: Safety - evaluate safety gate with arbitration
-        from safety.safety_gate import PolicyState, TrustState, EnvironmentState
+        from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState
         
         policy_state = PolicyState(
             policy_verified=True,  # TODO: implement actual policy verification

@@ -1,0 +1,150 @@
+{
+  "additionalProperties": false,
+  "description": "Pydantic v2 schema for ExecutionIntentV1 contract model",
+  "properties": {
+    "action_class": {
+      "description": "Action class",
+      "enum": [
+        "A0_observe",
+        "A1_soft_containment",
+        "A2_hard_containment",
+        "A3_irreversible"
+      ],
+      "title": "Action Class",
+      "type": "string"
+    },
+    "cell_id": {
+      "description": "Cell identifier",
+      "title": "Cell Id",
+      "type": "string"
+    },
+    "correlation_id": {
+      "description": "Correlation identifier",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "description": "Idempotency key for safe retries",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "intent_id": {
+      "description": "ULID intent identifier",
+      "title": "Intent Id",
+      "type": "string"
+    },
+    "intent_type": {
+      "description": "Type of intent",
+      "example": "isolate_host",
+      "title": "Intent Type",
+      "type": "string"
+    },
+    "parameters": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Intent parameters",
+      "title": "Parameters"
+    },
+    "policy_context": {
+      "additionalProperties": true,
+      "description": "Policy context",
+      "examples": [
+        {
+          "bundle_hash_sha256": "abc123...",
+          "rule_ids": [
+            "rule-1",
+            "rule-2"
+          ]
+        }
+      ],
+      "title": "Policy Context",
+      "type": "object"
+    },
+    "requested_at": {
+      "description": "When the intent was requested",
+      "format": "date-time",
+      "title": "Requested At",
+      "type": "string"
+    },
+    "safety_context": {
+      "additionalProperties": true,
+      "description": "Safety context",
+      "examples": [
+        {
+          "human_approval_id": "approval-123",
+          "quorum_status": "satisfied",
+          "rationale": "Low risk, policy authorized",
+          "safety_verdict": "allow"
+        }
+      ],
+      "title": "Safety Context",
+      "type": "object"
+    },
+    "schema_version": {
+      "description": "Schema version",
+      "example": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "subject": {
+      "additionalProperties": true,
+      "description": "Subject information",
+      "examples": [
+        {
+          "subject_id": "host-123",
+          "subject_type": "host"
+        }
+      ],
+      "title": "Subject",
+      "type": "object"
+    },
+    "tenant_id": {
+      "description": "Tenant identifier",
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "trace_id": {
+      "description": "Trace identifier",
+      "title": "Trace Id",
+      "type": "string"
+    },
+    "ttl_seconds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional TTL",
+      "title": "Ttl Seconds"
+    }
+  },
+  "required": [
+    "schema_version",
+    "intent_id",
+    "tenant_id",
+    "cell_id",
+    "idempotency_key",
+    "subject",
+    "intent_type",
+    "action_class",
+    "requested_at",
+    "policy_context",
+    "safety_context",
+    "correlation_id",
+    "trace_id"
+  ],
+  "title": "ExoArmur ADMO v1 - ExecutionIntentV1",
+  "type": "object"
+}

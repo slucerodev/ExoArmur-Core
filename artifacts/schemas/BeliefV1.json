@@ -1,0 +1,86 @@
+{
+  "additionalProperties": false,
+  "description": "Pydantic v2 schema for BeliefV1 contract model",
+  "properties": {
+    "belief_id": {
+      "description": "Belief identifier",
+      "example": "belief_01J...",
+      "title": "Belief Id",
+      "type": "string"
+    },
+    "belief_type": {
+      "description": "Type of belief",
+      "title": "Belief Type",
+      "type": "string"
+    },
+    "confidence": {
+      "description": "Confidence in belief",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "conflicts": {
+      "description": "List of conflicting belief IDs",
+      "items": {
+        "type": "string"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "correlation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Correlation ID for linking",
+      "title": "Correlation Id"
+    },
+    "derived_at": {
+      "description": "When belief was derived",
+      "format": "date-time",
+      "title": "Derived At",
+      "type": "string"
+    },
+    "evidence_summary": {
+      "description": "Summary of evidence supporting this belief",
+      "title": "Evidence Summary",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "description": "Additional metadata",
+      "title": "Metadata",
+      "type": "object"
+    },
+    "schema_version": {
+      "default": "2.0.0",
+      "description": "Schema version",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_observations": {
+      "description": "List of observation IDs that contributed to this belief",
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Observations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "belief_id",
+    "belief_type",
+    "confidence",
+    "source_observations",
+    "derived_at",
+    "evidence_summary"
+  ],
+  "title": "ExoArmur ADMO v1 - BeliefV1",
+  "type": "object"
+}
