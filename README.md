@@ -86,9 +86,8 @@ docker compose up -d
 python3 -m venv venv
 source venv/bin/activate
 
-# Install ExoArmur Core (pip 24.0 required due to known pip 25.x regression)
-pip install --upgrade pip -c constraints.txt
-pip install -e .
+# Install ExoArmur Core
+pip install .
 
 # Run tests
 python -m pytest tests/ -v
@@ -97,11 +96,11 @@ python -m pytest tests/ -v
 python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
 ```
 
-### Developer Note: pip ≥25 editable installs
+### Developer Note: editable installs
 - Affects: `pip install -e .` only (editable installs)
-- Symptom: `packaging.version.InvalidVersion: ''` during dependency marker evaluation
-- Cause: upstream pip ≥25 regression in marker handling; not caused by ExoArmur-Core packaging
-- Workaround: use pip <25 (e.g., `pip install pip==24.3.1`) for editable installs
+- Symptom: `packaging.version.InvalidVersion: ''` during dependency marker evaluation on Python 3.12
+- Cause: upstream pip/importlib issue; not caused by ExoArmur-Core packaging
+- Status: No verified workaround at this time; editable installs are currently non-functional
 - Production/CI: unaffected (non-editable installs and wheels work normally)
 
 ---
