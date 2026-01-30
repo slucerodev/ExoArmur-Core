@@ -97,6 +97,13 @@ python -m pytest tests/ -v
 python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
 ```
 
+### Developer Note: pip ≥25 editable installs
+- Affects: `pip install -e .` only (editable installs)
+- Symptom: `packaging.version.InvalidVersion: ''` during dependency marker evaluation
+- Cause: upstream pip ≥25 regression in marker handling; not caused by ExoArmur-Core packaging
+- Workaround: use pip <25 (e.g., `pip install pip==24.3.1`) for editable installs
+- Production/CI: unaffected (non-editable installs and wheels work normally)
+
 ---
 
 ## Reality / Status
