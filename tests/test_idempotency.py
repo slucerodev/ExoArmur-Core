@@ -10,8 +10,7 @@ from exoarmur.execution.execution_kernel import ExecutionKernel
 # Import contract models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
-from models_v1 import LocalDecisionV1, ExecutionIntentV1
+from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 
 
 class TestIdempotency:

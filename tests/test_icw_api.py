@@ -11,8 +11,8 @@ import os
 
 # Add src to path for imports
 
-from main import app
-from identity_containment.icw_api import IdentityContainmentAPI
+from exoarmur.main import app
+from exoarmur.identity_containment.icw_api import IdentityContainmentAPI
 from spec.contracts.models_v1 import IdentityContainmentScopeV1
 
 

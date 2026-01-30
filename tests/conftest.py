@@ -86,7 +86,7 @@ def override_execution_gate():
         )
     
     # Patch at the source
-    with patch('src.safety.execution_gate.enforce_execution_gate', mock_enforce_execution_gate):
+    with patch('exoarmur.safety.execution_gate.enforce_execution_gate', mock_enforce_execution_gate):
         yield
     
     # Restore original flag

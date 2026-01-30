@@ -11,8 +11,6 @@ from datetime import datetime
 from pydantic import ValidationError
 
 # Add paths for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 from exoarmur.clock import utc_now
 
@@ -21,7 +19,7 @@ from exoarmur.api_models import (
     AuditResponseV1,
     ErrorResponseV1
 )
-from models_v1 import AuditRecordV1
+from spec.contracts.models_v1 import AuditRecordV1
 
 
 class TestTelemetryIngestResponseV1:

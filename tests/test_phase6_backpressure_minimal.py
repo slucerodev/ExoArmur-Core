@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 # Add src to path for module imports
 
-from reliability.backpressure_manager import (
+from exoarmur.reliability.backpressure_manager import (
     BackpressureAction,
     RateLimitExceeded,
     QueueFullError,

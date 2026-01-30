@@ -24,13 +24,12 @@ from nats.js.api import StreamConfig, ConsumerConfig
 # Add src to path for imports
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
-from models_v1 import (
+from spec.contracts.models_v1 import (
     TelemetryEventV1, SignalFactsV1, BeliefV1, LocalDecisionV1,
     ExecutionIntentV1, AuditRecordV1
 )
-from nats_client import ExoArmurNATSClient, NATSConfig
+from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 
 
 @pytest.mark.golden_demo

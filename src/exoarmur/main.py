@@ -31,7 +31,7 @@ except ImportError:
         raise HTTPException(status_code=503, detail="ICW API not initialized")
 
 # Import API models
-from api_models import TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
+from exoarmur.api_models import TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
 
 # Import internal modules
 from exoarmur.perception.validator import TelemetryValidator
@@ -42,7 +42,7 @@ from exoarmur.collective_confidence.aggregator import CollectiveConfidenceAggreg
 from exoarmur.safety.safety_gate import SafetyGate
 from exoarmur.execution.execution_kernel import ExecutionKernel
 from exoarmur.audit.audit_logger import AuditLogger
-from nats_client import ExoArmurNATSClient, NATSConfig
+from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
 

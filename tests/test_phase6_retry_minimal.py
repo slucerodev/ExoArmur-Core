@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 # Add src to path for module imports
 
-from reliability.retry_manager import (
+from exoarmur.reliability.retry_manager import (
     RetryCategory,
     RetryPolicy,
     RetryAttempt,

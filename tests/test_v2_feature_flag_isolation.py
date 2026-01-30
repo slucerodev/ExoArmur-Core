@@ -16,11 +16,10 @@ import os
 from typing import Dict, Any
 
 # Add src and spec to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec'))
 
 # V2 imports (should be safe)
 from exoarmur.feature_flags import get_feature_flags
-from feature_flags.feature_flags import FeatureFlagContext
+from exoarmur.feature_flags.feature_flags import FeatureFlagContext
 from exoarmur.federation.federation_manager import FederationManager, FederationConfig
 # from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalConfig

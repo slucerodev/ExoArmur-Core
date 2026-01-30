@@ -12,11 +12,11 @@ from unittest.mock import patch
 # Add src to path
 
 from fastapi.testclient import TestClient
-from main import app
+from exoarmur.main import app
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
-from safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
-from execution.execution_kernel import ExecutionKernel
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
+from exoarmur.execution.execution_kernel import ExecutionKernel
 from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
 
 

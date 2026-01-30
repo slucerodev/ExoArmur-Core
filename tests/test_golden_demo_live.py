@@ -15,13 +15,11 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 # Add paths for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.main import app
 from fastapi.testclient import TestClient
-from models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
+from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
 
 
 @pytest.fixture(scope="session")

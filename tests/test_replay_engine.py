@@ -16,8 +16,7 @@ from exoarmur.control_plane.approval_service import ApprovalService
 # Import contract models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
-from models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
+from spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
 
 
 class TestCanonicalUtils:

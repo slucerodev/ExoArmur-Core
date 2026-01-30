@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 # Add src to path for module imports
 
-from reliability.circuit_breaker import (
+from exoarmur.reliability.circuit_breaker import (
     CircuitState,
     CircuitBreakerError,
     CircuitBreakerConfig,

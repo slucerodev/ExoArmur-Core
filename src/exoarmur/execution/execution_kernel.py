@@ -11,7 +11,7 @@ import sys
 import os
 from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 from exoarmur.clock import utc_now
-from feature_flags import get_feature_flags
+from exoarmur.feature_flags import get_feature_flags
 from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)

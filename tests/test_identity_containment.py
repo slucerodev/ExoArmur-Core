@@ -45,12 +45,12 @@ def create_sessions_scope():
 from exoarmur.federation.observation_store import ObservationStore
 from exoarmur.federation.clock import FixedClock
 from exoarmur.federation.audit import AuditService, AuditEventType
-from safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
-from identity_containment.recommender import IdentityContainmentRecommender
-from identity_containment.intent_service import IdentityContainmentIntentService
-from identity_containment.effector import SimulatedIdentityProviderEffector
-from identity_containment.execution import IdentityContainmentExecutor, IdentityContainmentTickService
+from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
+from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
+from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
+from exoarmur.identity_containment.execution import IdentityContainmentExecutor, IdentityContainmentTickService
 
 
 class TestIdentityContainmentRecommendation:

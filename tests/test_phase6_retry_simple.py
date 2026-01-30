@@ -10,7 +10,6 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from exoarmur.reliability import (
     RetryCategory,
