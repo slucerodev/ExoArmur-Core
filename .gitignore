@@ -100,3 +100,6 @@ test_replay.txt
 data/
 artifacts/reality_run_*/
 *.log
+audit_venv/
+test_install_venv/
+snapshot_out/
