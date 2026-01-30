@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path for module imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from reliability.timeout_manager import (
+from exoarmur.reliability.timeout_manager import (
     TimeoutCategory,
     TimeoutConfig,
     TimeoutError,

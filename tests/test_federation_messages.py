@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 
-from src.federation.messages import (
+from exoarmur.federation.messages import (
     IdentityExchangeMessage,
     CapabilityNegotiateMessage, 
     TrustEstablishMessage,
@@ -23,7 +23,7 @@ from src.federation.messages import (
     create_capability_negotiate_message,
     create_trust_establish_message
 )
-from src.replay.canonical_utils import canonical_json, stable_hash
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 
 class TestMessageModels:

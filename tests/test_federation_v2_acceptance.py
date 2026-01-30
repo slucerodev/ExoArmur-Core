@@ -20,17 +20,15 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 
 # Add src and spec to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec'))
 
 # V2 imports (now available as scaffolds)
-from feature_flags import get_feature_flags
-from feature_flags.feature_flags import FeatureFlagContext
-from federation.federation_manager import FederationManager, FederationConfig
+from exoarmur.feature_flags import get_feature_flags
+from exoarmur.feature_flags.feature_flags import FeatureFlagContext
+from exoarmur.federation.federation_manager import FederationManager, FederationConfig
 # from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
 
 # V1 imports (should work)
-from contracts.models_v1 import TelemetryEventV1, BeliefV1
+from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1
 
 
 @pytest.mark.xfail(strict=True, reason="V2 federation requires real Phase 2 implementation - future acceptance gate")

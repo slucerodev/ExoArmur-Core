@@ -10,14 +10,13 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from fastapi.testclient import TestClient
-from main import app
-from control_plane.approval_service import ApprovalService
-from control_plane.intent_store import IntentStore
-from safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
-from execution.execution_kernel import ExecutionKernel
+from exoarmur.main import app
+from exoarmur.control_plane.approval_service import ApprovalService
+from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
+from exoarmur.execution.execution_kernel import ExecutionKernel
 from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
 
 
@@ -151,7 +150,7 @@ class TestIntentFreezeBinding:
             intent = execution_kernel.create_execution_intent(
                 local_decision=sample_local_decision,
                 safety_verdict=safety_verdict,
-                idempotency_key="test-key-001"
+                idempotency_identifier="test-key-001"
             )
             
             # Modify intent to be A1 (requires approval)
@@ -208,7 +207,7 @@ class TestIntentFreezeBinding:
         intent = execution_kernel.create_execution_intent(
             local_decision=sample_local_decision,
             safety_verdict=safety_verdict,
-            idempotency_key="test-key-002"
+            idempotency_identifier="test-key-002"
         )
         
         # Modify intent to be A1 (requires approval)
@@ -267,7 +266,7 @@ class TestIntentFreezeBinding:
             intent = execution_kernel.create_execution_intent(
                 local_decision=sample_local_decision,
                 safety_verdict=safety_verdict,
-                idempotency_key="test-key-003"
+                idempotency_identifier="test-key-003"
             )
             
             # Modify intent to be A1 (requires approval)

@@ -20,18 +20,16 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 # Add src and spec to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec'))
 
 # V2 imports (now available as scaffolds)
-from feature_flags import get_feature_flags
-from feature_flags.feature_flags import FeatureFlagContext
-from control_plane.approval_service import ApprovalService, ApprovalConfig
-from control_plane.control_api import ControlAPI, ControlAPIConfig
-from control_plane.operator_interface import OperatorInterface, OperatorConfig
+from exoarmur.feature_flags import get_feature_flags
+from exoarmur.feature_flags.feature_flags import FeatureFlagContext
+from exoarmur.control_plane.approval_service import ApprovalService, ApprovalConfig
+from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
+from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
 
 # V1 imports (should work)
-from contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
+from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 
 
 @pytest.mark.xfail(strict=True, reason="V2 operator approval requires Phase 2. Current phase: 1.")

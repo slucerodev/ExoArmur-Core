@@ -17,13 +17,13 @@ import json
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from src.decision.threat_classification_v2 import (
+from exoarmur.decision.threat_classification_v2 import (
     ThreatEventV2, ThreatFactsV2, ThreatDecisionV2, 
     DecisionTranscriptV2, GovernanceRuleV2
 )
-from src.decision.threat_classification_engine_v2 import ThreatClassificationEngineV2
-from src.feature_flags.feature_flags import FeatureFlagContext, get_feature_flags
-from src.clock import Clock
+from exoarmur.decision.threat_classification_engine_v2 import ThreatClassificationEngineV2
+from exoarmur.feature_flags.feature_flags import FeatureFlagContext, get_feature_flags
+from exoarmur.clock import Clock
 
 
 class TestThreatClassificationV2:
@@ -411,7 +411,7 @@ class TestPhase2AConstitutionalCompliance:
         # This test ensures V1 immutability
         # In practice, this would run the full V1 test suite
         # For Phase 2A, we verify our additions are isolated
-        from src.decision.local_decider import LocalDecider
+        from exoarmur.decision.local_decider import LocalDecider
         from spec.contracts.models_v1 import SignalFactsV1, LocalDecisionV1
         
         # V1 decision maker should work unchanged
@@ -444,7 +444,7 @@ class TestPhase2AConstitutionalCompliance:
     
     def test_authority_envelope_compliance(self):
         """Test that Phase 2A respects authority envelope limits"""
-        from src.clock import SystemClock
+        from exoarmur.clock import SystemClock
         engine = ThreatClassificationEngineV2(clock=SystemClock())
         
         # All rules should be within T0/T1 authority

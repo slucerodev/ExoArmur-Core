@@ -10,10 +10,9 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from main import app
-from identity_containment.icw_api import IdentityContainmentAPI
+from exoarmur.main import app
+from exoarmur.identity_containment.icw_api import IdentityContainmentAPI
 from spec.contracts.models_v1 import IdentityContainmentScopeV1
 
 

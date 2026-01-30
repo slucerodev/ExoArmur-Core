@@ -16,6 +16,7 @@ test:
 	python3 -m pytest tests/ -v
 
 verify:
+	@echo "Running comprehensive verification pipeline..."
 	python3 scripts/verify_all.py
 
 lint:

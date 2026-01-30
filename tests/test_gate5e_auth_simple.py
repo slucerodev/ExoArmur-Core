@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone, timedelta
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from auth import (
+from exoarmur.auth import (
     AuthError,
     Permission,
     APIKey,

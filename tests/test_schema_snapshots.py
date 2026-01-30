@@ -14,10 +14,8 @@ from typing import Dict, Any
 import pytest
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Add contracts to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 
 class TestSchemaSnapshots:
@@ -164,22 +162,8 @@ class TestSchemaSnapshots:
     
     def test_openapi_snapshot_unchanged(self):
         """Test that OpenAPI spec matches committed snapshot"""
-        # Import app using temporary main file
-        import importlib.util
-        
-        # Create temporary main with absolute imports
-        main_temp_path = Path(__file__).parent.parent / 'src' / 'main_temp.py'
-        if not main_temp_path.exists():
-            # Create temporary version for testing
-            main_path = Path(__file__).parent.parent / 'src' / 'main.py'
-            main_temp_path.write_text(main_path.read_text().replace('from .', 'from '))
-        
-        # Load the temporary main
-        spec = importlib.util.spec_from_file_location("main_temp", main_temp_path)
-        main_temp = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(main_temp)
-        
-        app = main_temp.app
+        # Import app from installed package namespace
+        from exoarmur.main import app
         current_openapi = app.openapi()
         
         # Load snapshot
@@ -205,9 +189,7 @@ class TestSchemaSnapshots:
             
             pytest.fail(diff_message)
         
-        # Clean up temporary file
-        if main_temp_path.exists():
-            main_temp_path.unlink()
+
 
 
 class TestSchemaChangeWaiver:

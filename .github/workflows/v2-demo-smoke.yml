@@ -22,9 +22,8 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install python-ulid
-        pip install pydantic==2.5.0
+        python -m pip install --upgrade pip -c constraints.txt
+        pip install -e ".[v2]"
         
     - name: Run V2 Demo with DENY (Safe)
       run: |

@@ -2,20 +2,9 @@
   "additionalProperties": false,
   "description": "Pydantic v2 schema for AuditRecordV1 contract model",
   "properties": {
-    "schema_version": {
-      "description": "Schema version",
-      "example": "1.0.0",
-      "title": "Schema Version",
-      "type": "string"
-    },
     "audit_id": {
       "description": "ULID audit identifier",
       "title": "Audit Id",
-      "type": "string"
-    },
-    "tenant_id": {
-      "description": "Tenant identifier",
-      "title": "Tenant Id",
       "type": "string"
     },
     "cell_id": {
@@ -23,15 +12,9 @@
       "title": "Cell Id",
       "type": "string"
     },
-    "idempotency_key": {
-      "description": "Idempotency key",
-      "title": "Idempotency Key",
-      "type": "string"
-    },
-    "recorded_at": {
-      "description": "When the record was recorded",
-      "format": "date-time",
-      "title": "Recorded At",
+    "correlation_id": {
+      "description": "Correlation identifier",
+      "title": "Correlation Id",
       "type": "string"
     },
     "event_kind": {
@@ -39,18 +22,6 @@
       "example": "telemetry_ingested",
       "title": "Event Kind",
       "type": "string"
-    },
-    "payload_ref": {
-      "additionalProperties": true,
-      "description": "Payload reference",
-      "examples": [
-        {
-          "kind": "inline",
-          "ref": "payload-data"
-        }
-      ],
-      "title": "Payload Ref",
-      "type": "object"
     },
     "hashes": {
       "additionalProperties": true,
@@ -67,9 +38,38 @@
       "title": "Hashes",
       "type": "object"
     },
-    "correlation_id": {
-      "description": "Correlation identifier",
-      "title": "Correlation Id",
+    "idempotency_key": {
+      "description": "Idempotency key",
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "payload_ref": {
+      "additionalProperties": true,
+      "description": "Payload reference",
+      "examples": [
+        {
+          "kind": "inline",
+          "ref": "payload-data"
+        }
+      ],
+      "title": "Payload Ref",
+      "type": "object"
+    },
+    "recorded_at": {
+      "description": "When the record was recorded",
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "Schema version",
+      "example": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "description": "Tenant identifier",
+      "title": "Tenant Id",
       "type": "string"
     },
     "trace_id": {

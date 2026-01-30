@@ -8,7 +8,7 @@ import base64
 from datetime import datetime, timezone, timedelta
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from src.federation.crypto import (
+from exoarmur.federation.crypto import (
     FederateKeyPair,
     sign_message,
     verify_message_signature,
@@ -20,7 +20,7 @@ from src.federation.crypto import (
     serialize_public_key_for_identity,
     deserialize_public_key_from_identity
 )
-from src.federation.messages import (
+from exoarmur.federation.messages import (
     IdentityExchangeMessage,
     CapabilityNegotiateMessage,
     TrustEstablishMessage,
@@ -33,7 +33,7 @@ from src.federation.messages import (
     create_capability_negotiate_message,
     create_trust_establish_message
 )
-from src.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
 from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
@@ -189,8 +189,8 @@ class TestProtocolEnforcement:
         os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
         
         # Reset global feature flags to pick up new environment variable
-        import feature_flags.feature_flags
-        feature_flags.feature_flags._feature_flags_instance = None
+        from exoarmur.feature_flags import feature_flags
+        feature_flags._feature_flags_instance = None
         
         # Create fresh identity store with enabled flags
         store = FederateIdentityStore()
@@ -204,7 +204,8 @@ class TestProtocolEnforcement:
             os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = old_value
         
         # Reset global feature flags again
-        feature_flags.feature_flags._feature_flags_instance = None
+        from exoarmur.feature_flags import feature_flags
+        feature_flags._feature_flags_instance = None
     
     @pytest.fixture
     def key_pair(self):

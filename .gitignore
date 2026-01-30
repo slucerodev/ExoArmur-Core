@@ -87,6 +87,10 @@ test_*.sh
 # Local environments (additional entries)
 .venv/
 .venv_clean_install/
+.venv_test/
+
+# IDE configurations
+.windsurf/
 
 # Local scratch / outputs
 test_output.txt
@@ -96,3 +100,6 @@ test_replay.txt
 data/
 artifacts/reality_run_*/
 *.log
+audit_venv/
+test_install_venv/
+snapshot_out/

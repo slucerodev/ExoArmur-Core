@@ -18,15 +18,15 @@ from unittest.mock import Mock, patch
 from typing import Dict, Any
 
 from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
-from src.v2_restrained_autonomy import (
+from exoarmur.v2_restrained_autonomy import (
     RestrainedAutonomyPipeline,
     RestrainedAutonomyConfig,
     ActionOutcome,
     MockActionExecutor
 )
-from src.feature_flags import FeatureFlagContext, get_feature_flags
-from src.control_plane.approval_service import ApprovalService
-from src.audit.audit_logger import AuditLogger
+from exoarmur.feature_flags import FeatureFlagContext, get_feature_flags
+from exoarmur.control_plane.approval_service import ApprovalService
+from exoarmur.audit.audit_logger import AuditLogger
 
 def create_mock_audit_record(audit_id: str = "audit-001") -> Mock:
     """Create a mock audit record for testing"""

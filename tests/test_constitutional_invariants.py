@@ -20,15 +20,15 @@ from spec.contracts.models_v1 import (
     FederationRole,
     CellStatus
 )
-from src.federation.arbitration_service import ArbitrationService
-from src.federation.observation_ingest import ObservationIngestService
-from src.federation.belief_aggregation import BeliefAggregationService
-from src.federation.observation_store import ObservationStore
-from src.federation.arbitration_store import ArbitrationStore
-from src.federation.federate_identity_store import FederateIdentityStore
-from src.federation.clock import FixedClock
-from src.federation.audit import AuditService
-from src.federation.crypto import FederateKeyPair, serialize_public_key_for_identity
+from exoarmur.federation.arbitration_service import ArbitrationService
+from exoarmur.federation.observation_ingest import ObservationIngestService
+from exoarmur.federation.belief_aggregation import BeliefAggregationService
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.arbitration_store import ArbitrationStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.audit import AuditService
+from exoarmur.federation.crypto import FederateKeyPair, serialize_public_key_for_identity
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def audit_service():
 @pytest.fixture
 def observation_ingest_service(observation_store, identity_store, fixed_clock):
     """Observation ingest service for testing"""
-    from src.federation.observation_ingest import ObservationIngestConfig
+    from exoarmur.federation.observation_ingest import ObservationIngestConfig
     config = ObservationIngestConfig(
         feature_enabled=True,
         require_confirmed_federate=True,
@@ -81,7 +81,7 @@ def observation_ingest_service(observation_store, identity_store, fixed_clock):
 @pytest.fixture
 def belief_aggregation_service(observation_store, fixed_clock):
     """Belief aggregation service for testing"""
-    from src.federation.belief_aggregation import BeliefAggregationConfig
+    from exoarmur.federation.belief_aggregation import BeliefAggregationConfig
     config = BeliefAggregationConfig(
         feature_enabled=True,
         min_observations_for_belief=1,
@@ -118,11 +118,11 @@ def test_federation_cannot_trigger_execution_paths():
     # Test that federation modules can be imported without execution modules
     try:
         # These should work
-        from src.federation.handshake_controller import HandshakeController
-        from src.federation.observation_ingest import ObservationIngestService
-        from src.federation.belief_aggregation import BeliefAggregationService
-        from src.federation.arbitration_service import ArbitrationService
-        from src.federation.visibility_api import VisibilityAPI
+        from exoarmur.federation.handshake_controller import HandshakeController
+        from exoarmur.federation.observation_ingest import ObservationIngestService
+        from exoarmur.federation.belief_aggregation import BeliefAggregationService
+        from exoarmur.federation.arbitration_service import ArbitrationService
+        from exoarmur.federation.visibility_api import VisibilityAPI
         
         # These should NOT be imported by federation modules
         # (We'll verify this in the boundary enforcement test)
@@ -340,7 +340,7 @@ def test_feature_flags_default_off():
     # Test that services are created with features disabled by default
     
     # Observation ingest service
-    from src.federation.observation_ingest import ObservationIngestConfig
+    from exoarmur.federation.observation_ingest import ObservationIngestConfig
     ingest_service = ObservationIngestService(
         observation_store=Mock(),
         identity_store=Mock(),
@@ -350,7 +350,7 @@ def test_feature_flags_default_off():
     assert ingest_service.config.feature_enabled is False
     
     # Belief aggregation service  
-    from src.federation.belief_aggregation import BeliefAggregationConfig
+    from exoarmur.federation.belief_aggregation import BeliefAggregationConfig
     belief_service = BeliefAggregationService(
         observation_store=Mock(),
         clock=Mock(),

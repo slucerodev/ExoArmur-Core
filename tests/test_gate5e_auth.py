@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone, timedelta
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from auth import (
+from exoarmur.auth import (
     AuthError,
     Permission,
     APIKey,
@@ -226,8 +225,8 @@ async def test_combined_auth_and_authorization():
 
 
 @requires_auth(Permission.EXECUTE_A1)
-async def test_decorated_function(api_key=None, tenant_id=None, auth_context=None, **kwargs):
-    """Test function with auth decorator"""
+async def _test_decorated_function(api_key=None, tenant_id=None, auth_context=None, **kwargs):
+    """Test function with auth decorator (not a test itself)"""
     return f"Executed by {auth_context.principal_id} on {auth_context.tenant_id}"
 
 
@@ -238,34 +237,40 @@ async def test_auth_decorator():
     store = APIKeyStore()
     
     # Override global auth service for testing
-    from auth import _auth_service
-    _auth_service = AuthService(store)
+    import exoarmur.auth.auth_service as auth_module
+    original_service = auth_module._auth_service
+    auth_module._auth_service = AuthService(store)
     
-    # Create a key
-    actual_key = store.create_key(
-        key_id="decorator-test-key",
-        tenant_ids=["tenant-decorator"],
-        permissions=[Permission.EXECUTE_A1],
-        principal_id="operator-decorator"
-    )
-    
-    # Test successful decorated function call
-    result = await test_decorated_function(
-        api_key=actual_key,
-        tenant_id="tenant-decorator"
-    )
-    
-    assert "operator-decorator" in result, "Should include principal"
-    assert "tenant-decorator" in result, "Should include tenant"
-    
-    # Test failed decorated function call (no API key)
     try:
-        await test_decorated_function(tenant_id="tenant-decorator")
-        assert False, "Should have raised AuthError"
-    except AuthError as e:
-        assert "Missing API key" in str(e), "Should cite missing API key"
+        # Create a key
+        actual_key = store.create_key(
+            key_id="decorator-test-key",
+            tenant_ids=["tenant-decorator"],
+            permissions=[Permission.EXECUTE_A1],
+            principal_id="operator-decorator"
+        )
+        
+        # Test successful decorated function call
+        result = await _test_decorated_function(
+            api_key=actual_key,
+            tenant_id="tenant-decorator"
+        )
+        
+        assert "operator-decorator" in result, "Should include principal"
+        assert "tenant-decorator" in result, "Should include tenant"
+        
+        # Test failed decorated function call (no API key)
+        try:
+            await _test_decorated_function(tenant_id="tenant-decorator", api_key=None)
+            assert False, "Should have raised AuthError"
+        except AuthError as e:
+            assert "Missing API key" in str(e), "Should cite missing API key"
+        
+        print("✓ Auth decorator works correctly")
     
-    print("✓ Auth decorator works correctly")
+    finally:
+        # Restore original service
+        auth_module._auth_service = original_service
 
 
 async def test_key_management():

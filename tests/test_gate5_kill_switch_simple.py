@@ -12,9 +12,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from safety import (
+from exoarmur.safety import (
     ExecutionGate, 
     ExecutionContext, 
     ExecutionActionType,
@@ -85,7 +84,7 @@ async def test_execution_gate_fail_closed():
     print("✓ Execution gate correctly DENIES without tenant context")
 
 
-async def test_global_kill_switch_enforcement():
+async def test_global_kill_switch_enforcement(kill_switch_test_mode):
     """Test that global kill switch blocks execution"""
     print("Testing global kill switch enforcement...")
     

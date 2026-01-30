@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path for module imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from reliability.circuit_breaker import (
+from exoarmur.reliability.circuit_breaker import (
     CircuitState,
     CircuitBreakerError,
     CircuitBreakerConfig,

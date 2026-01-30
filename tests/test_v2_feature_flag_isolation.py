@@ -16,17 +16,15 @@ import os
 from typing import Dict, Any
 
 # Add src and spec to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec'))
 
 # V2 imports (should be safe)
-from feature_flags import get_feature_flags
-from feature_flags.feature_flags import FeatureFlagContext
-from federation.federation_manager import FederationManager, FederationConfig
+from exoarmur.feature_flags import get_feature_flags
+from exoarmur.feature_flags.feature_flags import FeatureFlagContext
+from exoarmur.federation.federation_manager import FederationManager, FederationConfig
 # from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
-from control_plane.approval_service import ApprovalService, ApprovalConfig
-from control_plane.control_api import ControlAPI, ControlAPIConfig
-from control_plane.operator_interface import OperatorInterface, OperatorConfig
+from exoarmur.control_plane.approval_service import ApprovalService, ApprovalConfig
+from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
+from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
 
 
 class TestV2FeatureFlagIsolation:

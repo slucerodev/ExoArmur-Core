@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "exoarmur"
-version = "3.0.0"
+name = "exoarmur-core"
+version = "0.2.0"
 description = "ExoArmur ADMO V2 - Autonomous Defense Mesh Organism"
 authors = [
     {name = "ExoArmur Team", email = "team@exoarmur.dev"}
@@ -27,36 +27,26 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.5.0",
-    "python-ulid>=1.2.0",
+    "python-ulid>=2.0.0",
     "click>=8.1.0",
-    "pytest-asyncio>=0.21.0",
     "httpx>=0.25.0",
-    "cryptography>=41.0.0",
     "nats-py>=2.7.0",
     "python-json-logger>=2.0.0",
-    "black>=23.11.0",
-    "isort>=5.12.0",
-    "mypy>=1.7.0",
-    "python-ulid>=2.0.0",
-    "click>=8.0.0",
 ]
 
 [project.scripts]
-exoarmur = "src.cli:main"
+exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.1.0",
-    "black>=23.11.0",
-    "isort>=5.12.0",
-    "mypy>=1.7.0",
+v2 = [
+    "cryptography>=41.0.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["*", "spec*"]
+where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.yaml", "*.json", "*.md"]

@@ -15,12 +15,12 @@ from spec.contracts.models_v1 import (
     TelemetrySummaryPayloadV1,
     ThreatIntelPayloadV1
 )
-from src.federation.visibility_api import VisibilityAPI
-from src.federation.observation_store import ObservationStore
-from src.federation.federate_identity_store import FederateIdentityStore
-from src.federation.belief_aggregation import BeliefAggregationService
-from src.federation.observation_ingest import ObservationIngestService
-from src.federation.clock import FixedClock
+from exoarmur.federation.visibility_api import VisibilityAPI
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.belief_aggregation import BeliefAggregationService
+from exoarmur.federation.observation_ingest import ObservationIngestService
+from exoarmur.federation.clock import FixedClock
 
 
 @pytest.fixture

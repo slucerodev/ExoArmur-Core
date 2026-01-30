@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path for module imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from reliability.backpressure_manager import (
+from exoarmur.reliability.backpressure_manager import (
     BackpressureAction,
     RateLimitExceeded,
     QueueFullError,
@@ -33,9 +32,9 @@ async def test_token_bucket():
     bucket = TokenBucket(rate=10.0, burst=20.0, window_size=1.0)
     
     # Should start with full burst
-    assert bucket.consume(5) == True, "Should consume 5 tokens from full bucket"
-    assert bucket.consume(15) == True, "Should consume remaining 15 tokens"
-    assert bucket.consume(1) == False, "Should fail when bucket is empty"
+    assert await bucket.consume(5) == True, "Should consume 5 tokens from full bucket"
+    assert await bucket.consume(15) == True, "Should consume remaining 15 tokens"
+    assert await bucket.consume(1) == False, "Should fail when bucket is empty"
     
     print("✓ Token bucket works correctly")
 

@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path for module imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from reliability.retry_manager import (
+from exoarmur.reliability.retry_manager import (
     RetryCategory,
     RetryPolicy,
     RetryAttempt,
@@ -102,7 +101,7 @@ async def test_retry_success():
     result = await manager.execute_with_retry(
         category=RetryCategory.NATS_PUBLISH,
         operation="Successful operation",
-        coro=successful_operation(),
+        coro=successful_operation,
         tenant_id="test-tenant",
         correlation_id="test-corr",
         trace_id="test-trace"
@@ -127,7 +126,7 @@ async def test_retry_exhaustion():
         await manager.execute_with_retry(
             category=RetryCategory.NATS_PUBLISH,
             operation="Always failing operation",
-            coro=always_failing_operation(),
+            coro=always_failing_operation,
             tenant_id="test-tenant",
             correlation_id="test-corr",
             trace_id="test-trace"
@@ -193,6 +192,7 @@ async def test_retry_exception_classification():
     
     # Test non-retryable exceptions
     non_retry_policy = RetryPolicy(
+        retryable_exceptions=[],  # Clear default retryable exceptions
         non_retryable_exceptions=[ValueError, TypeError]
     )
     

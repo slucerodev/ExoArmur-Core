@@ -12,7 +12,6 @@ import sys
 import os
 
 # Add src to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from tests.factories import create_identity_subject, make_observation_v1
 from spec.contracts.models_v1 import (
@@ -43,15 +42,15 @@ def create_sessions_scope():
         effectors=["identity_provider"],
         conditions={"min_risk_score": 0.7}
     )
-from federation.observation_store import ObservationStore
-from federation.clock import FixedClock
-from federation.audit import AuditService, AuditEventType
-from safety.safety_gate import SafetyGate, SafetyVerdict
-from control_plane.approval_service import ApprovalService, ApprovalRequest
-from identity_containment.recommender import IdentityContainmentRecommender
-from identity_containment.intent_service import IdentityContainmentIntentService
-from identity_containment.effector import SimulatedIdentityProviderEffector
-from identity_containment.execution import IdentityContainmentExecutor, IdentityContainmentTickService
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.audit import AuditService, AuditEventType
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
+from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
+from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
+from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
+from exoarmur.identity_containment.execution import IdentityContainmentExecutor, IdentityContainmentTickService
 
 
 class TestIdentityContainmentRecommendation:
@@ -357,23 +356,23 @@ class TestIdentityContainmentExecution:
             effector=effector
         )
     
-    def test_execution_blocked_without_approval(self, executor, approval_service):
+    async def test_execution_blocked_without_approval(self, executor, approval_service):
         """Test that execution is blocked without approval"""
         # Configure approval service to return no approval
         approval_service.get_approval_details.return_value = None
         
         # Try to execute
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should be blocked
         assert result is None
     
-    def test_execution_allowed_after_approval_and_matches_binding(
+    async def test_execution_allowed_after_approval_and_matches_binding(
         self, executor, approval_service, intent_service, effector
     ):
         """Test that execution is allowed after approval and matches binding"""
         # Execute containment
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should succeed
         assert result is not None
@@ -382,7 +381,7 @@ class TestIdentityContainmentExecution:
         # Verify effector was called
         effector.apply.assert_called_once()
     
-    def test_execution_blocked_on_binding_mismatch(
+    async def test_execution_blocked_on_binding_mismatch(
         self, executor, intent_service
     ):
         """Test that execution is blocked on binding mismatch"""
@@ -390,7 +389,7 @@ class TestIdentityContainmentExecution:
         intent_service.verify_approval_binding.return_value = False
         
         # Try to execute
-        result = executor.execute_containment_apply("apr_12345678")
+        result = await executor.execute_containment_apply("apr_12345678")
         
         # Should be blocked
         assert result is None
@@ -419,13 +418,13 @@ class TestIdentityContainmentReplay:
     @pytest.fixture
     def replay_engine(self, mock_audit_store):
         """Replay engine for testing"""
-        from src.replay.replay_engine import ReplayEngine
+        from exoarmur.replay.replay_engine import ReplayEngine
         return ReplayEngine(audit_store=mock_audit_store)
     
     def test_replay_reproduces_apply_and_revert_outcome(self, fixed_clock, audit_service, mock_audit_store, replay_engine):
         """Test that replay reproduces ICW apply and revert outcomes exactly"""
-        from src.replay.replay_engine import ReplayReport
-        from src.federation.audit import AuditEventType
+        from exoarmur.replay.replay_engine import ReplayReport
+        from exoarmur.federation.audit import AuditEventType
         from spec.contracts.models_v1 import AuditRecordV1
         
         # Create ICW components

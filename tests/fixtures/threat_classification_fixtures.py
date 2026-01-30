@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime, timezone
 from typing import Dict, Any
 
-from src.decision.threat_classification_v2 import ThreatEventV2
+from exoarmur.decision.threat_classification_v2 import ThreatEventV2
 
 
 @pytest.fixture

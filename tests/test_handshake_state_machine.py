@@ -13,12 +13,12 @@ from spec.contracts.models_v1 import (
     FederationRole,
     CellStatus
 )
-from src.federation.handshake_state_machine import (
+from exoarmur.federation.handshake_state_machine import (
     HandshakeStateMachine,
     HandshakeConfig,
     HandshakeTransitionReason
 )
-from src.federation.clock import FixedClock, SystemClock
+from exoarmur.federation.clock import FixedClock, SystemClock
 from tests.federation_fixtures import (
     fixed_clock,
     test_key_pair,

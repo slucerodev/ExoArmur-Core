@@ -10,9 +10,8 @@ import os
 from datetime import datetime, timezone
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from reliability import (
+from exoarmur.reliability import (
     TimeoutCategory,
     TimeoutConfig,
     TimeoutError,
@@ -145,7 +144,7 @@ async def test_timeout_decorator():
     """Test timeout decorator functionality"""
     print("Testing timeout decorator...")
     
-    manager = TimeoutManager()
+    manager = get_timeout_manager()
     mock_emitter = MockAuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
@@ -195,7 +194,7 @@ async def test_convenience_functions():
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test NATS timeout convenience
-    from reliability import execute_with_nats_timeout
+    from exoarmur.reliability import execute_with_nats_timeout
     
     async def nats_operation():
         await asyncio.sleep(0.1)
@@ -205,7 +204,7 @@ async def test_convenience_functions():
     assert result == "nats_success", "NATS convenience function should work"
     
     # Test KV timeout convenience
-    from reliability import execute_with_kv_timeout
+    from exoarmur.reliability import execute_with_kv_timeout
     
     async def kv_operation():
         await asyncio.sleep(0.1)
@@ -215,7 +214,7 @@ async def test_convenience_functions():
     assert result == "kv_success", "KV convenience function should work"
     
     # Test execution timeout convenience
-    from reliability import execute_with_execution_timeout
+    from exoarmur.reliability import execute_with_execution_timeout
     
     async def execution_operation():
         await asyncio.sleep(0.1)

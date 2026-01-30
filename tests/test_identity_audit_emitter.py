@@ -15,11 +15,10 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from federation.identity_audit_emitter import IdentityAuditEmitter
-from federation.identity_handshake_state_machine import HandshakeEvent
-from audit import NoOpAuditInterface
+from exoarmur.federation.identity_audit_emitter import IdentityAuditEmitter
+from exoarmur.federation.identity_handshake_state_machine import HandshakeEvent
+from exoarmur.audit import NoOpAuditInterface
 
 
 class TestIdentityAuditEmitter:

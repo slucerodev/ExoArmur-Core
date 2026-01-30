@@ -484,14 +484,6 @@ class TrustEstablishPayloadV1(BaseModel):
 
 
 # Additional V2 Federation Models for Store
-class FederateNonceV1(BaseModel):
-    """Nonce tracking for replay protection"""
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    
-    nonce: str = Field(description="Cryptographic nonce")
-    federate_id: str = Field(description="Federate identifier")
-    created_at: datetime = Field(description="Creation timestamp")
-    expires_at: datetime = Field(description="Expiration timestamp")
 
 
 class HandshakeSessionV1(BaseModel):

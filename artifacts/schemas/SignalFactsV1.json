@@ -2,15 +2,22 @@
   "additionalProperties": false,
   "description": "Pydantic v2 schema for SignalFactsV1 contract model",
   "properties": {
-    "schema_version": {
-      "description": "Schema version",
-      "example": "1.0.0",
-      "title": "Schema Version",
+    "cell_id": {
+      "description": "Cell identifier",
+      "title": "Cell Id",
       "type": "string"
     },
-    "facts_id": {
-      "description": "ULID facts identifier",
-      "title": "Facts Id",
+    "claim_hints": {
+      "description": "Candidate claim types suggested by features",
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Hints",
+      "type": "array"
+    },
+    "correlation_id": {
+      "description": "Correlation identifier",
+      "title": "Correlation Id",
       "type": "string"
     },
     "derived_from_event_ids": {
@@ -22,14 +29,21 @@
       "title": "Derived From Event Ids",
       "type": "array"
     },
-    "tenant_id": {
-      "description": "Tenant identifier",
-      "title": "Tenant Id",
+    "facts_id": {
+      "description": "ULID facts identifier",
+      "title": "Facts Id",
       "type": "string"
     },
-    "cell_id": {
-      "description": "Cell identifier",
-      "title": "Cell Id",
+    "features": {
+      "additionalProperties": true,
+      "description": "Canonical feature map (stable keys). Avoid vendor-specific keys here.",
+      "title": "Features",
+      "type": "object"
+    },
+    "schema_version": {
+      "description": "Schema version",
+      "example": "1.0.0",
+      "title": "Schema Version",
       "type": "string"
     },
     "subject": {
@@ -44,23 +58,9 @@
       "title": "Subject",
       "type": "object"
     },
-    "claim_hints": {
-      "description": "Candidate claim types suggested by features",
-      "items": {
-        "type": "string"
-      },
-      "title": "Claim Hints",
-      "type": "array"
-    },
-    "features": {
-      "additionalProperties": true,
-      "description": "Canonical feature map (stable keys). Avoid vendor-specific keys here.",
-      "title": "Features",
-      "type": "object"
-    },
-    "correlation_id": {
-      "description": "Correlation identifier",
-      "title": "Correlation Id",
+    "tenant_id": {
+      "description": "Tenant identifier",
+      "title": "Tenant Id",
       "type": "string"
     },
     "trace_id": {

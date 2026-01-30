@@ -8,14 +8,14 @@ from datetime import datetime, timezone, timedelta
 
 pytestmark = pytest.mark.sensitive
 
-from src.federation.protocol_enforcer import ProtocolEnforcer
-from src.federation.crypto import (
+from exoarmur.federation.protocol_enforcer import ProtocolEnforcer
+from exoarmur.federation.crypto import (
     FederateKeyPair,
     sign_message,
     VerificationFailureReason
 )
-from src.federation.messages import create_identity_exchange_message
-from src.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.messages import create_identity_exchange_message
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
 from spec.contracts.models_v1 import (
     FederateIdentityV1,
     FederationRole,

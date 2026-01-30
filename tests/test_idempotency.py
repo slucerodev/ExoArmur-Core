@@ -5,13 +5,12 @@ Unit tests for idempotency enforcement
 import pytest
 from datetime import datetime
 
-from src.execution.execution_kernel import ExecutionKernel
+from exoarmur.execution.execution_kernel import ExecutionKernel
 
 # Import contract models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
-from models_v1 import LocalDecisionV1, ExecutionIntentV1
+from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 
 
 class TestIdempotency:
@@ -153,7 +152,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=benign_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A0_observe"
@@ -177,7 +176,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=suspicious_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A1_soft_containment"
@@ -201,7 +200,7 @@ class TestIdempotency:
         intent = self.execution_kernel.create_execution_intent(
             local_decision=malicious_decision,
             safety_verdict=self.safety_verdict,
-            idempotency_key="test-key"
+            idempotency_identifier="test-key"
         )
         
         assert intent.action_class == "A2_hard_containment"

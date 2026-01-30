@@ -7,12 +7,12 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from src.federation.clock import Clock, FixedClock
-from src.federation.federate_identity_store import FederateIdentityStore
-from src.federation.protocol_enforcer import ProtocolEnforcer
-from src.federation.handshake_context import HandshakeContext
-from src.federation.crypto import FederateKeyPair
-from src.feature_flags.feature_flags import FeatureFlags
+from exoarmur.federation.clock import Clock, FixedClock
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.protocol_enforcer import ProtocolEnforcer
+from exoarmur.federation.handshake_context import HandshakeContext
+from exoarmur.federation.crypto import FederateKeyPair
+from exoarmur.feature_flags.feature_flags import FeatureFlags
 from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
@@ -61,7 +61,7 @@ def fresh_protocol_enforcer(fresh_identity_store, fixed_clock) -> ProtocolEnforc
 @pytest.fixture
 def handshake_context(mock_feature_flags_enabled, fixed_clock) -> HandshakeContext:
     """Fresh handshake context for each test"""
-    from src.federation.protocol_enforcer import ProtocolEnforcer
+    from exoarmur.federation.protocol_enforcer import ProtocolEnforcer
     identity_store = FederateIdentityStore(feature_flags=mock_feature_flags_enabled)
     protocol_enforcer = ProtocolEnforcer(identity_store, fixed_clock)
     return HandshakeContext(

@@ -8,14 +8,11 @@ import os
 from datetime import datetime
 
 # Add paths for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
-from src.clock import utc_now
+from exoarmur.clock import utc_now
 
-from src.analysis.facts_deriver import FactsDeriver
-from models_v1 import TelemetryEventV1, SignalFactsV1
+from exoarmur.analysis.facts_deriver import FactsDeriver
+from spec.contracts.models_v1 import TelemetryEventV1, SignalFactsV1
 
 
 class TestFactsDerivation:

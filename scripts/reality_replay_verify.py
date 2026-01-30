@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from typing import Dict, List, Any
 
 # Add src to path
-sys.path.append(str(Path(__file__).parent.parent / "src"))
 sys.path.append(str(Path(__file__).parent.parent))
 
 from nats_client import ExoArmurNATSClient, NATSConfig

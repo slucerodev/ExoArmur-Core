@@ -11,10 +11,9 @@ import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from federation.federation_manager import FederationManager, FederationConfig
-from federation.federation_identity_manager import FederationIdentityManager
+from exoarmur.federation.federation_manager import FederationManager, FederationConfig
+from exoarmur.federation.federation_identity_manager import FederationIdentityManager
 
 
 class TestFederationIdentityIntegration:
@@ -70,8 +69,7 @@ class TestFederationIdentityIntegration:
         # Mock Phase Gate to allow Phase 2
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-        from core.phase_gate import SystemPhase
+        from exoarmur.core.phase_gate import SystemPhase
         
         # Mock NATS completely to avoid all connection issues
         mock_nats = Mock()
@@ -101,8 +99,8 @@ class TestFederationIdentityIntegration:
             pass
         mock_js.add_stream = mock_add_stream
         
-        with patch('core.phase_gate.PhaseGate.current_phase', return_value=SystemPhase.PHASE_2):
-            with patch('federation.federation_manager.nats', mock_nats):
+        with patch('exoarmur.core.phase_gate.PhaseGate.current_phase', return_value=SystemPhase.PHASE_2):
+            with patch('exoarmur.federation.federation_manager.nats', mock_nats):
                 # Mock feature flags to return enabled
                 mock_flags = {
                     'v2_federation_enabled': {
@@ -111,7 +109,7 @@ class TestFederationIdentityIntegration:
                     }
                 }
                 
-                with patch('feature_flags.get_feature_flags', return_value=mock_flags):
+                with patch('exoarmur.feature_flags.get_feature_flags', return_value=mock_flags):
                     config = FederationConfig(
                         enabled=True,
                         cell_id="test-cell-1",

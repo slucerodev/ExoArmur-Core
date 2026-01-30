@@ -7,17 +7,16 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any
 
-from src.replay.canonical_utils import canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError
-from src.replay.event_envelope import AuditEventEnvelope, EventTypePriority, EnvelopeValidationError
-from src.replay.replay_engine import ReplayEngine, ReplayReport, ReplayResult, ReplayEngineError
-from src.control_plane.intent_store import IntentStore
-from src.control_plane.approval_service import ApprovalService
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError
+from exoarmur.replay.event_envelope import AuditEventEnvelope, EventTypePriority, EnvelopeValidationError
+from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport, ReplayResult, ReplayEngineError
+from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.control_plane.approval_service import ApprovalService
 
 # Import contract models
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
-from models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
+from spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
 
 
 class TestCanonicalUtils:

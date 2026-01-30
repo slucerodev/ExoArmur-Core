@@ -2,11 +2,36 @@
   "additionalProperties": false,
   "description": "Pydantic v2 schema for TelemetryEventV1 contract model",
   "properties": {
-    "schema_version": {
-      "description": "Schema version",
-      "example": "1.0.0",
-      "title": "Schema Version",
+    "attributes": {
+      "additionalProperties": true,
+      "description": "Unstructured vendor fields. Must be JSON-serializable and bounded by max_event_bytes.",
+      "title": "Attributes",
+      "type": "object"
+    },
+    "cell_id": {
+      "description": "Cell identifier",
+      "example": "cell-okc-01",
+      "title": "Cell Id",
       "type": "string"
+    },
+    "correlation_id": {
+      "description": "Correlation identifier",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "entity_refs": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional normalized references if available at source",
+      "title": "Entity Refs"
     },
     "event_id": {
       "description": "ULID event identifier",
@@ -14,16 +39,10 @@
       "title": "Event Id",
       "type": "string"
     },
-    "tenant_id": {
-      "description": "Tenant identifier",
-      "example": "tenant_acme",
-      "title": "Tenant Id",
-      "type": "string"
-    },
-    "cell_id": {
-      "description": "Cell identifier",
-      "example": "cell-okc-01",
-      "title": "Cell Id",
+    "event_type": {
+      "description": "Event type",
+      "example": "process_start",
+      "title": "Event Type",
       "type": "string"
     },
     "observed_at": {
@@ -36,6 +55,23 @@
       "description": "When the event was received",
       "format": "date-time",
       "title": "Received At",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "Schema version",
+      "example": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "severity": {
+      "description": "Severity level",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity",
       "type": "string"
     },
     "source": {
@@ -52,46 +88,10 @@
       "title": "Source",
       "type": "object"
     },
-    "event_type": {
-      "description": "Event type",
-      "example": "process_start",
-      "title": "Event Type",
-      "type": "string"
-    },
-    "severity": {
-      "description": "Severity level",
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ],
-      "title": "Severity",
-      "type": "string"
-    },
-    "attributes": {
-      "additionalProperties": true,
-      "description": "Unstructured vendor fields. Must be JSON-serializable and bounded by max_event_bytes.",
-      "title": "Attributes",
-      "type": "object"
-    },
-    "entity_refs": {
-      "anyOf": [
-        {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Optional normalized references if available at source",
-      "title": "Entity Refs"
-    },
-    "correlation_id": {
-      "description": "Correlation identifier",
-      "title": "Correlation Id",
+    "tenant_id": {
+      "description": "Tenant identifier",
+      "example": "tenant_acme",
+      "title": "Tenant Id",
       "type": "string"
     },
     "trace_id": {

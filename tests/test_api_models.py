@@ -11,18 +11,15 @@ from datetime import datetime
 from pydantic import ValidationError
 
 # Add paths for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
-from src.clock import utc_now
+from exoarmur.clock import utc_now
 
-from src.api_models import (
+from exoarmur.api_models import (
     TelemetryIngestResponseV1,
     AuditResponseV1,
     ErrorResponseV1
 )
-from models_v1 import AuditRecordV1
+from spec.contracts.models_v1 import AuditRecordV1
 
 
 class TestTelemetryIngestResponseV1:
@@ -113,14 +110,14 @@ class TestAuditResponseV1:
         
         response = AuditResponseV1(
             correlation_id="corr-123",
-            audit_records=[audit_record],
+            audit_records=[audit_record.model_dump()],
             total_count=1,
             retrieved_at=utc_now()
         )
         
         assert len(response.audit_records) == 1
         assert response.total_count == 1
-        assert response.audit_records[0].audit_id == "01J4NR5X9Z8GABCDEF12345678"
+        assert response.audit_records[0]["audit_id"] == "01J4NR5X9Z8GABCDEF12345678"
     
     def test_reject_extra_fields(self):
         """Test that extra fields are rejected"""
