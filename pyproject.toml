@@ -42,9 +42,11 @@ v2 = [
     "cryptography>=41.0.0",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["*", "spec*"]
+where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.yaml", "*.json", "*.md"]
