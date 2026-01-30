@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 from spec.contracts.models_v1 import AuditRecordV1
-from nats_client import ExoArmurNATSClient
+from src.nats_client import ExoArmurNATSClient
 
 logger = logging.getLogger(__name__)
 

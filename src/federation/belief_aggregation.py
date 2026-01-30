@@ -17,7 +17,7 @@ from spec.contracts.models_v1 import (
     BeliefTelemetryV1,
     ObservationType
 )
-from federation.conflict_detection import ConflictDetectionService
+from src.federation.conflict_detection import ConflictDetectionService
 from .observation_store import ObservationStore
 from .clock import Clock
 

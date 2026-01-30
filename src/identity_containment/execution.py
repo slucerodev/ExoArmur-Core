@@ -16,12 +16,12 @@ from spec.contracts.models_v1 import (
     IdentityContainmentAppliedRecordV1,
     IdentityContainmentRevertedRecordV1
 )
-from federation.clock import Clock
-from federation.audit import AuditService, AuditEventType
-from control_plane.approval_service import ApprovalService
-from identity_containment.effector import IdentityContainmentEffector
-from identity_containment.intent_service import IdentityContainmentIntentService
-from safety import enforce_execution_gate, ExecutionActionType, GateDecision
+from src.federation.clock import Clock
+from src.federation.audit import AuditService, AuditEventType
+from src.control_plane.approval_service import ApprovalService
+from src.identity_containment.effector import IdentityContainmentEffector
+from src.identity_containment.intent_service import IdentityContainmentIntentService
+from src.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ import hashlib
 import json
 import uuid
 
-from src.federation.clock import Clock, FixedClock
+from federation.clock import Clock, FixedClock
 import sys
 import os
 

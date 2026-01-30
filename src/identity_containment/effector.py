@@ -19,8 +19,8 @@ from spec.contracts.models_v1 import (
     IdentityContainmentScopeV1,
     IdentitySubjectV1
 )
-from federation.clock import Clock
-from federation.audit import AuditService, AuditEventType
+from src.federation.clock import Clock
+from src.federation.audit import AuditService, AuditEventType
 
 logger = logging.getLogger(__name__)
 

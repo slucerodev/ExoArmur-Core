@@ -21,9 +21,9 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
+        python -m pip install -U "pip==24.0"
         python -m pip install -c constraints.txt -e .
-        python -m pip install bandit pip-audit
+        python -m pip install pip-audit
         
     - name: Install gitleaks
       run: |

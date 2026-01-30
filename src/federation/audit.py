@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from federation.audit_interface import AuditInterface, NoOpAuditInterface
+from src.federation.audit_interface import AuditInterface, NoOpAuditInterface
 
 logger = logging.getLogger(__name__)
 

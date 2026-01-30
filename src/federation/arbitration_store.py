@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from spec.contracts.models_v1 import ArbitrationV1, ArbitrationStatus
-from federation.clock import Clock
+from src.federation.clock import Clock
 
 logger = logging.getLogger(__name__)
 

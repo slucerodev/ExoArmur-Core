@@ -14,7 +14,7 @@ from models_v1 import LocalDecisionV1, ExecutionIntentV1
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from clock import utc_now
 from feature_flags import get_feature_flags
-from safety import enforce_execution_gate, ExecutionActionType, GateDecision
+from src.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)
 
