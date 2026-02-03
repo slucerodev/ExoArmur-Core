@@ -53,6 +53,9 @@ jobs:
         
     - name: Run secret scan (gitleaks)
       run: |
+        set +e
         gitleaks detect --no-git --redact --config .gitleaks.toml --report-format json --report-path gitleaks-report.json
+        status=$?
         cat gitleaks-report.json
+        exit $status
       continue-on-error: false
