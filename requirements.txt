@@ -1,7 +1,7 @@
 # ExoArmur ADMO Workflow 1 Dependencies
 
 # Core web framework
-fastapi==0.104.1
+fastapi==0.109.1
 uvicorn[standard]==0.24.0
 
 # Pydantic for data validation
@@ -19,9 +19,12 @@ pytest-json-report==1.5.0
 httpx==0.25.2
 
 # Development tools
-black==23.11.0
+black==24.3.0
 isort==5.12.0
 mypy==1.7.1
+
+# Explicit pin to remediate security scan findings
+starlette==0.47.2
 
 # Logging and utilities
 python-json-logger==2.0.7
