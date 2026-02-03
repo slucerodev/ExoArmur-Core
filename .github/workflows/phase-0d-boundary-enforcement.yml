@@ -115,13 +115,14 @@ jobs:
     - name: Check test collection count
       run: |
         echo "Checking test collection stability..."
-        COLLECTED=$(python -m pytest --collect-only -vv)
-        echo "Collected: $COLLECTED"
+        python -m pytest --collect-only -vv
+        SUMMARY=$(python -m pytest --collect-only -q 2>/dev/null | tail -1 || true)
+        echo "Summary: $SUMMARY"
         
-        if [[ "$COLLECTED" != *"590 tests collected"* ]]; then
+        if [[ "$SUMMARY" != *"590 tests collected"* ]]; then
           echo "❌ Test collection count changed from expected 590"
           echo "   Expected: 590 tests collected"
-          echo "   Actual: $COLLECTED"
+          echo "   Actual: $SUMMARY"
           exit 1
         fi
         
