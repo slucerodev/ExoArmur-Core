@@ -32,7 +32,7 @@ jobs:
         sudo mv gitleaks /usr/local/bin/
         
     - name: Run dependency audit
-      run: pip-audit --ignore-vuln CVE-2025-8869
+      run: pip-audit -r requirements.txt --ignore-vuln CVE-2025-8869
       continue-on-error: false
       
     - name: Run SAST (bandit)
