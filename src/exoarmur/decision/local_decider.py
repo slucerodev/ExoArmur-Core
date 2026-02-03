@@ -3,18 +3,27 @@ Local decision generation from signal facts
 """
 
 import logging
+import hashlib
 from datetime import datetime
 from typing import Dict, Any, List
 
 import sys
 import os
+import ulid
 from spec.contracts.models_v1 import SignalFactsV1, LocalDecisionV1
+from exoarmur.replay.canonical_utils import canonical_json
 
 logger = logging.getLogger(__name__)
 
 
 class LocalDecider:
     """Generates local decisions from signal facts"""
+
+    @staticmethod
+    def _deterministic_decision_id(facts: SignalFactsV1) -> str:
+        payload = facts.model_dump(mode="json")
+        digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).digest()
+        return str(ulid.ULID.from_bytes(digest[:16]))
     
     def decide(self, facts: SignalFactsV1) -> LocalDecisionV1:
         """Generate local decision from signal facts"""
@@ -32,7 +41,7 @@ class LocalDecider:
         
         decision = LocalDecisionV1(
             schema_version="1.0.0",
-            decision_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            decision_id=self._deterministic_decision_id(facts),
             tenant_id=facts.tenant_id,
             cell_id=facts.cell_id,
             subject=facts.subject,

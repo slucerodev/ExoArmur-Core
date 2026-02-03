@@ -4,13 +4,17 @@ Phase 5: Added execution gate enforcement for all side effects.
 """
 
 import logging
+import hashlib
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 import sys
 import os
+import ulid
 from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 from exoarmur.clock import utc_now
+from exoarmur.audit.audit_logger import compute_idempotency_key
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 from exoarmur.feature_flags import get_feature_flags
 from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
@@ -20,10 +24,17 @@ logger = logging.getLogger(__name__)
 class ExecutionKernel:
     """Execution kernel for ADMO intents"""
     
-    def __init__(self, nats_client: Optional[Any] = None, approval_service: Optional[Any] = None, intent_store: Optional[Any] = None):
+    def __init__(
+        self,
+        nats_client: Optional[Any] = None,
+        approval_service: Optional[Any] = None,
+        intent_store: Optional[Any] = None,
+        audit_logger: Optional[Any] = None,
+    ):
         self.nats_client = nats_client
         self.approval_service = approval_service
         self.intent_store = intent_store
+        self.audit_logger = audit_logger
         self.executed_intents: Dict[str, ExecutionIntentV1] = {}  # Simple idempotency cache
         
         logger.info("ExecutionKernel initialized")
@@ -45,9 +56,35 @@ class ExecutionKernel:
             elif local_decision.classification == "suspicious":
                 action_class = "A1_soft_containment"
         
+        policy_seed = {
+            "decision_id": local_decision.decision_id,
+            "classification": local_decision.classification,
+            "severity": local_decision.severity,
+            "confidence": local_decision.confidence,
+            "subject": local_decision.subject,
+            "correlation_id": local_decision.correlation_id,
+            "trace_id": local_decision.trace_id,
+            "action_class": action_class,
+            "intent_type": "isolate_host",
+        }
+        bundle_hash = stable_hash(canonical_json(policy_seed))
+
+        rule_ids = [
+            f"rule:classification:{local_decision.classification}",
+            f"rule:severity:{local_decision.severity}",
+            f"rule:action_class:{action_class}",
+        ]
+
+        intent_seed = {
+            **policy_seed,
+            "idempotency_key": idempotency_identifier,
+        }
+        intent_digest = hashlib.sha256(canonical_json(intent_seed).encode("utf-8")).digest()
+        intent_id = str(ulid.ULID.from_bytes(intent_digest[:16]))
+
         intent = ExecutionIntentV1(
             schema_version="1.0.0",
-            intent_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            intent_id=intent_id,
             tenant_id=local_decision.tenant_id,
             cell_id=local_decision.cell_id,
             idempotency_key=idempotency_identifier,
@@ -57,8 +94,8 @@ class ExecutionKernel:
             requested_at=utc_now(),
             parameters={"isolation_type": "network"},  # TODO: derive from decision
             policy_context={
-                "bundle_hash_sha256": "abc123...",  # TODO: get actual bundle
-                "rule_ids": ["rule-1"]
+                "bundle_hash_sha256": bundle_hash,
+                "rule_ids": rule_ids,
             },
             safety_context={
                 "safety_verdict": safety_verdict.verdict,
@@ -125,6 +162,32 @@ class ExecutionKernel:
         
         # Record as executed
         self.executed_intents[intent.idempotency_key] = intent
+
+        if self.audit_logger:
+            payload_ref = {
+                "kind": "execution_intent",
+                "intent_id": intent.intent_id,
+                "ref": {
+                    "intent_type": intent.intent_type,
+                    "action_class": intent.action_class,
+                    "subject": intent.subject,
+                },
+            }
+            audit_idempotency_key = compute_idempotency_key(
+                tenant_id=intent.tenant_id,
+                correlation_id=intent.correlation_id,
+                event_kind="execution_intent_executed",
+                payload_ref=payload_ref,
+            )
+            await self.audit_logger.emit_audit_record_async(
+                event_kind="execution_intent_executed",
+                payload_ref=payload_ref,
+                correlation_id=intent.correlation_id,
+                trace_id=intent.trace_id,
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+                idempotency_key=audit_idempotency_key,
+            )
         
         return True
     

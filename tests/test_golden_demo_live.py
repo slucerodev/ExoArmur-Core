@@ -14,6 +14,12 @@ import os
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
+LIVE = os.getenv("EXOARMUR_LIVE_DEMO") == "1"
+pytestmark = [
+    pytest.mark.live,
+    pytest.mark.skipif(not LIVE, reason="Live Golden Demo disabled; set EXOARMUR_LIVE_DEMO=1 to enable")
+]
+
 # Add paths for imports
 
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
@@ -146,215 +152,220 @@ async def test_golden_demo_flow_live_jetstream(cell_clients, sample_telemetry_a,
     Each step must pass with explicit assertions.
     """
     import ulid
-    
-    cell_a = cell_clients["cell-a"]
-    cell_b = cell_clients["cell-b"]
-    cell_c = cell_clients["cell-c"]
-    
-    print("\n🎯 STEP 1: Cell-a processes telemetry during partition")
-    
-    # Simulate partition: disconnect cell-a
-    await cell_a.disconnect()
-    
-    # Cell-a processes telemetry locally (buffers belief)
-    belief_a = await _process_telemetry_to_belief(sample_telemetry_a)
-    
-    # Verify belief is buffered locally (not published to mesh)
-    # Since cell-a is disconnected, belief should be buffered
-    assert belief_a is not None, "Cell-a should create belief locally"
-    print("✅ STEP 1 PASSED: Cell-a buffered belief during partition")
-    
-    print("\n🎯 STEP 2: Cell-b processes telemetry online")
-    
-    # Cell-b processes telemetry and publishes to mesh
-    belief_b = await _process_telemetry_to_belief(sample_telemetry_b)
-    
-    # Publish belief to mesh
-    await cell_b.publish_belief(belief_b)
-    
-    # Publish audit record for belief publication
-    audit_belief = AuditRecordV1(
-        schema_version="1.0.0",
-        audit_id=str(ulid.ULID()),
-        tenant_id=sample_telemetry_b.tenant_id,
-        cell_id="cell-b",
-        idempotency_key=f"belief_publish_{sample_telemetry_b.correlation_id}",
-        recorded_at=datetime.now(timezone.utc),
-        event_kind="belief_published",
-        payload_ref={
-            "kind": "inline",
-            "ref": belief_b.belief_id
-        },
-        hashes={
-            "sha256": "demo-hash-belief",
-            "upstream_hashes": []
-        },
-        correlation_id=sample_telemetry_b.correlation_id,
-        trace_id="trace-golden-belief-b"
-    )
-    await cell_b.publish_audit_record(audit_belief)
-    
-    # Verify belief was published to mesh
-    mesh_beliefs = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
-    assert len(mesh_beliefs) > 0, "Cell-b belief should be published to mesh"
-    print("✅ STEP 2 PASSED: Cell-b published belief to mesh")
-    
-    print("\n🎯 STEP 3: Partition heals - buffered beliefs reconcile")
-    
-    # Reconnect cell-a to mesh
-    await cell_a.connect()
-    await cell_a.ensure_streams()
-    
-    # Publish cell-a's buffered belief
-    await cell_a.publish_belief(belief_a)
-    
-    # Wait for reconciliation
-    await asyncio.sleep(2)
-    
-    # Verify both beliefs are now on mesh
-    mesh_beliefs_a = await _get_mesh_beliefs(cell_b, sample_telemetry_a.correlation_id)
-    mesh_beliefs_b = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
-    assert len(mesh_beliefs_a) > 0, "Cell-a buffered belief should be published after reconnect"
-    assert len(mesh_beliefs_b) > 0, "Cell-b belief should still be on mesh"
-    
-    # Verify collective confidence computation
-    collective_state = await _compute_collective_confidence(cell_b, sample_telemetry_a.correlation_id)
-    assert collective_state["quorum_count"] >= 2, "Should have quorum from at least 2 cells"
-    assert collective_state["aggregate_score"] >= 0.85, "Should meet A2 threshold"
-    print("✅ STEP 3 PASSED: Beliefs reconciled with quorum")
-    
-    print("\n🎯 STEP 4: Collective confidence triggers A2 containment")
-    
-    # Create and publish A2 execution intent
-    a2_intent = ExecutionIntentV1(
-        schema_version="1.0.0",
-        intent_id="01J4NR5X9Z8GABCDEF12345680",
-        tenant_id="tenant_demo",
-        cell_id="cell-b",
-        idempotency_key=f"a2_containment_{sample_telemetry_a.correlation_id}",
-        subject={"subject_type": "host", "subject_id": "host-123"},
-        intent_type="isolate_host",
-        action_class="A2_hard_containment",
-        requested_at=datetime.now(timezone.utc),
-        ttl_seconds=None,
-        parameters=None,
-        policy_context={
-            "bundle_hash_sha256": "demo-bundle-hash",
-            "rule_ids": ["rule-a2-001", "rule-a2-002"]
-        },
-        safety_context={
-            "safety_verdict": "allow",
-            "rationale": "Collective confidence threshold met",
-            "quorum_status": "satisfied",
-            "human_approval_id": None
-        },
-        correlation_id=sample_telemetry_a.correlation_id,
-        trace_id="trace-golden-a2-001"
-    )
-    
-    # Execute A2 intent
-    await cell_b.publish_execution_intent(a2_intent)
-    a2_result = await _execute_intent(cell_b, a2_intent)
-    
-    # Publish audit record for A2 execution
-    audit_a2 = AuditRecordV1(
-        schema_version="1.0.0",
-        audit_id=str(ulid.ULID()),
-        tenant_id=sample_telemetry_a.tenant_id,
-        cell_id="cell-b",
-        idempotency_key=f"a2_execution_{sample_telemetry_a.correlation_id}",
-        recorded_at=datetime.now(timezone.utc),
-        event_kind="intent_executed",
-        payload_ref={
-            "kind": "inline",
-            "ref": a2_intent.intent_id
-        },
-        hashes={
-            "sha256": "demo-hash-a2",
-            "upstream_hashes": []
-        },
-        correlation_id=sample_telemetry_a.correlation_id,
-        trace_id="trace-golden-a2-exec"
-    )
-    await cell_b.publish_audit_record(audit_a2)
-    
-    assert a2_result["executed"] == True, "A2 should execute without approval"
-    assert a2_result["action_class"] == "A2_hard_containment", "Should be A2 hard containment"
-    print("✅ STEP 4 PASSED: A2 containment executed")
-    
-    print("\n🎯 STEP 5: A3 requires human approval")
-    
-    # Create A3 intent (irreversible action)
-    a3_intent = ExecutionIntentV1(
-        schema_version="1.0.0",
-        intent_id="01J4NR5X9Z8GABCDEF12345681",
-        tenant_id="tenant_demo",
-        cell_id="cell-b",
-        idempotency_key=f"a3_terminate_{sample_telemetry_a.correlation_id}",
-        subject={"subject_type": "process", "subject_id": "suspicious.exe"},
-        intent_type="terminate_process",
-        action_class="A3_irreversible",
-        requested_at=datetime.now(timezone.utc),
-        ttl_seconds=None,
-        parameters=None,
-        policy_context={
-            "bundle_hash_sha256": "demo-bundle-hash",
-            "rule_ids": ["rule-a3-001", "rule-a3-002"]
-        },
-        safety_context={
-            "safety_verdict": "require_approval",
-            "rationale": "Irreversible action requires human approval",
-            "quorum_status": "pending_approval",
-            "human_approval_id": None
-        },
-        correlation_id=sample_telemetry_a.correlation_id,
-        trace_id="trace-golden-a3-001"
-    )
-    
-    # Try to execute A3 without approval
-    a3_result = await _execute_intent(cell_b, a3_intent)
-    
-    # Publish audit record for A3 attempt (blocked)
-    audit_a3 = AuditRecordV1(
-        schema_version="1.0.0",
-        audit_id=str(ulid.ULID()),
-        tenant_id=sample_telemetry_a.tenant_id,
-        cell_id="cell-b",
-        idempotency_key=f"a3_attempt_{sample_telemetry_a.correlation_id}",
-        recorded_at=datetime.now(timezone.utc),
-        event_kind="intent_blocked",
-        payload_ref={
-            "kind": "inline",
-            "ref": a3_intent.intent_id
-        },
-        hashes={
-            "sha256": "demo-hash-a3",
-            "upstream_hashes": []
-        },
-        correlation_id=sample_telemetry_a.correlation_id,
-        trace_id="trace-golden-a3-blocked"
-    )
-    await cell_b.publish_audit_record(audit_a3)
-    
-    assert a3_result["executed"] == False, "A3 should not execute without approval"
-    assert a3_result["approval_required"] == True, "A3 should require approval"
-    assert a3_result["approval_status"] == "pending", "A3 should be pending approval"
-    print("✅ STEP 5 PASSED: A3 requires human approval")
-    
-    print("\n🎯 STEP 6: Audit replay does not re-trigger side effects")
-    
-    # Get audit chain for the correlation
-    audit_chain = await _get_audit_chain(cell_c, sample_telemetry_a.correlation_id)
-    assert len(audit_chain) > 0, "Should have audit records"
-    
-    # Replay audit chain
-    replay_result = await _replay_audit_chain(cell_c, audit_chain)
-    
-    assert replay_result["side_effects_triggered"] == 0, "Audit replay should not trigger side effects"
-    assert replay_result["idempotency_enforced"] == True, "Idempotency should be enforced during replay"
-    print("✅ STEP 6 PASSED: Audit replay is idempotent")
-    
-    print("\n🎉 GOLDEN DEMO FLOW COMPLETED SUCCESSFULLY - ALL STEPS PASSED")
+
+    timeout_seconds = int(os.getenv("EXOARMUR_LIVE_DEMO_TIMEOUT", "300"))
+
+    async def _run_flow():
+        cell_a = cell_clients["cell-a"]
+        cell_b = cell_clients["cell-b"]
+        cell_c = cell_clients["cell-c"]
+        
+        print("\n🎯 STEP 1: Cell-a processes telemetry during partition")
+        
+        # Simulate partition: disconnect cell-a
+        await cell_a.disconnect()
+        
+        # Cell-a processes telemetry locally (buffers belief)
+        belief_a = await _process_telemetry_to_belief(sample_telemetry_a)
+        
+        # Verify belief is buffered locally (not published to mesh)
+        # Since cell-a is disconnected, belief should be buffered
+        assert belief_a is not None, "Cell-a should create belief locally"
+        print("✅ STEP 1 PASSED: Cell-a buffered belief during partition")
+        
+        print("\n🎯 STEP 2: Cell-b processes telemetry online")
+        
+        # Cell-b processes telemetry and publishes to mesh
+        belief_b = await _process_telemetry_to_belief(sample_telemetry_b)
+        
+        # Publish belief to mesh
+        await cell_b.publish_belief(belief_b)
+        
+        # Publish audit record for belief publication
+        audit_belief = AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id=str(ulid.ULID()),
+            tenant_id=sample_telemetry_b.tenant_id,
+            cell_id="cell-b",
+            idempotency_key=f"belief_publish_{sample_telemetry_b.correlation_id}",
+            recorded_at=datetime.now(timezone.utc),
+            event_kind="belief_published",
+            payload_ref={
+                "kind": "inline",
+                "ref": belief_b.belief_id
+            },
+            hashes={
+                "sha256": "demo-hash-belief",
+                "upstream_hashes": []
+            },
+            correlation_id=sample_telemetry_b.correlation_id,
+            trace_id="trace-golden-belief-b"
+        )
+        await cell_b.publish_audit_record(audit_belief)
+        
+        # Verify belief was published to mesh
+        mesh_beliefs = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
+        assert len(mesh_beliefs) > 0, "Cell-b belief should be published to mesh"
+        print("✅ STEP 2 PASSED: Cell-b published belief to mesh")
+        
+        print("\n🎯 STEP 3: Partition heals - buffered beliefs reconcile")
+        
+        # Reconnect cell-a to mesh
+        await cell_a.connect()
+        await cell_a.ensure_streams()
+        
+        # Publish cell-a's buffered belief
+        await cell_a.publish_belief(belief_a)
+        
+        # Wait for reconciliation
+        await asyncio.sleep(2)
+        
+        # Verify both beliefs are now on mesh
+        mesh_beliefs_a = await _get_mesh_beliefs(cell_b, sample_telemetry_a.correlation_id)
+        mesh_beliefs_b = await _get_mesh_beliefs(cell_b, sample_telemetry_b.correlation_id)
+        assert len(mesh_beliefs_a) > 0, "Cell-a buffered belief should be published after reconnect"
+        assert len(mesh_beliefs_b) > 0, "Cell-b belief should still be on mesh"
+        
+        # Verify collective confidence computation
+        collective_state = await _compute_collective_confidence(cell_b, sample_telemetry_a.correlation_id)
+        assert collective_state["quorum_count"] >= 2, "Should have quorum from at least 2 cells"
+        assert collective_state["aggregate_score"] >= 0.85, "Should meet A2 threshold"
+        print("✅ STEP 3 PASSED: Beliefs reconciled with quorum")
+        
+        print("\n🎯 STEP 4: Collective confidence triggers A2 containment")
+        
+        # Create and publish A2 execution intent
+        a2_intent = ExecutionIntentV1(
+            schema_version="1.0.0",
+            intent_id="01J4NR5X9Z8GABCDEF12345680",
+            tenant_id="tenant_demo",
+            cell_id="cell-b",
+            idempotency_key=f"a2_containment_{sample_telemetry_a.correlation_id}",
+            subject={"subject_type": "host", "subject_id": "host-123"},
+            intent_type="isolate_host",
+            action_class="A2_hard_containment",
+            requested_at=datetime.now(timezone.utc),
+            ttl_seconds=None,
+            parameters=None,
+            policy_context={
+                "bundle_hash_sha256": "demo-bundle-hash",
+                "rule_ids": ["rule-a2-001", "rule-a2-002"]
+            },
+            safety_context={
+                "safety_verdict": "allow",
+                "rationale": "Collective confidence threshold met",
+                "quorum_status": "satisfied",
+                "human_approval_id": None
+            },
+            correlation_id=sample_telemetry_a.correlation_id,
+            trace_id="trace-golden-a2-001"
+        )
+        
+        # Execute A2 intent
+        await cell_b.publish_execution_intent(a2_intent)
+        a2_result = await _execute_intent(cell_b, a2_intent)
+        
+        # Publish audit record for A2 execution
+        audit_a2 = AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id=str(ulid.ULID()),
+            tenant_id=sample_telemetry_a.tenant_id,
+            cell_id="cell-b",
+            idempotency_key=f"a2_execution_{sample_telemetry_a.correlation_id}",
+            recorded_at=datetime.now(timezone.utc),
+            event_kind="intent_executed",
+            payload_ref={
+                "kind": "inline",
+                "ref": a2_intent.intent_id
+            },
+            hashes={
+                "sha256": "demo-hash-a2",
+                "upstream_hashes": []
+            },
+            correlation_id=sample_telemetry_a.correlation_id,
+            trace_id="trace-golden-a2-exec"
+        )
+        await cell_b.publish_audit_record(audit_a2)
+        
+        assert a2_result["executed"] is True, "A2 should execute without approval"
+        assert a2_result["action_class"] == "A2_hard_containment", "Should be A2 hard containment"
+        print("✅ STEP 4 PASSED: A2 containment executed")
+        
+        print("\n🎯 STEP 5: A3 requires human approval")
+        
+        # Create A3 intent (irreversible action)
+        a3_intent = ExecutionIntentV1(
+            schema_version="1.0.0",
+            intent_id="01J4NR5X9Z8GABCDEF12345681",
+            tenant_id="tenant_demo",
+            cell_id="cell-b",
+            idempotency_key=f"a3_terminate_{sample_telemetry_a.correlation_id}",
+            subject={"subject_type": "process", "subject_id": "suspicious.exe"},
+            intent_type="terminate_process",
+            action_class="A3_irreversible",
+            requested_at=datetime.now(timezone.utc),
+            ttl_seconds=None,
+            parameters=None,
+            policy_context={
+                "bundle_hash_sha256": "demo-bundle-hash",
+                "rule_ids": ["rule-a3-001", "rule-a3-002"]
+            },
+            safety_context={
+                "safety_verdict": "require_approval",
+                "rationale": "Irreversible action requires human approval",
+                "quorum_status": "pending_approval",
+                "human_approval_id": None
+            },
+            correlation_id=sample_telemetry_a.correlation_id,
+            trace_id="trace-golden-a3-001"
+        )
+        
+        # Try to execute A3 without approval
+        a3_result = await _execute_intent(cell_b, a3_intent)
+        
+        # Publish audit record for A3 attempt (blocked)
+        audit_a3 = AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id=str(ulid.ULID()),
+            tenant_id=sample_telemetry_a.tenant_id,
+            cell_id="cell-b",
+            idempotency_key=f"a3_attempt_{sample_telemetry_a.correlation_id}",
+            recorded_at=datetime.now(timezone.utc),
+            event_kind="intent_blocked",
+            payload_ref={
+                "kind": "inline",
+                "ref": a3_intent.intent_id
+            },
+            hashes={
+                "sha256": "demo-hash-a3",
+                "upstream_hashes": []
+            },
+            correlation_id=sample_telemetry_a.correlation_id,
+            trace_id="trace-golden-a3-blocked"
+        )
+        await cell_b.publish_audit_record(audit_a3)
+        
+        assert a3_result["executed"] is False, "A3 should not execute without approval"
+        assert a3_result.get("approval_required") is True, "A3 should require approval"
+        assert a3_result.get("approval_status") == "pending", "A3 should be pending approval"
+        print("✅ STEP 5 PASSED: A3 requires human approval")
+        
+        print("\n🎯 STEP 6: Audit replay does not re-trigger side effects")
+        
+        # Get audit chain for the correlation
+        audit_chain = await _get_audit_chain(cell_c, sample_telemetry_a.correlation_id)
+        assert len(audit_chain) > 0, "Should have audit records"
+        
+        # Replay audit chain
+        replay_result = await _replay_audit_chain(cell_c, audit_chain)
+        
+        assert replay_result["side_effects_triggered"] == 0, "Audit replay should not trigger side effects"
+        assert replay_result["idempotency_enforced"] is True, "Idempotency should be enforced during replay"
+        print("✅ STEP 6 PASSED: Audit replay is idempotent")
+        
+        print("\n🎉 GOLDEN DEMO FLOW COMPLETED SUCCESSFULLY - ALL STEPS PASSED")
+
+    await asyncio.wait_for(_run_flow(), timeout=timeout_seconds)
 
 
 # Helper functions for the live test

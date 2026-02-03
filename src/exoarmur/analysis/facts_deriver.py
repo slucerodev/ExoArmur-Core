@@ -3,18 +3,27 @@ Signal facts derivation from telemetry events
 """
 
 import logging
+import hashlib
 from datetime import datetime
 from typing import Dict, Any, List
 
 import sys
 import os
+import ulid
 from spec.contracts.models_v1 import TelemetryEventV1, SignalFactsV1
+from exoarmur.replay.canonical_utils import canonical_json
 
 logger = logging.getLogger(__name__)
 
 
 class FactsDeriver:
     """Derives signal facts from telemetry events"""
+
+    @staticmethod
+    def _deterministic_facts_id(event: TelemetryEventV1) -> str:
+        payload = event.model_dump(mode="json")
+        digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).digest()
+        return str(ulid.ULID.from_bytes(digest[:16]))
     
     def derive_facts(self, event: TelemetryEventV1) -> SignalFactsV1:
         """Derive signal facts from telemetry event"""
@@ -23,7 +32,7 @@ class FactsDeriver:
         # Minimal deterministic fact derivation
         facts = SignalFactsV1(
             schema_version="1.0.0",
-            facts_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            facts_id=self._deterministic_facts_id(event),
             derived_from_event_ids=[event.event_id],
             tenant_id=event.tenant_id,
             cell_id=event.cell_id,

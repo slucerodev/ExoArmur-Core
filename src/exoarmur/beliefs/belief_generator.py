@@ -3,12 +3,15 @@ Belief generation and JetStream publishing
 """
 
 import logging
+import hashlib
 from datetime import datetime
 from typing import Dict, Any, List
 
 import sys
 import os
+import ulid
 from spec.contracts.models_v1 import LocalDecisionV1, BeliefV1, BeliefTelemetryV1
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
@@ -16,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 class BeliefGenerator:
     """Generates beliefs and publishes to JetStream"""
+
+    @staticmethod
+    def _deterministic_belief_id(decision: LocalDecisionV1) -> str:
+        payload = decision.model_dump(mode="json")
+        digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).digest()
+        return str(ulid.ULID.from_bytes(digest[:16]))
     
     def __init__(self, nats_client=None):
         self.nats_client = nats_client
@@ -24,10 +33,27 @@ class BeliefGenerator:
     def generate_belief(self, decision: LocalDecisionV1) -> BeliefTelemetryV1:
         """Generate belief from local decision"""
         logger.info(f"Generating belief from decision {decision.decision_id}")
+
+        policy_seed = {
+            "decision_id": decision.decision_id,
+            "classification": decision.classification,
+            "severity": decision.severity,
+            "confidence": decision.confidence,
+            "evidence_refs": decision.evidence_refs,
+            "subject": decision.subject,
+            "correlation_id": decision.correlation_id,
+            "trace_id": decision.trace_id,
+        }
+        bundle_hash = stable_hash(canonical_json(policy_seed))
+
+        rule_ids = [
+            f"rule:classification:{decision.classification}",
+            f"rule:severity:{decision.severity}",
+        ]
         
         belief = BeliefTelemetryV1(
             schema_version="1.0.0",
-            belief_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            belief_id=self._deterministic_belief_id(decision),
             tenant_id=decision.tenant_id,
             emitter_node_id="cell-demo-001",  # TODO: get from cell config
             subject=decision.subject,
@@ -36,9 +62,9 @@ class BeliefGenerator:
             severity=decision.severity,
             evidence_refs=decision.evidence_refs,
             policy_context={
-                "bundle_hash_sha256": "demo-bundle-hash",
-                "rule_ids": ["rule-demo-001"],
-                "trust_score_at_emit": 0.85
+                "bundle_hash_sha256": bundle_hash,
+                "rule_ids": rule_ids,
+                "trust_score_at_emit": max(0.0, min(1.0, decision.confidence)),
             },
             ttl_seconds=3600,  # 1 hour default
             first_seen=utc_now(),
@@ -56,6 +82,5 @@ class BeliefGenerator:
         if not self.nats_client:
             logger.warning("No NATS client available, belief not published")
             return False
-        
-        # TODO: implement actual JetStream publishing
-        return True
+
+        return await self.nats_client.publish_belief(belief)
