@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import hashlib
+import os
+import tempfile
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
@@ -28,12 +30,21 @@ def _write_policy_bundle(policy_archive: Path, audit_record: AuditRecordV1, bund
     digest = hashlib.sha256(bundle_bytes).hexdigest()
     bundle_path = policy_archive / f"{digest}.bundle"
 
-    if bundle_path.exists():
-        existing = bundle_path.read_bytes()
-        if existing != bundle_bytes:
-            raise ValueError(f"Policy bundle digest collision for {bundle_kind}")
-    else:
-        bundle_path.write_bytes(bundle_bytes)
+    with tempfile.NamedTemporaryFile(dir=policy_archive, delete=False) as tmp_file:
+        tmp_file.write(bundle_bytes)
+        tmp_file.flush()
+        os.fsync(tmp_file.fileno())
+        temp_path = Path(tmp_file.name)
+
+    try:
+        os.replace(temp_path, bundle_path)
+    finally:
+        if temp_path.exists():
+            temp_path.unlink(missing_ok=True)
+
+    existing = bundle_path.read_bytes()
+    if existing != bundle_bytes:
+        raise ValueError(f"Policy bundle digest collision for {bundle_kind}")
 
     return digest
 

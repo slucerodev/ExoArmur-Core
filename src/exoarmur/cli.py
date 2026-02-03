@@ -43,6 +43,7 @@ def verify_all(verbose: bool, fast: bool):
     click.echo("=" * 50)
     
     exit_code = 0
+    repo_root = Path(__file__).resolve().parents[2]
     
     try:
         # 1. Full test suite
@@ -51,7 +52,7 @@ def verify_all(verbose: bool, fast: bool):
         if verbose:
             test_cmd.append("-v")
         
-        result = subprocess.run(test_cmd, cwd=Path(__file__).parent.parent)
+        result = subprocess.run(test_cmd, cwd=repo_root)
         if result.returncode != 0:
             click.echo("❌ Test suite failed")
             exit_code = 1
@@ -65,7 +66,7 @@ def verify_all(verbose: bool, fast: bool):
             if verbose:
                 boundary_cmd.append("-v")
             
-            result = subprocess.run(boundary_cmd, cwd=Path(__file__).parent.parent)
+            result = subprocess.run(boundary_cmd, cwd=repo_root)
             if result.returncode != 0:
                 click.echo("❌ Boundary gate failed")
                 exit_code = 1
@@ -76,7 +77,6 @@ def verify_all(verbose: bool, fast: bool):
         
         # 3. Demo smoke test
         click.echo("\n3️⃣ Running demo smoke test (deny mode)...")
-        repo_root = Path(__file__).resolve().parents[2]
         demo_cmd = [
             sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py"),
             "--operator-decision", "deny"
@@ -89,7 +89,7 @@ def verify_all(verbose: bool, fast: bool):
             'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
         })
         
-        result = subprocess.run(demo_cmd, cwd=Path(__file__).parent.parent, 
+        result = subprocess.run(demo_cmd, cwd=repo_root, 
                               capture_output=True, text=True, env=env)
         
         if result.returncode != 0:
@@ -130,7 +130,7 @@ def verify_all(verbose: bool, fast: bool):
                         "--replay", audit_id
                     ]
                     
-                    result = subprocess.run(replay_cmd, cwd=Path(__file__).parent.parent,
+                    result = subprocess.run(replay_cmd, cwd=repo_root,
                                           capture_output=True, text=True, env=env)
                     
                     if result.returncode != 0:

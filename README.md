@@ -25,7 +25,7 @@ ExoArmur Core provides (as verified by tests in this repository):
 - JetStream publish/consume paths for beliefs and audit records
 - Idempotency enforcement for audit emission
 - Explicit safety enforcement (kill switches, approvals, tenant isolation)
-- Bounded retries and backpressure (phase 6 tests)
+- Bounded retries and backpressure
 - Replay and determinism tests for audit chains
 - Offline evidence bundle export compatible with ExoArmur-DPO
 

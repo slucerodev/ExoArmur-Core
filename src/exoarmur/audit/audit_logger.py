@@ -247,6 +247,7 @@ class AuditLogger:
         for record in records:
             if record.audit_id not in existing_ids:
                 self.audit_records[correlation_id].append(record)
+                existing_ids.add(record.audit_id)
 
         return records
     

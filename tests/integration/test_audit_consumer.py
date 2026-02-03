@@ -1,6 +1,7 @@
 """Audit logger JetStream consumer integration tests."""
 
 import asyncio
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -13,8 +14,11 @@ from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 @pytest.fixture
 async def nats_jetstream():
     repo_root = Path(__file__).resolve().parents[2]
+    docker_compose_path = shutil.which("docker-compose")
+    if not docker_compose_path:
+        pytest.fail("docker-compose executable not found")
     result = subprocess.run(
-        ["docker-compose", "up", "-d", "nats"],
+        [docker_compose_path, "up", "-d", "nats"],
         capture_output=True,
         text=True,
         cwd=repo_root,
@@ -26,7 +30,7 @@ async def nats_jetstream():
     yield
 
     subprocess.run(
-        ["docker-compose", "down"],
+        [docker_compose_path, "down"],
         capture_output=True,
         text=True,
         cwd=repo_root,
@@ -34,7 +38,8 @@ async def nats_jetstream():
 
 
 @pytest.mark.asyncio
-async def test_audit_consumer_persists_records(nats_jetstream):
+@pytest.mark.usefixtures("nats_jetstream")
+async def test_audit_consumer_persists_records():
     """AuditLogger should consume JetStream audit records into local storage."""
     nats_client = ExoArmurNATSClient(NATSConfig(url="nats://localhost:4222"))
 

@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass
 
 import nats
+from pydantic import ValidationError
 from nats.js.api import StreamConfig, ConsumerConfig
 
 logger = logging.getLogger(__name__)
@@ -497,7 +498,7 @@ class ExoArmurNATSClient:
                                 from spec.contracts.models_v1 import BeliefTelemetryV1, BeliefV1
                                 try:
                                     belief = BeliefTelemetryV1.model_validate(belief_data)
-                                except Exception:
+                                except ValidationError:
                                     belief = BeliefV1.model_validate(belief_data)
                                 beliefs.append(belief)
                                 logger.info(f"Found matching belief: {belief.belief_id}")

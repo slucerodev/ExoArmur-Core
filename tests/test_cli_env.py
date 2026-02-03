@@ -16,7 +16,7 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
 
     calls = []
 
-    def fake_run(cmd, cwd=None, capture_output=False, text=False, env=None):
+    def fake_run(cmd, cwd=None, _capture_output=False, _text=False, env=None):
         calls.append({"cmd": cmd, "cwd": cwd, "env": env})
         assert cmd[0] == sys.executable
         assert cmd[1] == str(script_path)

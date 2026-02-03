@@ -34,7 +34,9 @@ def test_core_can_emit_dpo_verifiable_evidence_bundle(tmp_path):
     # DPO verification path should accept the bundle output once exporter exists.
     from exoarmur_dpo.verify import verify_bundle  # noqa: F401
 
-    export_evidence_bundle(audit_record, output_dir)
+    result_path = export_evidence_bundle(audit_record, output_dir)
+    assert result_path is not None
+    assert result_path.exists()
 
 
 def test_core_bundle_verification_round_trip(tmp_path):
@@ -59,7 +61,9 @@ def test_core_bundle_verification_round_trip(tmp_path):
     from exoarmur.integration.dpo import export_evidence_bundle
     from exoarmur_dpo.verify import verify_bundle
 
-    export_evidence_bundle(audit_record, output_dir)
+    result_path = export_evidence_bundle(audit_record, output_dir)
+    assert result_path is not None
+    assert result_path.exists()
     result = verify_bundle(output_dir, audit_record.audit_id)
 
     # Expect VALID once policy bundle and evidence inputs are populated.
