@@ -27,12 +27,17 @@ jobs:
         
     - name: Install gitleaks
       run: |
-        wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
-        tar xzvf gitleaks_8.18.2_linux_x64.tar.gz
-        sudo mv gitleaks /usr/local/bin/
+        GITLEAKS_DIR="$(mktemp -d)"
+        TARBALL="$GITLEAKS_DIR/gitleaks_8.18.2_linux_x64.tar.gz"
+        wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz -O "$TARBALL"
+        tar -xzf "$TARBALL" -C "$GITLEAKS_DIR" gitleaks
+        echo "GITLEAKS_DIR=$GITLEAKS_DIR" >> "$GITHUB_ENV"
+        "$GITLEAKS_DIR/gitleaks" version
+        test ! -f README.md || true
+        ls -la "$GITLEAKS_DIR"
         
     - name: Run dependency audit
-      run: pip-audit --ignore-vuln CVE-2025-8869
+      run: pip-audit -r requirements.txt --ignore-vuln CVE-2025-8869
       continue-on-error: false
       
     - name: Run SAST (bandit)
@@ -52,5 +57,10 @@ jobs:
         fi
         
     - name: Run secret scan (gitleaks)
-      run: gitleaks detect --no-git --redact --config .gitleaks.toml
+      run: |
+        set +e
+        "$GITLEAKS_DIR/gitleaks" detect --no-git --redact --config .gitleaks.toml --report-format json --report-path gitleaks-report.json
+        status=$?
+        cat gitleaks-report.json
+        exit $status
       continue-on-error: false

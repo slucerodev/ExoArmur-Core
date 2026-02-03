@@ -32,15 +32,14 @@ dependencies = [
     "httpx>=0.25.0",
     "nats-py>=2.7.0",
     "python-json-logger>=2.0.0",
+    "cryptography>=46.0.4",
 ]
 
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
-v2 = [
-    "cryptography>=41.0.0",
-]
+v2 = []
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -53,6 +52,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]

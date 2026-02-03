@@ -222,6 +222,34 @@ class AuditLogger:
     def get_records_by_correlation(self, correlation_id: str) -> List[AuditRecordV1]:
         """Get audit records for a correlation ID (alias for get_audit_records)"""
         return self.get_audit_records(correlation_id)
+
+    async def consume_from_jetstream(
+        self,
+        correlation_id: str,
+        max_messages: int = 10,
+        timeout_seconds: float = 2.0,
+    ) -> List[AuditRecordV1]:
+        """Consume audit records from JetStream into in-memory storage."""
+        if not self.nats_client:
+            logger.warning("No NATS client available for audit consumption")
+            return []
+
+        records = await self.nats_client.get_audit_records(
+            correlation_id=correlation_id,
+            max_messages=max_messages,
+            timeout_seconds=timeout_seconds,
+        )
+
+        if correlation_id not in self.audit_records:
+            self.audit_records[correlation_id] = []
+
+        existing_ids = {r.audit_id for r in self.audit_records[correlation_id]}
+        for record in records:
+            if record.audit_id not in existing_ids:
+                self.audit_records[correlation_id].append(record)
+                existing_ids.add(record.audit_id)
+
+        return records
     
     def record_audit(self, event_kind: str, payload_ref: Dict[str, Any], correlation_id: str, trace_id: str, tenant_id: str, cell_id: str, idempotency_key: str) -> AuditRecordV1:
         """Record audit event (alias for emit_audit_record)"""

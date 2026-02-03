@@ -38,7 +38,7 @@ def run_sensitive_tests(seed: int) -> TestRunResult:
     env['PYTEST_RANDOMLY_SEED'] = str(seed)
     
     cmd = [
-        'python3', '-m', 'pytest', 
+        sys.executable, '-m', 'pytest', 
         '-m', 'sensitive',
         '--randomly-seed', str(seed),
         '--tb=no', '-q',
@@ -158,7 +158,7 @@ def check_fixture_scope_violations():
     print("\n🔍 Checking for fixture scope violations...")
     
     cmd = [
-        'python3', '-m', 'pytest',
+        sys.executable, '-m', 'pytest',
         '-m', 'sensitive',
         '--collect-only', '-q'
     ]

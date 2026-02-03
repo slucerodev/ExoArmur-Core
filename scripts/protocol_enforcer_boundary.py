@@ -27,6 +27,18 @@ def load_known_failing() -> Set[str]:
     
     return known_failing
 
+def parse_failures_from_stdout(stdout: str) -> Dict[str, str]:
+    """Parse pytest stdout for failing nodeids"""
+    failures: Dict[str, str] = {}
+    for line in stdout.split('\n'):
+        if line.startswith('FAILED') or line.startswith('ERROR'):
+            test_nodeid = line.split(' ', 1)[1].strip()
+            if '::' not in test_nodeid:
+                continue
+            failures[test_nodeid] = "FAILED" if line.startswith('FAILED') else "ERROR"
+    return failures
+
+
 def run_protocol_enforcer_tests() -> Dict[str, str]:
     """Run protocol enforcer tests and return failures"""
     print("🔍 Running protocol enforcer tests...")
@@ -37,28 +49,35 @@ def run_protocol_enforcer_tests() -> Dict[str, str]:
         '--tb=no', '-q'
     ]
     
+    print(f"🧪 Pytest command: {' '.join(cmd)}")
+
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         cwd=Path(__file__).parent.parent
     )
-    
-    failures = {}
-    for line in result.stdout.split('\n'):
-        if line.startswith('FAILED') or line.startswith('ERROR'):
-            test_nodeid = line.split(' ', 1)[1].strip()
-            failures[test_nodeid] = "FAILED" if line.startswith('FAILED') else "ERROR"
-    
+
+    failures = parse_failures_from_stdout(result.stdout)
+
+    if result.returncode != 0 and not failures:
+        print("\nPYTEST INFRA/COLLECTION ERROR (not a test failure set expansion)")
+        if result.stderr:
+            print(result.stderr.rstrip())
+        elif result.stdout:
+            print(result.stdout.rstrip())
+        raise RuntimeError("Pytest infra/collection error without test failures")
+
     return failures
 
-def compare_failing_sets(known_failing: Set[str], actual_failing: Dict[str, str]) -> bool:
+def compare_failing_sets(known_failing: Set[str], actual_failing: Dict[str, str], infra_error: bool) -> bool:
     """Compare known failing set with actual failures"""
     actual_failing_set = set(actual_failing.keys())
     
     print(f"\n📊 Comparison:")
     print(f"  Known failing: {len(known_failing)} tests")
     print(f"  Actual failing: {len(actual_failing_set)} tests")
+    print(f"  Infra error: {'true' if infra_error else 'false'}")
     
     # Check for new failures
     new_failures = actual_failing_set - known_failing
@@ -104,10 +123,15 @@ def main():
         sys.exit(1)
     
     # Run tests
-    actual_failing = run_protocol_enforcer_tests()
+    try:
+        actual_failing = run_protocol_enforcer_tests()
+        infra_error = False
+    except RuntimeError:
+        actual_failing = {}
+        infra_error = True
     
     # Compare
-    if compare_failing_sets(known_failing, actual_failing):
+    if compare_failing_sets(known_failing, actual_failing, infra_error):
         print("✅ Protocol enforcer boundary check passed")
         sys.exit(0)
     else:

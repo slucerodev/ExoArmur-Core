@@ -4,7 +4,7 @@
 
 # ExoArmur Core
 
-**Audit-Verified — Beta**
+**Deterministic & Auditable — Beta**
 
 ExoArmur Core is a deterministic execution safety substrate designed to enforce
 guardrails, preserve auditability, and enable replayable decision verification
@@ -19,20 +19,15 @@ automation. Those capabilities are intentionally excluded.
 
 ## What ExoArmur Core Provides
 
-ExoArmur Core guarantees:
+ExoArmur Core provides (as verified by tests in this repository):
 
-- Deterministic execution classification
-- Durable event persistence
-- Idempotent execution under retries
-- Crash-consistent recovery
+- Deterministic IDs for facts, decisions, beliefs, and execution intents
+- JetStream publish/consume paths for beliefs and audit records
+- Idempotency enforcement for audit emission
 - Explicit safety enforcement (kill switches, approvals, tenant isolation)
 - Bounded retries and backpressure
-- Deterministic failure classification
-- Replayable decision history from durable artifacts
-- Cold-reviewer reproducibility
-
-If ExoArmur Core permits or denies an action, that decision can be reproduced
-later using only the recorded evidence bundle.
+- Replay and determinism tests for audit chains
+- Offline evidence bundle export compatible with ExoArmur-DPO
 
 ---
 
@@ -55,12 +50,8 @@ All behavior layers are additive and out of scope for this repository.
 
 **v1.0.0-beta**
 
-The core execution substrate has undergone independent verification and
-reproducibility review.
-
-The core architecture is frozen.
-
-Public interfaces may evolve based on early adopter feedback.
+The core architecture is frozen. Public interfaces change only when verified
+and documented by tests in this repository.
 
 ---
 
@@ -93,7 +84,7 @@ pip install .
 python -m pytest tests/ -v
 
 # Run Golden Demo (live NATS JetStream acceptance test)
-python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
+EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
 ```
 
 ### Developer Note: editable installs
@@ -109,7 +100,7 @@ python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jets
 
 **WHAT EXISTS (V1):**
 - V1 core is implemented and immutable
-- Golden Demo uses real NATS JetStream semantics  
+- Live Golden Demo exercises JetStream publish/consume and audit flow
 - Feature flags default OFF
 
 **WHAT IS GATED (V2):**
@@ -117,6 +108,19 @@ python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jets
 - Optional extra: `pip install -e ".[v2]"`
 
 **WHAT IS NOT IMPLEMENTED YET:**
-- Federation logic not implemented
-- Control plane logic not implemented  
-- Operator orchestration runtime not implemented
+- Federation control plane orchestration runtime (beyond test scaffolding)
+- Full operator orchestration runtime
+
+**DPO INTEGRATION (OFFLINE):**
+- Core can export deterministic evidence bundles to filesystem
+- ExoArmur-DPO can verify these bundles offline
+
+## Audit vs Logging
+- Audit artifacts (AuditRecordV1 and related envelopes) are authoritative, immutable evidence for decisions.
+- Logging is diagnostic and non-authoritative; logs cannot substitute for audit artifacts.
+- Audits must remain replayable; logging content must not be treated as proof of behavior.
+
+## Versioning Discipline
+- Patch: bug fixes and documentation-only changes with no contract impact.
+- Minor: additive, backward-compatible changes (feature-flagged by default) with updated docs.
+- Major: any contract change or incompatible behavior (requires governance and updated Golden Demo alignment).

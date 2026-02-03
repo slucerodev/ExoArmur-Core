@@ -27,6 +27,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.python-version
 
 # pytest Cache
 .pytest_cache/
@@ -60,6 +61,7 @@ artifacts/schema_change_waivers.json
 .ruff_cache/
 .black_cache/
 .flake8/
+pip-wheel-metadata/
 
 # Local Configuration Override
 .env.local

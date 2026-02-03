@@ -18,6 +18,16 @@ import click
 
 # Add src and spec/contracts to path for imports
 
+
+def _script_env(base_env: Optional[dict] = None) -> dict:
+    """Build environment for repo-local script subprocesses with src on PYTHONPATH."""
+    repo_root = Path(__file__).resolve().parents[2]
+    src_dir = repo_root / "src"
+    env = dict(base_env or os.environ)
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(src_dir) + (os.pathsep + existing if existing else "")
+    return env
+
 @click.group()
 @click.version_option(version="3.0.0", prog_name="exoarmur")
 def main():
@@ -33,15 +43,16 @@ def verify_all(verbose: bool, fast: bool):
     click.echo("=" * 50)
     
     exit_code = 0
+    repo_root = Path(__file__).resolve().parents[2]
     
     try:
         # 1. Full test suite
         click.echo("1️⃣ Running full test suite...")
-        test_cmd = ["python3", "-m", "pytest", "tests/", "-x", "--tb=short"]
+        test_cmd = [sys.executable, "-m", "pytest", "tests/", "-x", "--tb=short"]
         if verbose:
             test_cmd.append("-v")
         
-        result = subprocess.run(test_cmd, cwd=Path(__file__).parent.parent)
+        result = subprocess.run(test_cmd, cwd=repo_root)
         if result.returncode != 0:
             click.echo("❌ Test suite failed")
             exit_code = 1
@@ -51,11 +62,11 @@ def verify_all(verbose: bool, fast: bool):
         # 2. Boundary gate (if not fast)
         if not fast:
             click.echo("\n2️⃣ Running boundary gate...")
-            boundary_cmd = ["python3", "-m", "pytest", "tests/", "-m", "sensitive", "--tb=short"]
+            boundary_cmd = [sys.executable, "-m", "pytest", "tests/", "-m", "sensitive", "--tb=short"]
             if verbose:
                 boundary_cmd.append("-v")
             
-            result = subprocess.run(boundary_cmd, cwd=Path(__file__).parent.parent)
+            result = subprocess.run(boundary_cmd, cwd=repo_root)
             if result.returncode != 0:
                 click.echo("❌ Boundary gate failed")
                 exit_code = 1
@@ -67,18 +78,18 @@ def verify_all(verbose: bool, fast: bool):
         # 3. Demo smoke test
         click.echo("\n3️⃣ Running demo smoke test (deny mode)...")
         demo_cmd = [
-            "python3", "scripts/demo_v2_restrained_autonomy.py",
+            sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py"),
             "--operator-decision", "deny"
         ]
         
-        env = os.environ.copy()
+        env = _script_env(os.environ.copy())
         env.update({
             'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
             'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
             'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
         })
         
-        result = subprocess.run(demo_cmd, cwd=Path(__file__).parent.parent, 
+        result = subprocess.run(demo_cmd, cwd=repo_root, 
                               capture_output=True, text=True, env=env)
         
         if result.returncode != 0:
@@ -115,11 +126,11 @@ def verify_all(verbose: bool, fast: bool):
                 
                 if audit_id:
                     replay_cmd = [
-                        "python3", "scripts/demo_v2_restrained_autonomy.py",
+                        sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py"),
                         "--replay", audit_id
                     ]
                     
-                    result = subprocess.run(replay_cmd, cwd=Path(__file__).parent.parent,
+                    result = subprocess.run(replay_cmd, cwd=repo_root,
                                           capture_output=True, text=True, env=env)
                     
                     if result.returncode != 0:
@@ -162,23 +173,23 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
     click.echo(f"🚀 ExoArmur Demo: {scenario}")
     
     if scenario == 'v2_restrained_autonomy':
-        cmd = ["python3", "scripts/demo_v2_restrained_autonomy.py"]
+        repo_root = Path(__file__).resolve().parents[2]
+        cmd = [sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py")]
         
         if replay:
             cmd.extend(["--replay", replay])
         else:
             cmd.extend(["--operator-decision", operator_decision])
         
-        env = os.environ.copy()
+        env = _script_env(os.environ.copy())
         if not replay:
             env.update({
                 'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
                 'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
                 'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
             })
-        # Scripts should use proper package imports, no PYTHONPATH manipulation needed
         
-        result = subprocess.run(cmd, cwd=Path(__file__).parent.parent, env=env)
+        result = subprocess.run(cmd, cwd=repo_root, env=env)
         sys.exit(result.returncode)
     else:
         click.echo(f"Unknown demo scenario: {scenario}")

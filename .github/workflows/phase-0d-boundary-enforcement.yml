@@ -31,7 +31,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip -c constraints.txt
-        pip install -e .
+        python -m pip install -r requirements.txt
+        pip install -e ".[v2]"
     
     - name: Run Boundary Gate
       run: |
@@ -39,7 +40,7 @@ jobs:
     
     - name: Upload boundary gate results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: boundary-gate-results
         path: |
@@ -70,6 +71,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip -c constraints.txt
+        python -m pip install -r requirements.txt
         pip install -e .
     
     - name: Run Protocol Enforcer Boundary Check
@@ -78,7 +80,7 @@ jobs:
     
     - name: Upload protocol enforcer results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: protocol-enforcer-results
         path: protocol-enforcer.log
@@ -107,22 +109,24 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip -c constraints.txt
+        python -m pip install -r requirements.txt
         pip install -e .
     
     - name: Check test collection count
       run: |
         echo "Checking test collection stability..."
-        COLLECTED=$(python -m pytest --collect-only -q | tail -1)
-        echo "Collected: $COLLECTED"
+        python -m pytest --collect-only -vv
+        SUMMARY=$(python -m pytest --collect-only -q 2>/dev/null | tail -1 || true)
+        echo "Summary: $SUMMARY"
         
-        if [[ "$COLLECTED" != *"417 tests collected"* ]]; then
-          echo "❌ Test collection count changed from expected 417"
-          echo "   Expected: 417 tests collected"
-          echo "   Actual: $COLLECTED"
+        if [[ "$SUMMARY" != *"590 tests collected"* ]]; then
+          echo "❌ Test collection count changed from expected 590"
+          echo "   Expected: 590 tests collected"
+          echo "   Actual: $SUMMARY"
           exit 1
         fi
         
-        echo "✅ Test collection count stable: 417 tests"
+        echo "✅ Test collection count stable: 590 tests"
 
   full-test-suite:
     runs-on: ubuntu-latest
@@ -158,7 +162,7 @@ jobs:
     
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: full-test-results
         path: test-results.xml
