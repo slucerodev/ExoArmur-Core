@@ -71,6 +71,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip -c constraints.txt
+        python -m pip install -r requirements.txt
         pip install -e .
     
     - name: Run Protocol Enforcer Boundary Check
@@ -108,6 +109,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip -c constraints.txt
+        python -m pip install -r requirements.txt
         pip install -e .
     
     - name: Check test collection count
