@@ -27,20 +27,23 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
+# Add repo root to path for imports (enables spec.contracts namespace)
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / 'spec' / 'contracts'))
 
-from models_v1 import TelemetryEventV1
-from v2_restrained_autonomy import (
-    RestrainedAutonomyPipeline, 
+from models_v1 import TelemetryEventV1, AuditRecordV1
+from exoarmur.v2_restrained_autonomy import (
+    RestrainedAutonomyPipeline,
     RestrainedAutonomyConfig,
-    MockActionExecutor
+    MockActionExecutor,
 )
-from feature_flags import FeatureFlagContext, get_feature_flags
-from audit.audit_logger import AuditLogger
+from exoarmur.feature_flags import FeatureFlagContext, get_feature_flags
+from exoarmur.audit.audit_logger import AuditLogger
 
 # Configure logging
 logging.basicConfig(
@@ -48,6 +51,32 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+DEMO_AUDIT_PATH = Path(__file__).resolve().parent / "demo_audit_stream.json"
+
+
+def _serialize_audit_records(audit_records: dict) -> dict:
+    serialized: dict[str, list[dict]] = {}
+    for correlation_id, records in audit_records.items():
+        serialized[correlation_id] = [record.model_dump(mode="json") for record in records]
+    return serialized
+
+
+def _load_audit_records(path: Path) -> dict[str, list[AuditRecordV1]]:
+    if not path.exists():
+        raise RuntimeError(f"Audit stream file missing: {path}")
+    try:
+        payload = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Audit stream file is corrupt: {path}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Audit stream file has invalid shape: {path}")
+    loaded: dict[str, list[AuditRecordV1]] = {}
+    for correlation_id, records in payload.items():
+        if not isinstance(records, list):
+            raise RuntimeError(f"Audit stream entry invalid for {correlation_id}")
+        loaded[correlation_id] = [AuditRecordV1.model_validate(record) for record in records]
+    return loaded
 
 
 def create_sample_telemetry_event() -> TelemetryEventV1:
@@ -210,7 +239,8 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
             "approval_id": outcome.approval_id,
             "audit_stream_id": outcome.audit_stream_id,
             "timestamp": outcome.timestamp.isoformat()
-        }
+        },
+        "audit_records": _serialize_audit_records(audit_logger.audit_records)
     }
 
 
@@ -227,6 +257,9 @@ def replay_audit_stream(audit_stream_id: str):
         deterministic_seed="demo-seed-12345"
     )
     pipeline = RestrainedAutonomyPipeline(config=config)
+
+    # Load persisted audit records for replay
+    pipeline.audit_logger.audit_records = _load_audit_records(DEMO_AUDIT_PATH)
     
     # Replay the audit stream
     replay_result = pipeline.replay_audit_stream(audit_stream_id)
@@ -296,6 +329,7 @@ async def main():
     # Save audit stream ID for potential replay
     if result["status"] == "completed" and "outcome" in result:
         audit_stream_id = result["outcome"]["audit_stream_id"]
+        DEMO_AUDIT_PATH.write_text(json.dumps(result["audit_records"], indent=2, sort_keys=True))
         print(f"💾 To replay this audit stream, run:")
         print(f"   python {__file__} --replay {audit_stream_id}")
         print()
