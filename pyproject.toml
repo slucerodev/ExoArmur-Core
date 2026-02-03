@@ -32,15 +32,14 @@ dependencies = [
     "httpx>=0.25.0",
     "nats-py>=2.7.0",
     "python-json-logger>=2.0.0",
+    "cryptography>=41.0.0",
 ]
 
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
-v2 = [
-    "cryptography>=41.0.0",
-]
+v2 = []
 
 [tool.setuptools]
 package-dir = {"" = "src"}
