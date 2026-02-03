@@ -115,7 +115,7 @@ jobs:
     - name: Check test collection count
       run: |
         echo "Checking test collection stability..."
-        COLLECTED=$(python -m pytest --collect-only -q | tail -1)
+        COLLECTED=$(python -m pytest --collect-only -vv | tail -1)
         echo "Collected: $COLLECTED"
         
         if [[ "$COLLECTED" != *"590 tests collected"* ]]; then
