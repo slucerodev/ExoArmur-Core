@@ -31,6 +31,7 @@ ExoArmur Autonomous Defense Mesh Organism (ADMO) is an enterprise-grade autonomo
 - [Architecture](ARCHITECTURE.md) - V1 core vs V2 external layers
 - [Contracts](CONTRACTS.md) - V1 and V2 contract index
 - [Testing](TESTING.md) - Test taxonomy and V2 acceptance gates
+- [Module Separation](MODULE_SEPARATION.md) - Core/modules split and export process
 
 ## Golden Demo Law
 

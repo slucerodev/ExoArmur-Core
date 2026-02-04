@@ -60,7 +60,8 @@ addopts = "-v --tb=short"
 markers = [
     "asyncio: marks tests as async",
     "v2_acceptance: Tests for V2 Phase 2 acceptance gates",
-    "golden_demo: Golden Demo live jetstream acceptance tests"
+    "golden_demo: Golden Demo live jetstream acceptance tests",
+    "live: External/opt-in live tests; not run by default; intentionally skipped unless explicitly enabled"
 ]
 
 [tool.pytest_asyncio]

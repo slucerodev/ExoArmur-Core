@@ -115,6 +115,26 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golde
 - Core can export deterministic evidence bundles to filesystem
 - ExoArmur-DPO can verify these bundles offline
 
+### Optional ExoArmur-DPO Integration
+- ExoArmur-Core does **not** require ExoArmur-DPO. The module is proprietary and strictly optional.
+- When `exoarmur_dpo` is not installed, DPO integration tests are **explicitly skipped** (not failed) to preserve boundary integrity.
+
+**Enable DPO integration intentionally:**
+1) Install ExoArmur-DPO into the same environment.
+2) Ensure it is importable as `exoarmur_dpo`.
+3) Re-run the integration tests to exercise the boundary:
+   - `python3 -m pytest -q tests/integration/test_core_dpo_integration.py -q`
+
+**Boundary rationale:**
+- Core remains clean and open; proprietary modules are opt‑in only.
+- Stubbing or vendoring ExoArmur-DPO into Core is forbidden.
+- Explicit skips prevent false positives and maintain auditability and trust.
+
+See: [Optional Module Integration](docs/optional_modules.md)
+
+### Module Separation (Split-Ready Layout)
+- Repo structure, boundary rules, and export steps: [docs/MODULE_SEPARATION.md](docs/MODULE_SEPARATION.md)
+
 ## Audit vs Logging
 - Audit artifacts (AuditRecordV1 and related envelopes) are authoritative, immutable evidence for decisions.
 - Logging is diagnostic and non-authoritative; logs cannot substitute for audit artifacts.

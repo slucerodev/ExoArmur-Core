@@ -40,9 +40,6 @@ class CoordinationRole(str, Enum):
 class CoordinationScope(BaseModel):
     """Defines the scope and boundaries of coordination"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True  # Immutable scope definitions
     )
     
@@ -63,9 +60,6 @@ class CoordinationScope(BaseModel):
 class CoordinationAnnouncement(BaseModel):
     """Announcement of availability for coordination"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True
     )
     
@@ -93,9 +87,6 @@ class CoordinationAnnouncement(BaseModel):
 class CoordinationClaim(BaseModel):
     """Claim of temporary coordination role"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True
     )
     
@@ -123,9 +114,6 @@ class CoordinationClaim(BaseModel):
 class CoordinationRelease(BaseModel):
     """Release of coordination role"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True
     )
     
@@ -140,9 +128,6 @@ class CoordinationRelease(BaseModel):
 class CoordinationObservation(BaseModel):
     """Non-authoritative observation sharing"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True
     )
     
@@ -166,9 +151,6 @@ class CoordinationObservation(BaseModel):
 class CoordinationIntentBroadcast(BaseModel):
     """Non-binding intent broadcast"""
     model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        },
         frozen=True
     )
     
@@ -196,12 +178,6 @@ class CoordinationIntentBroadcast(BaseModel):
 
 class CoordinationEvent(BaseModel):
     """Audit event for coordination activities"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_name: str
     coordination_id: str
@@ -226,12 +202,6 @@ class CoordinationEvent(BaseModel):
 
 class CoordinationSession(BaseModel):
     """Coordination session tracking"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     coordination_id: str
     coordinator_cell_id: str

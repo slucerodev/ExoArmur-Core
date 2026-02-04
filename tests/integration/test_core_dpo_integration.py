@@ -2,7 +2,17 @@
 
 from datetime import datetime, timezone
 
+import pytest
+
 from spec.contracts.models_v1 import AuditRecordV1
+
+pytest.importorskip(
+    "exoarmur_dpo",
+    reason=(
+        "exoarmur_dpo not installed; integration tests are intentionally skipped. "
+        "Install ExoArmur-DPO (importable as exoarmur_dpo) to enable these tests."
+    ),
+)
 
 
 def test_core_can_emit_dpo_verifiable_evidence_bundle(tmp_path):

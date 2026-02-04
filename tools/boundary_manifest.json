@@ -1,0 +1,17 @@
+{
+  "core_paths": [
+    "src/exoarmur"
+  ],
+  "modules_root": "modules",
+  "module_prefixes": {
+    "EXAMPLE_MODULE_TEMPLATE": [
+      "exoarmur_example_module_template"
+    ]
+  },
+  "allowed_core_prefixes": [
+    "exoarmur"
+  ],
+  "allowed_core_externals": [
+    "exoarmur_dpo"
+  ]
+}
