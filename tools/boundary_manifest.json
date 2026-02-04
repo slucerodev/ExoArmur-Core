@@ -7,6 +7,9 @@
     "EXAMPLE_MODULE_TEMPLATE": [
       "exoarmur_example_module_template"
     ],
+    "exoarmur_control_plane": [
+      "exoarmur_control_plane"
+    ],
     "exoarmur_exolock": [
       "exoarmur_exolock"
     ]

@@ -48,6 +48,11 @@ bash tools/export_module.sh EXAMPLE_MODULE_TEMPLATE /tmp/exoarmur-example-module
 bash tools/export_module.sh exoarmur_exolock /tmp/exoarmur-exolock
 ```
 
+```bash
+# From repo root
+bash tools/export_module.sh exoarmur_control_plane /tmp/exoarmur-control-plane
+```
+
 If `git-filter-repo` is unavailable, the script falls back to `git subtree split`.
 
 ## Verification Checklist

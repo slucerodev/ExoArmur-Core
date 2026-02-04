@@ -141,6 +141,7 @@ See: [Optional Module Integration](docs/optional_modules.md)
 - **ExoArmur-Analyst**: Narrative and hypothesis generation from evidence.
 - **ExoArmur-Forensics**: Timeline reconstruction and conflict identification.
 - **ExoLock (ExoArmur-ExoLock)**: Temporal Authority Envelope (TAE) contracts for time-locked decisions.
+- **Control Plane (ExoArmur-Control-Plane)**: Signed Operator Intent (SOI), arbitration, and kill authority contracts.
 
 ## Audit vs Logging
 - Audit artifacts (AuditRecordV1 and related envelopes) are authoritative, immutable evidence for decisions.
