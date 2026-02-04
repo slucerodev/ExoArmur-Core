@@ -29,6 +29,7 @@ ExoArmur/
 │   └── [additional documentation]
 ├── modules/                      # Proprietary modules (split-ready)
 │   └── EXAMPLE_MODULE_TEMPLATE/  # Template-only module placeholder
+│   └── exoarmur_exolock/          # ExoLock module (contracts-only)
 ├── scripts/                      # Utility and demonstration scripts
 │   ├── boundary_gate.py
 │   ├── demo_handshake.py
@@ -159,6 +160,7 @@ ExoArmur/
 
 - `EXAMPLE_MODULE_TEMPLATE/`: Template-only placeholder used to validate export
   and boundary enforcement without any runtime logic.
+- `exoarmur_exolock/`: ExoLock (Temporal Authority Envelope) contracts only.
 
 ### Tooling (`tools/`)
 

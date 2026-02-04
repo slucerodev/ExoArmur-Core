@@ -6,6 +6,9 @@
   "module_prefixes": {
     "EXAMPLE_MODULE_TEMPLATE": [
       "exoarmur_example_module_template"
+    ],
+    "exoarmur_exolock": [
+      "exoarmur_exolock"
     ]
   },
   "allowed_core_prefixes": [

@@ -135,6 +135,13 @@ See: [Optional Module Integration](docs/optional_modules.md)
 ### Module Separation (Split-Ready Layout)
 - Repo structure, boundary rules, and export steps: [docs/MODULE_SEPARATION.md](docs/MODULE_SEPARATION.md)
 
+### Proprietary Modules (Optional, Exportable)
+- **ExoArmur-DPO**: Offline evidence verification and DPO bundle validation.
+- **ExoArmur-Temporal**: Deterministic belief evolution over time.
+- **ExoArmur-Analyst**: Narrative and hypothesis generation from evidence.
+- **ExoArmur-Forensics**: Timeline reconstruction and conflict identification.
+- **ExoLock (ExoArmur-ExoLock)**: Temporal Authority Envelope (TAE) contracts for time-locked decisions.
+
 ## Audit vs Logging
 - Audit artifacts (AuditRecordV1 and related envelopes) are authoritative, immutable evidence for decisions.
 - Logging is diagnostic and non-authoritative; logs cannot substitute for audit artifacts.

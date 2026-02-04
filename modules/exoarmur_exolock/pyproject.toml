@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exoarmur-exolock"
+version = "0.1.0"
+description = "Stage 1 Temporal Authority Envelope contracts (no runtime)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary - All rights reserved" }
+
+[tool.setuptools]
+packages = []

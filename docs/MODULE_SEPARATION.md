@@ -43,6 +43,11 @@ Each module includes `export_manifest.json` describing its export path.
 bash tools/export_module.sh EXAMPLE_MODULE_TEMPLATE /tmp/exoarmur-example-module
 ```
 
+```bash
+# From repo root
+bash tools/export_module.sh exoarmur_exolock /tmp/exoarmur-exolock
+```
+
 If `git-filter-repo` is unavailable, the script falls back to `git subtree split`.
 
 ## Verification Checklist
