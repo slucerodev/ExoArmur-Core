@@ -39,7 +39,8 @@ class TestPluginRegistry:
             assert registry.get_groups_count() == {
                 "exoarmur.temporal": 0,
                 "exoarmur.analyst": 0,
-                "exoarmur.forensics": 0
+                "exoarmur.forensics": 0,
+                "exoarmur.pod": 0
             }
     
     def test_no_import_side_effects_during_discovery(self):

@@ -32,7 +32,8 @@ class PluginRegistry:
         self._entry_point_groups = [
             "exoarmur.temporal",
             "exoarmur.analyst", 
-            "exoarmur.forensics"
+            "exoarmur.forensics",
+            "exoarmur.pod"
         ]
     
     def discover_providers(self) -> None:
