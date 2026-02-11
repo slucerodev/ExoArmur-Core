@@ -153,6 +153,22 @@ class TestPluginRegistry:
         # Test load_provider raises error for missing
         with pytest.raises(ValueError, match="Provider not found"):
             registry.load_provider("exoarmur.temporal", "nonexistent")
+
+    def test_pod_provider_discovered_after_discover_providers(self):
+        """PoD provider should be discoverable via entry points"""
+        registry = PluginRegistry()
+        registry.discover_providers()
+
+        groups = registry.get_groups_count()
+        assert groups["exoarmur.pod"] >= 1
+
+        provider = registry.get_provider("exoarmur.pod", "pod")
+        assert provider is not None
+        assert provider.module_name == "exoarmur_pod.plugin"
+
+        entry_point = getattr(provider.load_function, "__self__", None)
+        assert entry_point is not None
+        assert getattr(entry_point, "value", None) == "exoarmur_pod.plugin:pod_provider"
     
     def test_global_registry_singleton(self):
         """Test global registry is singleton"""
