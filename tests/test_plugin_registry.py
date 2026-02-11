@@ -3,6 +3,8 @@ Tests for Plugin Registry
 Verifies discovery works with zero providers and no import side effects
 """
 
+import importlib.util
+from importlib.metadata import entry_points
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +14,17 @@ from exoarmur.plugins.registry import (
     get_plugin_registry,
     get_provider_summary,
 )
+
+
+def _pod_provider_installed() -> bool:
+    if importlib.util.find_spec("exoarmur_pod") is None:
+        return False
+
+    eps = entry_points()
+    if "exoarmur.pod" not in eps.groups:
+        return False
+
+    return len(entry_points(group="exoarmur.pod")) > 0
 
 
 class TestPluginRegistry:
@@ -156,6 +169,9 @@ class TestPluginRegistry:
 
     def test_pod_provider_discovered_after_discover_providers(self):
         """PoD provider should be discoverable via entry points"""
+        if not _pod_provider_installed():
+            pytest.skip("PoD provider not installed in this environment")
+
         registry = PluginRegistry()
         registry.discover_providers()
 
@@ -172,6 +188,9 @@ class TestPluginRegistry:
 
     def test_pod_provider_runtime_load_via_registry_api(self):
         """PoD provider should load via registry API"""
+        if not _pod_provider_installed():
+            pytest.skip("PoD provider not installed in this environment")
+
         registry = PluginRegistry()
         assert registry.get_groups_count() == {}
 
