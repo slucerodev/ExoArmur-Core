@@ -207,6 +207,41 @@ class TestPluginRegistry:
                 assert provider is None
             except Exception as exc:
                 assert type(exc).__name__ in {"KeyError", "LookupError"}
+
+    def test_pod_provider_failure_isolated(self):
+        """PoD provider load failure should not corrupt registry state"""
+        registry = PluginRegistry()
+        mock_ep = MagicMock()
+        mock_ep.name = "pod"
+        mock_ep.module = "exoarmur_pod.plugin"
+        mock_ep.load = MagicMock(side_effect=RuntimeError("boom"))
+
+        with patch('importlib.metadata.entry_points') as mock_entry_points:
+            def mock_entry_points_side_effect(group):
+                if group == "exoarmur.pod":
+                    return [mock_ep]
+                return []
+
+            mock_entry_points.side_effect = mock_entry_points_side_effect
+
+            registry.discover_providers()
+            counts_before = registry.get_groups_count()
+            assert counts_before == {
+                "exoarmur.temporal": 0,
+                "exoarmur.analyst": 0,
+                "exoarmur.forensics": 0,
+                "exoarmur.pod": 1,
+            }
+
+            with pytest.raises(RuntimeError, match="boom"):
+                registry.load_provider("exoarmur.pod", "pod")
+
+            counts_after = registry.get_groups_count()
+            assert counts_after == counts_before
+
+            registry.discover_providers()
+            counts_after_second = registry.get_groups_count()
+            assert counts_after_second == counts_before
     
     def test_global_registry_singleton(self):
         """Test global registry is singleton"""
