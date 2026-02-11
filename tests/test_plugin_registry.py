@@ -169,6 +169,22 @@ class TestPluginRegistry:
         entry_point = getattr(provider.load_function, "__self__", None)
         assert entry_point is not None
         assert getattr(entry_point, "value", None) == "exoarmur_pod.plugin:pod_provider"
+
+    def test_pod_provider_runtime_load_via_registry_api(self):
+        """PoD provider should load via registry API"""
+        registry = PluginRegistry()
+        assert registry.get_groups_count() == {}
+
+        registry.discover_providers()
+        counts = registry.get_groups_count()
+        assert "exoarmur.pod" in counts
+
+        provider = registry.get_provider("exoarmur.pod", "pod")
+        assert provider is not None
+        assert getattr(provider, "module_name", None) == "exoarmur_pod.plugin"
+
+        instance = registry.load_provider("exoarmur.pod", "pod")
+        assert instance is not None
     
     def test_global_registry_singleton(self):
         """Test global registry is singleton"""
