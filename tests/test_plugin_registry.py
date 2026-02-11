@@ -185,6 +185,28 @@ class TestPluginRegistry:
 
         instance = registry.load_provider("exoarmur.pod", "pod")
         assert instance is not None
+
+    def test_pod_absent_safe_behavior(self):
+        """PoD absence should be handled safely"""
+        registry = PluginRegistry()
+
+        with patch('importlib.metadata.entry_points') as mock_entry_points:
+            def mock_entry_points_side_effect(group):
+                if group == "exoarmur.temporal":
+                    return [MagicMock()]
+                return []
+
+            mock_entry_points.side_effect = mock_entry_points_side_effect
+
+            registry.discover_providers()
+            counts = registry.get_groups_count()
+            assert counts["exoarmur.pod"] == 0
+
+            try:
+                provider = registry.get_provider("exoarmur.pod", "pod")
+                assert provider is None
+            except Exception as exc:
+                assert type(exc).__name__ in {"KeyError", "LookupError"}
     
     def test_global_registry_singleton(self):
         """Test global registry is singleton"""
