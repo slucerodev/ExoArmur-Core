@@ -112,3 +112,15 @@ echo "**Archive SHA256**: ${ARCHIVE_SHA256}" >> "${REPO_ROOT}/docs/governance/qu
 ---
 **Receipt completed**: 2026-02-28T00:40:13Z  
 **Status**: Documentation only - no changes made
+
+## Archive Receipt
+- **Archived**: 20260228T012927Z (UTC)
+- **Git Head**: cfda1e933fc621a5bdf0bd9f036c55184495afe3
+- **Archive Path**: /home/oem/CascadeProjects/ExoArmur-archives/phase3a-quarantine-20260228T012927Z.tar.gz
+- **SHA256**: f24d62261cf04f18261950d30289f34db45d4716dae3d7e55e250839cfedf902
+- **Archived Dirs**:
+  - src/exoarmur/pod
+  - src/exoarmur/storage
+  - src/exoarmur/dpo
+  - src/exoarmur/observability
+  - src/exoarmur/ui
