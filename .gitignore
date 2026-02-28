@@ -48,7 +48,7 @@ nats_data/
 *.pid
 
 # Local Artifacts and Runtime Files
-artifacts/schema_change_waivers.json
+artifacts/
 *.log
 *.tmp
 *.temp
