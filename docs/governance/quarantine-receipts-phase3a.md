@@ -124,3 +124,15 @@ echo "**Archive SHA256**: ${ARCHIVE_SHA256}" >> "${REPO_ROOT}/docs/governance/qu
   - src/exoarmur/dpo
   - src/exoarmur/observability
   - src/exoarmur/ui
+
+## Removal Performed (Post-Archive)
+- timestamp_utc: 20260228T014648Z
+- git_head: 60b19f4
+- action: removed empty namespace footholds from working tree after external archive + sha256 receipt
+- removed_paths:
+  - src/exoarmur/pod
+  - src/exoarmur/storage
+  - src/exoarmur/dpo
+  - src/exoarmur/observability
+  - src/exoarmur/ui
+- note: "Directories were confirmed empty (only . and ..) prior to rmdir. No tracked files affected."
