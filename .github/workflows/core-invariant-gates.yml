@@ -1,0 +1,64 @@
+name: ExoArmur Core Invariant Gates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  core-invariants:
+    runs-on: ubuntu-latest
+    name: Core Invariant Gates (Fail-Fast)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Gate 0 — No untracked under src/exoarmur
+        run: bash scripts/governance/guard_untracked_src_exoarmur.sh
+
+      - name: Set up Python 3.12.3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.3'
+
+      - name: Gate 1 — Deterministic Environment Setup (Pinned Python + Clean Install)
+        run: |
+          python3 -m pip install --upgrade pip -c constraints.txt
+          python3 -m pip install -c constraints.txt .
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-asyncio
+
+      - name: Provide docker-compose (shim to docker compose v2)
+        run: |
+          set -euo pipefail
+          docker --version
+          docker compose version
+          sudo tee /usr/local/bin/docker-compose >/dev/null <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker compose "$@"
+          SH
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: Gate 2 — Test Execution (python3 -m pytest -q)
+        run: python3 -m pytest -q
+
+      - name: Snapshot diagnostics on failure
+        if: failure()
+        run: |
+          python scripts/export_openapi_and_schemas.py || true
+          git status --porcelain=v1 || true
+          git diff || true
+
+      - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
+        run: python3 scripts/boundary_gate.py
+
+      - name: Gate 4 — Repo Cleanliness (No Generated Diffs)
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"

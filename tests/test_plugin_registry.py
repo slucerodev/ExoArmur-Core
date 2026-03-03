@@ -3,6 +3,8 @@ Tests for Plugin Registry
 Verifies discovery works with zero providers and no import side effects
 """
 
+import importlib.util
+from importlib.metadata import entry_points
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +14,17 @@ from exoarmur.plugins.registry import (
     get_plugin_registry,
     get_provider_summary,
 )
+
+
+def _pod_provider_installed() -> bool:
+    if importlib.util.find_spec("exoarmur_pod") is None:
+        return False
+
+    eps = entry_points()
+    if "exoarmur.pod" not in eps.groups:
+        return False
+
+    return len(entry_points(group="exoarmur.pod")) > 0
 
 
 class TestPluginRegistry:
@@ -39,7 +52,8 @@ class TestPluginRegistry:
             assert registry.get_groups_count() == {
                 "exoarmur.temporal": 0,
                 "exoarmur.analyst": 0,
-                "exoarmur.forensics": 0
+                "exoarmur.forensics": 0,
+                "exoarmur.pod": 0
             }
     
     def test_no_import_side_effects_during_discovery(self):
@@ -152,6 +166,101 @@ class TestPluginRegistry:
         # Test load_provider raises error for missing
         with pytest.raises(ValueError, match="Provider not found"):
             registry.load_provider("exoarmur.temporal", "nonexistent")
+
+    def test_pod_provider_discovered_after_discover_providers(self):
+        """PoD provider should be discoverable via entry points"""
+        if not _pod_provider_installed():
+            pytest.skip("PoD provider not installed in this environment")
+
+        registry = PluginRegistry()
+        registry.discover_providers()
+
+        groups = registry.get_groups_count()
+        assert groups["exoarmur.pod"] >= 1
+
+        provider = registry.get_provider("exoarmur.pod", "pod")
+        assert provider is not None
+        assert provider.module_name == "exoarmur_pod.plugin"
+
+        entry_point = getattr(provider.load_function, "__self__", None)
+        assert entry_point is not None
+        assert getattr(entry_point, "value", None) == "exoarmur_pod.plugin:pod_provider"
+
+    def test_pod_provider_runtime_load_via_registry_api(self):
+        """PoD provider should load via registry API"""
+        if not _pod_provider_installed():
+            pytest.skip("PoD provider not installed in this environment")
+
+        registry = PluginRegistry()
+        assert registry.get_groups_count() == {}
+
+        registry.discover_providers()
+        counts = registry.get_groups_count()
+        assert "exoarmur.pod" in counts
+
+        provider = registry.get_provider("exoarmur.pod", "pod")
+        assert provider is not None
+        assert getattr(provider, "module_name", None) == "exoarmur_pod.plugin"
+
+        instance = registry.load_provider("exoarmur.pod", "pod")
+        assert instance is not None
+
+    def test_pod_absent_safe_behavior(self):
+        """PoD absence should be handled safely"""
+        registry = PluginRegistry()
+
+        with patch('importlib.metadata.entry_points') as mock_entry_points:
+            def mock_entry_points_side_effect(group):
+                if group == "exoarmur.temporal":
+                    return [MagicMock()]
+                return []
+
+            mock_entry_points.side_effect = mock_entry_points_side_effect
+
+            registry.discover_providers()
+            counts = registry.get_groups_count()
+            assert counts["exoarmur.pod"] == 0
+
+            try:
+                provider = registry.get_provider("exoarmur.pod", "pod")
+                assert provider is None
+            except Exception as exc:
+                assert type(exc).__name__ in {"KeyError", "LookupError"}
+
+    def test_pod_provider_failure_isolated(self):
+        """PoD provider load failure should not corrupt registry state"""
+        registry = PluginRegistry()
+        mock_ep = MagicMock()
+        mock_ep.name = "pod"
+        mock_ep.module = "exoarmur_pod.plugin"
+        mock_ep.load = MagicMock(side_effect=RuntimeError("boom"))
+
+        with patch('importlib.metadata.entry_points') as mock_entry_points:
+            def mock_entry_points_side_effect(group):
+                if group == "exoarmur.pod":
+                    return [mock_ep]
+                return []
+
+            mock_entry_points.side_effect = mock_entry_points_side_effect
+
+            registry.discover_providers()
+            counts_before = registry.get_groups_count()
+            assert counts_before == {
+                "exoarmur.temporal": 0,
+                "exoarmur.analyst": 0,
+                "exoarmur.forensics": 0,
+                "exoarmur.pod": 1,
+            }
+
+            with pytest.raises(RuntimeError, match="boom"):
+                registry.load_provider("exoarmur.pod", "pod")
+
+            counts_after = registry.get_groups_count()
+            assert counts_after == counts_before
+
+            registry.discover_providers()
+            counts_after_second = registry.get_groups_count()
+            assert counts_after_second == counts_before
     
     def test_global_registry_singleton(self):
         """Test global registry is singleton"""

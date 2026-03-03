@@ -8,7 +8,7 @@ import logging
 import json
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class FeatureFlagContext:
     cell_id: str
     tenant_id: str
     environment: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class FeatureFlags:

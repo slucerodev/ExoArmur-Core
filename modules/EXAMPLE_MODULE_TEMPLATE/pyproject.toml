@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exoarmur-example-module-template"
+version = "0.0.0"
+description = "Template-only module metadata (no implementation)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary - All rights reserved" }
+
+[tool.setuptools]
+packages = []

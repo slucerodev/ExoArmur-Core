@@ -48,7 +48,8 @@ nats_data/
 *.pid
 
 # Local Artifacts and Runtime Files
-artifacts/schema_change_waivers.json
+artifacts/*
+!artifacts/openapi_v1.json
 *.log
 *.tmp
 *.temp
@@ -88,6 +89,8 @@ test_*.sh
 
 # Local environments (additional entries)
 .venv/
+.venv_build/
+.venv_audit/
 .venv_clean_install/
 .venv_test/
 

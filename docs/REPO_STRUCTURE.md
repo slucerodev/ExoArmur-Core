@@ -2,7 +2,7 @@
 
 ## Directory Overview
 
-This document describes the complete repository structure as of the 2025-01-25 snapshot.
+This document describes the repository structure for the split-ready layout.
 
 ```
 ExoArmur/
@@ -27,12 +27,21 @@ ExoArmur/
 │   ├── PHASE_STATUS.md
 │   ├── REPO_STRUCTURE.md
 │   └── [additional documentation]
+├── modules/                      # Proprietary modules (split-ready)
+│   └── EXAMPLE_MODULE_TEMPLATE/  # Template-only module placeholder
+│   └── exoarmur_control_plane/    # Control Plane module (contracts-only)
+│   └── exoarmur_exolock/          # ExoLock module (contracts-only)
 ├── scripts/                      # Utility and demonstration scripts
 │   ├── boundary_gate.py
 │   ├── demo_handshake.py
 │   ├── demo_identity_containment.py
 │   ├── demo_v2_restrained_autonomy.py
 │   └── [additional scripts]
+├── tools/                        # Export + boundary enforcement tooling
+│   ├── boundary_check.py
+│   ├── boundary_manifest.json
+│   ├── export_core.sh
+│   └── export_module.sh
 ├── spec/                         # Specifications and contracts
 │   └── contracts/               # Data contracts and schemas
 │       ├── arbitration_precedence_v1.yaml
@@ -147,6 +156,19 @@ ExoArmur/
 
 **Utility Scripts**:
 - `demo_handshake.py`: Handshake protocol demonstration
+
+### Modules (`modules/`)
+
+- `EXAMPLE_MODULE_TEMPLATE/`: Template-only placeholder used to validate export
+  and boundary enforcement without any runtime logic.
+- `exoarmur_control_plane/`: Control Plane (SOI + arbitration) contracts only.
+- `exoarmur_exolock/`: ExoLock (Temporal Authority Envelope) contracts only.
+
+### Tooling (`tools/`)
+
+- `boundary_check.py`: Hard boundary enforcement for core/modules imports.
+- `export_core.sh`: Export script for core-only repository.
+- `export_module.sh`: Export script for a specific module.
 
 ### Documentation (`docs/`)
 

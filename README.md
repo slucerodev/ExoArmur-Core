@@ -6,9 +6,10 @@
 
 **Deterministic & Auditable — Beta**
 
-ExoArmur Core is a deterministic execution safety substrate designed to enforce
-guardrails, preserve auditability, and enable replayable decision verification
-for automation and autonomous-adjacent systems.
+ExoArmur Core is deterministic governance + replay infrastructure for
+autonomous decisions. It enforces guardrails, preserves auditability, and
+enables replayable decision verification for automation and
+autonomous-adjacent systems.
 
 This repository contains the open-core foundation of ExoArmur.
 
@@ -61,6 +62,8 @@ and documented by tests in this repository.
 
 - Docker
 - Docker Compose
+- NATS server (only for live Golden Demo; not bundled — download from
+  https://docs.nats.io/running-a-nats-service/nats_admin/installation)
 
 ### Start the runtime
 
@@ -80,7 +83,10 @@ source venv/bin/activate
 # Install ExoArmur Core
 pip install .
 
-# Run tests
+# Run deterministic replay quickstart (infra-free; no external deps)
+python examples/quickstart_replay.py
+
+# Run tests (optional)
 python -m pytest tests/ -v
 
 # Run Golden Demo (live NATS JetStream acceptance test)
@@ -102,9 +108,12 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golde
 - V1 core is implemented and immutable
 - Live Golden Demo exercises JetStream publish/consume and audit flow
 - Feature flags default OFF
+- Minimal public API: `ReplayEngine` (deterministic replay from audit
+  evidence) and `PhaseGate` (phase isolation guard)
 
 **WHAT IS GATED (V2):**
-- V2 scaffolding exists behind feature flags
+- V2 scaffolding (federation, autonomy pipelines) exists behind feature flags
+  and is considered advanced; not required for the quickstart
 - Optional extra: `pip install -e ".[v2]"`
 
 **WHAT IS NOT IMPLEMENTED YET:**
@@ -114,6 +123,34 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golde
 **DPO INTEGRATION (OFFLINE):**
 - Core can export deterministic evidence bundles to filesystem
 - ExoArmur-DPO can verify these bundles offline
+
+### Optional ExoArmur-DPO Integration
+- ExoArmur-Core does **not** require ExoArmur-DPO. The module is proprietary and strictly optional.
+- When `exoarmur_dpo` is not installed, DPO integration tests are **explicitly skipped** (not failed) to preserve boundary integrity.
+
+**Enable DPO integration intentionally:**
+1) Install ExoArmur-DPO into the same environment.
+2) Ensure it is importable as `exoarmur_dpo`.
+3) Re-run the integration tests to exercise the boundary:
+   - `python3 -m pytest -q tests/integration/test_core_dpo_integration.py -q`
+
+**Boundary rationale:**
+- Core remains clean and open; proprietary modules are opt‑in only.
+- Stubbing or vendoring ExoArmur-DPO into Core is forbidden.
+- Explicit skips prevent false positives and maintain auditability and trust.
+
+See: [Optional Module Integration](docs/optional_modules.md)
+
+### Module Separation (Split-Ready Layout)
+- Repo structure, boundary rules, and export steps: [docs/MODULE_SEPARATION.md](docs/MODULE_SEPARATION.md)
+
+### Proprietary Modules (Optional, Exportable)
+- **ExoArmur-DPO**: Offline evidence verification and DPO bundle validation.
+- **ExoArmur-Temporal**: Deterministic belief evolution over time.
+- **ExoArmur-Analyst**: Narrative and hypothesis generation from evidence.
+- **ExoArmur-Forensics**: Timeline reconstruction and conflict identification.
+- **ExoLock (ExoArmur-ExoLock)**: Temporal Authority Envelope (TAE) contracts for time-locked decisions.
+- **Control Plane (ExoArmur-Control-Plane)**: Signed Operator Intent (SOI), arbitration, and kill authority contracts.
 
 ## Audit vs Logging
 - Audit artifacts (AuditRecordV1 and related envelopes) are authoritative, immutable evidence for decisions.

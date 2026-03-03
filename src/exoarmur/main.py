@@ -5,11 +5,12 @@ Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → Collect
 
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import logging
 import sys
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import uuid
 
@@ -55,13 +56,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
-app = FastAPI(
-    title="ExoArmur ADMO v1 API",
-    description="Autonomous Defense Mesh Organism v1 - Thin Vertical Slice API",
-    version="1.0.0"
-)
-
 # Global components (will be initialized on startup)
 nats_client: Optional[ExoArmurNATSClient] = None
 telemetry_validator: Optional[TelemetryValidator] = None
@@ -99,60 +93,67 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     logger.info("ADMO components initialized")
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize components on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize and cleanup components on app lifespan."""
+    global nats_client, background_tasks
     logger.info("Starting ExoArmur ADMO service")
-    
+
     # Initialize NATS client
     nats_config = NATSConfig(url=os.getenv("NATS_URL", "nats://localhost:4222"))
     nats_client_instance = ExoArmurNATSClient(nats_config)
     await nats_client_instance.connect()
     await nats_client_instance.ensure_streams()
-    
+
     # Initialize components with NATS client
     initialize_components(nats_client_instance)
-    
+
     # Start background consumers with tracking
     if collective_aggregator:
         task1 = asyncio.create_task(collective_aggregator.start_consumer())
         task1.add_done_callback(background_tasks.discard)
         background_tasks.add(task1)
-    
+
     if audit_logger:
         task2 = asyncio.create_task(audit_logger.start_consumer())
         task2.add_done_callback(background_tasks.discard)
         background_tasks.add(task2)
-    
+
     logger.info("ExoArmur ADMO service started successfully")
 
+    try:
+        yield
+    finally:
+        # Cancel all background tasks
+        if background_tasks:
+            logger.info(f"Cancelling {len(background_tasks)} background tasks")
+            for task in background_tasks:
+                task.cancel()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    global nats_client, background_tasks
-    
-    # Cancel all background tasks
-    if background_tasks:
-        logger.info(f"Cancelling {len(background_tasks)} background tasks")
-        for task in background_tasks:
-            task.cancel()
-        
-        # Wait for tasks to complete with timeout
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*background_tasks, return_exceptions=True),
-                timeout=5.0
-            )
-        except asyncio.TimeoutError:
-            logger.warning("Background tasks did not complete within timeout")
-        finally:
-            background_tasks.clear()
-    
-    if nats_client:
-        await nats_client.disconnect()
-    
-    logger.info("ExoArmur ADMO service stopped")
+            # Wait for tasks to complete with timeout
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*background_tasks, return_exceptions=True),
+                    timeout=5.0
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Background tasks did not complete within timeout")
+            finally:
+                background_tasks.clear()
+
+        if nats_client:
+            await nats_client.disconnect()
+
+        logger.info("ExoArmur ADMO service stopped")
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="ExoArmur ADMO v1 API",
+    description="Autonomous Defense Mesh Organism v1 - Thin Vertical Slice API",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 
 @app.get("/health")
@@ -371,7 +372,7 @@ async def get_audit_records(correlation_id: str):
             correlation_id=correlation_id,
             audit_records=audit_records_dicts,
             total_count=len(audit_records),
-            retrieved_at=datetime.utcnow()
+            retrieved_at=datetime.now(timezone.utc)
         )
         
         logger.info(f"Retrieved {len(audit_records)} audit records for correlation {correlation_id}")

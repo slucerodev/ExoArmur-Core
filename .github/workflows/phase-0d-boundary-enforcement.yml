@@ -111,7 +111,12 @@ jobs:
         python -m pip install --upgrade pip -c constraints.txt
         python -m pip install -r requirements.txt
         pip install -e .
-    
+
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-asyncio
+
     - name: Check test collection count
       run: |
         echo "Checking test collection stability..."
@@ -119,14 +124,14 @@ jobs:
         SUMMARY=$(python -m pytest --collect-only -q 2>/dev/null | tail -1 || true)
         echo "Summary: $SUMMARY"
         
-        if [[ "$SUMMARY" != *"590 tests collected"* ]]; then
-          echo "❌ Test collection count changed from expected 590"
-          echo "   Expected: 590 tests collected"
+        if [[ "$SUMMARY" != *"612 tests collected"* ]]; then
+          echo "❌ Test collection count changed from expected 612"
+          echo "   Expected: 612 tests collected"
           echo "   Actual: $SUMMARY"
           exit 1
         fi
         
-        echo "✅ Test collection count stable: 590 tests"
+        echo "✅ Test collection count stable: 612 tests"
 
   full-test-suite:
     runs-on: ubuntu-latest
@@ -154,7 +159,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip -c constraints.txt
         pip install -e .
-    
+
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-asyncio
+
     - name: Run full test suite
       run: |
         echo "Running full test suite..."

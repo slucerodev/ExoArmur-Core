@@ -1,0 +1,24 @@
+{
+  "name": "exoarmur-core",
+  "paths": [
+    ".github",
+    "docs",
+    "scripts",
+    "tools",
+    "src",
+    "tests",
+    "spec",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE",
+    "requirements.txt",
+    "constraints.txt",
+    "conftest.py",
+    "Dockerfile",
+    "docker-compose.yml",
+    "Makefile",
+    "OPEN_CORE_BOUNDARIES.md",
+    "RELEASE_REPRODUCIBILITY.md",
+    "SECURITY.md"
+  ]
+}

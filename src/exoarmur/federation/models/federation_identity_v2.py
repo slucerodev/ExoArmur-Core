@@ -52,12 +52,6 @@ class HandshakeState(str, Enum):
 
 class CellIdentity(BaseModel):
     """Cell identity information matching federation_identity_v2.yaml contract"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     cell_id: str = Field(..., description="Unique cell identifier")
     cell_public_key: str = Field(..., description="Base64 encoded Ed25519 public key")
     cell_certificate_chain: List[str] = Field(..., description="PE encoded X.509 certificate chain")
@@ -81,12 +75,6 @@ class CellIdentity(BaseModel):
 
 class IdentityExchangeMessage(BaseModel):
     """Identity exchange message matching contract"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     cell_identity: CellIdentity = Field(..., description="Cell identity information")
     signature: str = Field(..., description="Ed25519 signature of message")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Message timestamp")
@@ -95,12 +83,6 @@ class IdentityExchangeMessage(BaseModel):
 
 class CapabilityNegotiateMessage(BaseModel):
     """Capability negotiation message matching contract"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     supported_capabilities: List[CapabilityType] = Field(..., description="Supported capabilities")
     required_capabilities: List[CapabilityType] = Field(..., description="Required capabilities from peer")
     priority: int = Field(default=1, ge=1, le=10, description="Negotiation priority")
@@ -111,12 +93,6 @@ class CapabilityNegotiateMessage(BaseModel):
 
 class TrustEstablishMessage(BaseModel):
     """Trust establishment message matching contract"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     trust_score: float = Field(..., ge=0.0, le=1.0, description="Proposed trust score")
     trust_reasons: List[str] = Field(..., description="Reasons for trust score")
     expiration: datetime = Field(..., description="Trust score expiration")
@@ -127,12 +103,6 @@ class TrustEstablishMessage(BaseModel):
 
 class FederationConfirmMessage(BaseModel):
     """Federation confirmation message matching contract"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     federation_id: str = Field(..., description="Federation identifier")
     member_cells: List[str] = Field(..., description="Member cell IDs")
     coordinator_cell: str = Field(..., description="Coordinator cell ID")
@@ -144,12 +114,6 @@ class FederationConfirmMessage(BaseModel):
 
 class HandshakeSession(BaseModel):
     """Handshake session tracking"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     session_id: str = Field(..., description="Session identifier")
     session_nonce: str = Field(..., description="Session nonce for replay protection")
     initiator_cell_id: str = Field(..., description="Initiator cell ID")
@@ -162,11 +126,5 @@ class HandshakeSession(BaseModel):
 
 class FederationIdentityMessage(BaseModel):
     """Union type for all federation identity messages"""
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-    
     message_type: str = Field(..., description="Message type identifier")
     message_data: Union[IdentityExchangeMessage, CapabilityNegotiateMessage, TrustEstablishMessage, FederationConfirmMessage] = Field(..., description="Message payload")
