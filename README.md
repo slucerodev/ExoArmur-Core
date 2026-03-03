@@ -2,6 +2,12 @@
 
 Deterministic governance and replay infrastructure for auditable execution. ExoArmur Core freezes decisions into immutable intents, enforces safety and tenant isolation gates, and produces replayable audit trails that can be verified independently. It does not generate autonomous behavior; it verifies and governs execution downstream of external decision sources.
 
+## Architectural Role
+
+ExoArmur Core is the deterministic governance layer within a modular execution architecture. It is designed to sit beneath higher-order automation, orchestration, and analysis systems, ensuring that execution remains invariant-bound, replayable, and independently verifiable regardless of the upstream decision source.
+
+Core intentionally separates enforcement from intelligence. Decision-making systems may evolve independently, but execution integrity and audit guarantees remain stable at this layer.
+
 ## Status
 
 v1.0.0
