@@ -68,6 +68,16 @@ pip install ".[v2]"   # optional extras
 
 Editable installs (`pip install -e .`) are currently unsupported due to upstream packaging issues.
 
+## 5-Minute Proof
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+exoarmur --help
+python examples/quickstart_replay.py
+```
+
 ## CLI
 
 ```bash
