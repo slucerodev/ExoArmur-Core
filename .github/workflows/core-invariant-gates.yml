@@ -27,6 +27,11 @@ jobs:
           python3 -m pip install --upgrade pip -c constraints.txt
           python3 -m pip install -c constraints.txt .
 
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-asyncio
+
       - name: Gate 2 — Test Execution (python3 -m pytest -q)
         run: python3 -m pytest -q
 
