@@ -27,6 +27,12 @@ jobs:
           python3 -m pip install --upgrade pip -c constraints.txt
           python3 -m pip install -c constraints.txt .
 
+      - name: Gate 1a — Packaging smoke (install + CLI + quickstart)
+        run: |
+          python -m pip install .
+          exoarmur --help | head -30
+          python examples/quickstart_replay.py
+
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
