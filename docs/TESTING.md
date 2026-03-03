@@ -131,21 +131,22 @@ pytest tests/test_v2_feature_flag_isolation.py -v
 ### Full Test Suite
 ```bash
 pytest -q
-# Expected: 59 passed, 15 xfailed, 155 warnings
+# Example snapshot (v0.2.0): 597 passed, 7 skipped, 11 xfailed
+# Skips are expected for optional modules (PoD/DPO), live NATS demo, and schema waivers.
 ```
 
 ### V1 Core Tests
 ```bash
 # Run V1 tests only (exclude V2 acceptance)
 pytest -q --ignore=tests/test_federation_v2_acceptance.py --ignore=tests/test_operator_approval_v2_acceptance.py
-# Expected: 51 passed, 2 xfailed, 0 failed, 0 errors, 0 skipped
+# Expected: all green except intentional xfails; no skips/errors when optional modules are installed and waivers provided.
 ```
 
 ### V2 Tests Only
 ```bash
 # Run V2 acceptance tests (expected xfail)
 pytest tests/test_federation_v2_acceptance.py tests/test_operator_approval_v2_acceptance.py -v
-# Expected: 0 passed, 14 xfailed, 0 failed, 0 errors, 0 skipped
+# Expected: all xfailed until Phase 2 functionality lands.
 
 # Run V2 isolation tests (expected pass)
 pytest tests/test_v2_feature_flag_isolation.py -v

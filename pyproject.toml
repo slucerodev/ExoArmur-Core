@@ -40,6 +40,10 @@ exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
 v2 = []
+dev = [
+  "pytest",
+  "pytest-asyncio",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -34,6 +34,25 @@ The core architecture is contract-stable. Public interfaces evolve only through 
 
 - Python >= 3.8 (CI tested on 3.12.x)
 
+### Testing prerequisites
+
+- Pytest is a **dev** dependency (not installed with runtime deps).
+- Minimal test setup:
+
+```bash
+python -m pip install pytest pytest-asyncio
+python -m pytest -q
+```
+
+- Optional dev extra (installs pytest + async support):
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest -q
+```
+
+- Golden Demo is optional and requires NATS JetStream + Docker; if you skip it, the rest of the suite still runs.
+
 ### Install
 
 ```bash
@@ -86,6 +105,10 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golde
 ## Optional Proprietary Modules
 
 Core is fully functional on its own. Optional proprietary modules can extend capabilities but are not required and remain opt-in.
+
+## V2 status
+
+V2 paths are gated scaffolding; defaults keep V2 disabled. See `docs/PHASE_STATUS.md` for current phase and expectations.
 
 ## Versioning Discipline
 
