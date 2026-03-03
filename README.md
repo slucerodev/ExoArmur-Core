@@ -6,11 +6,12 @@ Deterministic governance and replay infrastructure for auditable execution. ExoA
 
 ExoArmur Core is the deterministic governance layer within a modular execution architecture. It is designed to sit beneath higher-order automation, orchestration, and analysis systems, ensuring that execution remains invariant-bound, replayable, and independently verifiable regardless of the upstream decision source.
 
-Core intentionally separates enforcement from intelligence. Decision-making systems may evolve independently, but execution integrity and audit guarantees remain stable at this layer.
+Core intentionally separates enforcement from intelligence. Decision-making systems may evolve independently, but execution integrity and audit guarantees remain stable at this layer. It enforces invariants, produces replayable evidence, and makes downstream execution verifiable. Optional proprietary modules can extend capabilities, but the governance core remains OSS and contract-stable.
 
 ## Status
 
-v1.0.0
+Architecture / Contract: v1.0.0 (stable)
+Package (pip): 0.2.0
 
 The core architecture is contract-stable. Public interfaces evolve only through test-verified changes.
 

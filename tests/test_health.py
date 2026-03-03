@@ -20,14 +20,14 @@ def test_health_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert data["service"] == "ExoArmur ADMO"
+    assert data["service"] == "ExoArmur Core"
 
 def test_root_endpoint():
     """Test root endpoint"""
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert "ExoArmur ADMO" in data["message"]
+    assert "ExoArmur Core" in data["message"]
 
 def test_openapi_docs_available():
     """Test OpenAPI docs are available"""
@@ -38,4 +38,4 @@ def test_openapi_docs_available():
     assert response.status_code == 200
     data = response.json()
     assert "info" in data
-    assert data["info"]["title"] == "ExoArmur ADMO v1 API"
+    assert data["info"]["title"] == "ExoArmur Core v1 API"

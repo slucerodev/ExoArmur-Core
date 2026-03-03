@@ -1,6 +1,9 @@
 # ExoArmur Open-Core Boundary Definition
 
-**Version: v1.0.0-beta - Phase 6 Certified**
+**Versioning**
+
+- Architecture / Contract: v1.0.0 (stable)
+- Package (pip): 0.2.0
 
 ## 🚨 RUNTIME & ARTIFACTS POLICY
 

@@ -1,5 +1,5 @@
 """
-ExoArmur FastAPI Service - Workflow 1 Implementation
+ExoArmur Core FastAPI service — deterministic governance and replayable audit layer for execution
 Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
 """
 
@@ -72,7 +72,7 @@ background_tasks = set()  # Track background tasks for deterministic shutdown
 
 
 def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = None):
-    """Initialize ADMO components"""
+    """Initialize ExoArmur Core components"""
     global nats_client, telemetry_validator, facts_deriver, local_decider
     global belief_generator, collective_aggregator, safety_gate, execution_kernel, audit_logger, approval_service, intent_store
     
@@ -90,14 +90,14 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     execution_kernel = ExecutionKernel(nats_client, approval_service, intent_store)
     audit_logger = AuditLogger(nats_client)
     
-    logger.info("ADMO components initialized")
+    logger.info("ExoArmur Core components initialized")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize and cleanup components on app lifespan."""
     global nats_client, background_tasks
-    logger.info("Starting ExoArmur ADMO service")
+    logger.info("Starting ExoArmur Core service")
 
     # Initialize NATS client
     nats_config = NATSConfig(url=os.getenv("NATS_URL", "nats://localhost:4222"))
@@ -119,7 +119,7 @@ async def lifespan(app: FastAPI):
         task2.add_done_callback(background_tasks.discard)
         background_tasks.add(task2)
 
-    logger.info("ExoArmur ADMO service started successfully")
+    logger.info("ExoArmur Core service started successfully")
 
     try:
         yield
@@ -144,13 +144,13 @@ async def lifespan(app: FastAPI):
         if nats_client:
             await nats_client.disconnect()
 
-        logger.info("ExoArmur ADMO service stopped")
+        logger.info("ExoArmur Core service stopped")
 
 
 # Create FastAPI app
 app = FastAPI(
-    title="ExoArmur ADMO v1 API",
-    description="Autonomous Defense Mesh Organism v1 - Thin Vertical Slice API",
+    title="ExoArmur Core v1 API",
+    description="Deterministic governance and replayable audit layer for execution",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -160,13 +160,13 @@ app = FastAPI(
 async def health_check():
     """Health check endpoint"""
     logger.info("Health check accessed")
-    return {"status": "healthy", "service": "ExoArmur ADMO"}
+    return {"status": "healthy", "service": "ExoArmur Core"}
 
 
 @app.get("/")
 async def root():
     """Root endpoint"""
-    return {"message": "ExoArmur ADMO - Workflow 1 Implementation"}
+    return {"message": "ExoArmur Core - Workflow 1 Implementation"}
 
 
 @app.post("/v1/telemetry/ingest", response_model=TelemetryIngestResponseV1)

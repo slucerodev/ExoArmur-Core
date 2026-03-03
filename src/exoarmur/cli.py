@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-ExoArmur CLI - Command Line Interface for ExoArmur ADMO
+ExoArmur CLI - Command Line Interface for ExoArmur Core
 
-Provides unified access to ExoArmur functionality including:
+Provides unified access to ExoArmur Core deterministic governance functions including:
 - verify_all: Complete system verification
 - demo: Run demonstration scenarios
 - evidence: Evidence pack operations
@@ -31,7 +31,7 @@ def _script_env(base_env: Optional[dict] = None) -> dict:
 @click.group()
 @click.version_option(version="3.0.0", prog_name="exoarmur")
 def main():
-    """ExoArmur ADMO - Autonomous Defense Mesh Organism"""
+    """ExoArmur Core — deterministic governance and replayable audit layer"""
     pass
 
 @main.command()

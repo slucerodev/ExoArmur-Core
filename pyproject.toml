@@ -5,17 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "exoarmur-core"
 version = "0.2.0"
-description = "ExoArmur ADMO V2 - Autonomous Defense Mesh Organism"
+description = "ExoArmur Core – deterministic governance and replayable audit layer for execution"
 authors = [
     {name = "ExoArmur Team", email = "team@exoarmur.dev"}
 ]
 readme = "README.md"
-license = {text = "MIT"}
+license = {file = "LICENSE"}
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
