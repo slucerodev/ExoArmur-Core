@@ -1,0 +1,119 @@
+# coordination.release.v2 Schema
+# "I am no longer coordinating X"
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coordination Release v2",
+  "description": "Release of coordination role",
+  "type": "object",
+  
+  "required": [
+    "coordination_id",
+    "sender_cell_id",
+    "owner_cell_id",
+    "scope", 
+    "issued_at",
+    "expires_at",
+    "schema_version",
+    "coordination_type",
+    "release_reason",
+    "final_state"
+  ],
+  
+  "properties": {
+    "coordination_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this coordination instance"
+    },
+    
+    "sender_cell_id": {
+      "type": "string",
+      "description": "Cell that sent this release"
+    },
+    
+    "owner_cell_id": {
+      "type": "string",
+      "description": "Cell that owns this coordination (must match claim owner)"
+    },
+    
+    "scope": {
+      "$ref": "#/definitions/coordination_scope",
+      "description": "Scope and boundaries of coordination"
+    },
+    
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this release was issued"
+    },
+    
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this release expires (should be close to issued_at)"
+    },
+    
+    "schema_version": {
+      "type": "string",
+      "enum": ["2.0"],
+      "description": "Protocol version"
+    },
+    
+    "coordination_type": {
+      "type": "string",
+      "enum": ["temporary_coordination"],
+      "description": "Message type identifier"
+    },
+    
+    "release_reason": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Reason for releasing coordination (descriptive only)"
+    },
+    
+    "final_state": {
+      "type": "string",
+      "enum": ["released", "expired", "failed"],
+      "description": "Final state of coordination"
+    }
+  },
+  
+  "definitions": {
+    "coordination_scope": {
+      "type": "object",
+      "required": ["coordination_type", "affected_cells"],
+      "properties": {
+        "coordination_type": {
+          "type": "string",
+          "enum": [
+            "availability_announcement",
+            "capability_sharing",
+            "observation_sharing",
+            "intent_broadcast",
+            "temporary_coordination"
+          ]
+        },
+        "affected_cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "resource_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "geographic_scope": {
+          "type": "string"
+        },
+        "temporal_scope": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,80 @@
+# ADMO v1 Arbitration Precedence Configuration
+#
+# Defines deterministic precedence rules for resolving conflicts between
+# kill switches, policy authorization, safety gating, trust constraints,
+# and collective confidence. This is the definitive arbitration order
+# applied by every cell.
+
+arbitration_precedence_v1:
+  schema_version: "1.0.0"
+  purpose: >
+    Defines deterministic precedence rules for resolving conflicts between
+    kill switches, policy authorization, safety gating, trust constraints,
+    and collective confidence. This is the definitive arbitration order
+    applied by every cell.
+
+  arbitration_order:
+    - level: 1
+      name: KillSwitch
+      description: >
+        Global or tenant kill switches override everything. Only A0 observe
+        may proceed if any kill switch is active.
+      outcome_priority: "deny"
+
+    - level: 2
+      name: PolicyVerification
+      description: >
+        If policy bundle is missing/invalid/unverified, execution beyond A0
+        is prohibited; escalate per severity ladder (typically require_quorum).
+      outcome_priority: "escalate_or_deny"
+
+    - level: 3
+      name: SafetyGate
+      description: >
+        Safety gate verdict overrides decision engine and policy allowance.
+        Safety can deny or require escalation even if policy allows.
+      outcome_priority: "deny_or_escalate"
+
+    - level: 4
+      name: PolicyAuthorization
+      description: >
+        Policy determines what actions are allowed and what approvals are required.
+        Policy cannot force execution; it only authorizes.
+      outcome_priority: "deny_or_require_approval"
+
+    - level: 5
+      name: TrustConstraints
+      description: >
+        Trust modifies autonomy. Low trust can prohibit A2/A3 local execution even
+        if confidence is high, forcing quorum/human gate.
+      outcome_priority: "escalate"
+
+    - level: 6
+      name: CollectiveConfidence
+      description: >
+        Determines if quorum and aggregate_score thresholds are satisfied for A2/A3
+        (unless local-confidence exception is allowed by policy/safety).
+      outcome_priority: "escalate"
+
+    - level: 7
+      name: LocalDecision
+      description: >
+        Local decision proposes intents and confidence. Used after all higher-level
+        constraints are satisfied.
+      outcome_priority: "allow_if_all_above_satisfied"
+
+  tie_breakers:
+    - name: ConflictDetected
+      rule: >
+        If conflict_detected=true then prohibit A3 unless human-approved.
+        Allow only reversible A1 containment if safety allows; otherwise escalate.
+    - name: DegradedMode
+      rule: >
+        In degraded_mode=true, restrict to severity ladder defaults and require
+        escalation for A2/A3 unless explicitly policy-authorized and safety-allowed.
+
+  canonical_statement:
+    policy_authorizes_safety_permits: >
+      Policy authorizes actions. Safety permits actions. If either denies,
+      the action does not execute. Quorum/human gates satisfy approval conditions
+      but never override safety denials.

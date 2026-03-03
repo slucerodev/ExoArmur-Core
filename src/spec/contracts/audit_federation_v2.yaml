@@ -1,0 +1,414 @@
+# ExoArmur ADMO V2 Federation Audit Contract
+# Cross-cell audit trail consolidation and federation audit protocols
+
+audit_federation_v2:
+  purpose: "Cross-cell audit trail consolidation and federation-wide audit protocols"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Federation audit aggregation
+  audit_aggregation:
+    description: "Aggregation of audit events across federation members"
+    fields:
+      - name: federation_audit_id
+        type: string
+        format: "uuid_v4"
+        description: "Unique identifier for federation audit aggregation"
+        required: true
+      - name: source_cell_ids
+        type: array[string]
+        description: "List of contributing cell IDs"
+        required: true
+      - name: aggregation_window
+        type: object
+        properties:
+          start_time: datetime
+          end_time: datetime
+          duration: duration
+        required: true
+      - name: event_types
+        type: array[string]
+        description: "Types of audit events aggregated"
+        required: true
+      - name: total_event_count
+        type: integer
+        description: "Total number of events aggregated"
+        required: true
+      - name: aggregation_hash
+        type: string
+        format: "sha256_hex"
+        description: "Cryptographic hash of aggregated data"
+        required: true
+      - name: consolidation_timestamp
+        type: datetime
+        description: "When aggregation was performed"
+        required: true
+
+  # Cross-cell correlation
+  cross_cell_correlation:
+    description: "Correlation of related audit events across cells"
+    fields:
+      - name: correlation_id
+        type: string
+        format: "ulid"
+        description: "Cross-cell correlation identifier"
+        required: true
+      - name: primary_cell_id
+        type: string
+        description: "Cell that initiated the correlated operation"
+        required: true
+      - name: participating_cells
+        type: array[object]
+        items:
+          properties:
+            cell_id: string
+            role: enum["initiator", "participant", "observer"]
+            first_event_timestamp: datetime
+            last_event_timestamp: datetime
+            event_count: integer
+        required: true
+      - name: operation_type
+        type: enum
+        values: ["belief_propagation", "quorum_computation", "federation_coordination", "operator_approval", "emergency_override"]
+        required: true
+      - name: operation_status
+        type: enum
+        values: ["initiated", "in_progress", "completed", "failed", "cancelled"]
+        required: true
+      - name: federation_impact
+        type: object
+        properties:
+          cells_affected: integer
+          data_volume: integer
+          security_impact: enum["none", "low", "medium", "high", "critical"]
+          business_impact: enum["none", "low", "medium", "high", "critical"]
+        required: true
+
+  # Federation audit events
+  federation_events:
+    cell_join_federation:
+      description: "Cell joins federation"
+      fields:
+        - name: cell_id
+          type: string
+          required: true
+        - name: federation_id
+          type: string
+          required: true
+        - name: join_timestamp
+          type: datetime
+          required: true
+        - name: identity_verified
+          type: boolean
+          required: true
+        - name: trust_score_assigned
+          type: float
+          required: true
+        - name: capabilities_granted
+          type: array[string]
+          required: true
+        - name: approving_cells
+          type: array[string]
+          required: true
+    
+    cell_leave_federation:
+      description: "Cell leaves federation"
+      fields:
+        - name: cell_id
+          type: string
+          required: true
+        - name: federation_id
+          type: string
+          required: true
+        - name: leave_timestamp
+          type: datetime
+          required: true
+        - name: leave_reason
+          type: enum["voluntary", "forced", "emergency", "decommission"]
+          required: true
+        - name: graceful_exit
+          type: boolean
+          required: true
+        - name: final_audit_submitted
+          type: boolean
+          required: true
+        - name: data_handover_complete
+          type: boolean
+          required: true
+    
+    belief_propagation_cross_cell:
+      description: "Belief propagated between federation cells"
+      fields:
+        - name: belief_id
+          type: string
+          required: true
+        - name: source_cell_id
+          type: string
+          required: true
+        - name: destination_cells
+          type: array[string]
+          required: true
+        - name: propagation_timestamp
+          type: datetime
+          required: true
+        - name: propagation_successful
+          type: boolean
+          required: true
+        - name: failed_destinations
+          type: array[string]
+          required: true
+        - name: propagation_latency_ms
+          type: integer
+          required: true
+        - name: belief_integrity_verified
+          type: boolean
+          required: true
+    
+    federation_quorum_computation:
+      description: "Cross-cell quorum computation"
+      fields:
+        - name: quorum_id
+          type: string
+          required: true
+        - name: correlation_id
+          type: string
+          required: true
+        - name: initiating_cell_id
+          type: string
+          required: true
+        - name: participating_cells
+          type: array[string]
+          required: true
+        - name: quorum_threshold
+          type: float
+          required: true
+        - name: actual_participation
+          type: float
+          required: true
+        - name: quorum_achieved
+          type: boolean
+          required: true
+        - name: computation_duration_ms
+          type: integer
+          required: true
+        - name: collective_confidence
+          type: float
+          required: true
+        - name: decision_outcome
+          type: enum["A2_containment", "A3_approval_required", "no_action"]
+          required: true
+    
+    operator_approval_federation:
+      description: "Operator approval involving federation"
+      fields:
+        - name: approval_id
+          type: string
+          required: true
+        - name: operator_id
+          type: string
+          required: true
+        - name: requesting_cell_id
+          type: string
+          required: true
+        - name: affected_cells
+          type: array[string]
+          required: true
+        - name: approval_type
+          type: enum["A3_execution", "policy_change", "emergency_override"]
+          required: true
+        - name: approval_decision
+          type: enum["approved", "denied", "escalated"]
+          required: true
+        - name: approval_timestamp
+          type: datetime
+          required: true
+        - name: federation_impact_assessment
+          type: object
+          required: true
+        - name: approval_conditions
+          type: array[string]
+          required: true
+
+  # Federation audit consolidation
+  consolidation_protocol:
+    consolidation_frequency:
+      description: "How often audit consolidation occurs"
+      default: "hourly"
+      options: ["realtime", "5_minutes", "hourly", "daily"]
+    
+    consolidation_triggers:
+      - name: "scheduled"
+        description: "Time-based consolidation"
+        trigger: "cron_schedule"
+      - name: "volume_threshold"
+        description: "Consolidate when event volume threshold reached"
+        trigger: "event_count > 10000"
+      - name: "critical_event"
+        description: "Immediate consolidation for critical events"
+        trigger: "event_severity = critical"
+      - name: "cell_request"
+        description: "Cell requests immediate consolidation"
+        trigger: "explicit_request"
+    
+    consolidation_process:
+      steps:
+        - name: "collect_events"
+          description: "Gather audit events from all cells"
+          parameters:
+            - time_window: duration
+            - event_types: array[string]
+            - cell_filter: array[string]
+        
+        - name: "validate_integrity"
+          description: "Validate cryptographic integrity of events"
+          parameters:
+            - hash_verification: boolean
+            - signature_verification: boolean
+            - sequence_validation: boolean
+        
+        - name: "deduplicate_events"
+          description: "Remove duplicate events across cells"
+          parameters:
+            - deduplication_strategy: enum["correlation_id", "event_hash", "semantic"]
+            - conflict_resolution: enum["first_wins", "latest_wins", "manual_review"]
+        
+        - name: "correlate_events"
+          description: "Correlate related events across cells"
+          parameters:
+            - correlation_algorithm: enum["exact_match", "fuzzy_match", "ml_based"]
+            - correlation_threshold: float
+        
+        - name: "generate_aggregation"
+          description: "Generate consolidated audit record"
+          parameters:
+            - aggregation_format: enum["json", "parquet", "avro"]
+            - compression: boolean
+            - encryption: boolean
+
+  # Federation audit storage
+  storage_requirements:
+    retention_periods:
+      - name: "operational_audits"
+        description: "Day-to-day operational audit events"
+        retention: "90_days"
+        storage_tier: "standard"
+      
+      - name: "security_audits"
+        description: "Security-related audit events"
+        retention: "1_year"
+        storage_tier: "enhanced"
+      
+      - name: "compliance_audits"
+        description: "Regulatory compliance audit events"
+        retention: "7_years"
+        storage_tier: "compliance"
+      
+      - name: "federation_coordination"
+        description: "Federation coordination and management events"
+        retention: "3_years"
+        storage_tier: "standard"
+    
+    storage_format:
+      - name: "primary_format"
+        format: "parquet"
+        compression: "snappy"
+        partitioning: ["year", "month", "day", "cell_id"]
+      
+      - name: "query_format"
+        format: "json"
+        compression: "gzip"
+        indexing: ["correlation_id", "timestamp", "event_type"]
+      
+      - name: "archive_format"
+        format: "avro"
+        compression: "zstd"
+        encryption: "aes256"
+
+  # Federation audit queries
+  query_capabilities:
+    cross_cell_search:
+      description: "Search audit events across federation"
+      parameters:
+        - query: string
+        - time_range: object
+        - cell_filter: array[string]
+        - event_types: array[string]
+        - severity_filter: array[string]
+      response:
+        - total_matches: integer
+        - events: array[object]
+        - cell_distribution: object
+        - query_performance_ms: integer
+    
+    correlation_analysis:
+      description: "Analyze correlated events across cells"
+      parameters:
+        - correlation_id: string
+        - include_related: boolean
+        - analysis_depth: enum["shallow", "deep", "comprehensive"]
+      response:
+        - correlation_timeline: array[object]
+        - cell_interactions: array[object]
+        - impact_analysis: object
+        - anomalies_detected: array[object]
+    
+    federation_compliance:
+      description: "Generate federation compliance reports"
+      parameters:
+        - compliance_standard: enum["SOX", "ISO27001", "GDPR", "HIPAA"]
+        - reporting_period: object
+        - include_recommendations: boolean
+      response:
+        - compliance_score: float
+        - violations: array[object]
+        - recommendations: array[object]
+        - evidence_references: array[string]
+
+  # NATS subjects for federation audit
+  nats_subjects:
+    audit_event_publish: "exoarmur.federation.audit.publish.v2"
+    audit_consolidation_request: "exoarmur.federation.audit.consolidate.v2"
+    audit_query_request: "exoarmur.federation.audit.query.v2"
+    audit_query_response: "exoarmur.federation.audit.response.v2"
+    audit_correlation: "exoarmur.federation.audit.correlate.v2"
+    audit_compliance_report: "exoarmur.federation.audit.compliance.v2"
+
+  # Security and integrity
+  security_requirements:
+    cryptographic_protection:
+      - event_signing: "Ed25519"
+      - hash_algorithm: "SHA-256"
+      - encryption_at_rest: "AES-256"
+      - encryption_in_transit: "TLS-1.3"
+    
+    integrity_verification:
+      - hash_chain_validation: true
+      - signature_verification: true
+      - sequence_validation: true
+      - tamper_detection: true
+    
+    access_control:
+      - read_permissions: "audit_reader_or_higher"
+      - write_permissions: "audit_writer_or_higher"
+      - consolidation_permissions: "federation_admin"
+      - query_permissions: "auditor_or_higher"
+
+# Implementation notes
+implementation_notes:
+  evolutionary_design:
+    - Federation audit is external to core cell audit
+    - Consolidation is additive and optional
+    - Feature flags control audit federation activation
+    - No modifications to V1 core audit logic
+  
+  performance_considerations:
+    - Audit consolidation optimized for batch processing
+    - Cross-cell queries use distributed indexing
+    - Real-time audit streaming for critical events
+    - Compression and partitioning for storage efficiency
+  
+  security_considerations:
+    - All federation audit events cryptographically signed
+    - End-to-end encryption for sensitive audit data
+    - Immutable audit trail with hash chaining
+    - Role-based access control for audit operations

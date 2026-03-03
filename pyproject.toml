@@ -46,6 +46,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["exoarmur*", "spec*" ]
 
 [tool.setuptools.package-data]
 "*" = ["*.py", "*.yaml", "*.json", "*.md"]

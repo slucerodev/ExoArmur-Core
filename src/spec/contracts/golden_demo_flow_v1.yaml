@@ -1,0 +1,111 @@
+# ADMO v1 Golden Demo Flow Configuration
+#
+# Single end-to-end scenario that must pass to claim ADMO v1 functional.
+# Demonstrates local autonomy, belief propagation, quorum formation,
+# partition survivability, safety gating, and audit replay.
+
+golden_demo_flow_v1:
+  schema_version: "1.0.0"
+  purpose: >
+    Single end-to-end scenario that must pass to claim ADMO v1 functional.
+    Demonstrates local autonomy, belief propagation, quorum formation,
+    partition survivability, safety gating, and audit replay.
+
+  scenario:
+    name: "Partition-tolerant lateral movement containment"
+    environment:
+      tenants: ["tenant_demo"]
+      cells:
+        - id: "cell-a"
+          location: "segment-a"
+        - id: "cell-b"
+          location: "segment-b"
+        - id: "cell-c"
+          location: "segment-c"
+      transport: "NATS+JetStream"
+      partition_event:
+        description: "cell-a temporarily loses connectivity to mesh for 90 seconds"
+        duration_seconds: 90
+
+  preconditions:
+    policy_bundle:
+      tenant_id: "tenant_demo"
+      verified: true
+      allows:
+        - intent_type: "isolate_host"
+          action_class: "A1_soft_containment"
+          approval: "local"
+        - intent_type: "block_domain"
+          action_class: "A2_hard_containment"
+          approval: "local_or_quorum"
+        - intent_type: "disable_user"
+          action_class: "A3_irreversible"
+          approval: "human"
+    safety_gate:
+      enabled: true
+    trust:
+      initial_trust_scores:
+        cell-a: 0.70
+        cell-b: 0.70
+        cell-c: 0.70
+
+  steps:
+    - step: 1
+      name: "Telemetry ingested at cell-a (during partition)"
+      input:
+        type: "TelemetryEventV1"
+        event_type: "auth_failure"
+        subject: { subject_type: "host", subject_id: "host-123" }
+        severity: "high"
+      expected:
+        - "cell-a validates TelemetryEventV1"
+        - "cell-a derives SignalFactsV1"
+        - "cell-a produces LocalDecisionV1 with classification=suspicious|malicious"
+        - "cell-a emits BeliefV1 locally and buffers mesh publish due to partition"
+        - "cell-a executes A1 isolate_host locally if safety allows (policy-authorized)"
+
+    - step: 2
+      name: "Telemetry ingested at cell-b (online)"
+      input:
+        type: "TelemetryEventV1"
+        event_type: "process_start"
+        subject: { subject_type: "host", subject_id: "host-123" }
+        severity: "high"
+      expected:
+        - "cell-b emits BeliefV1 to mesh (JetStream)"
+        - "belief dedupe rules applied"
+
+    - step: 3
+      name: "Partition heals; buffered beliefs reconcile"
+      expected:
+        - "cell-a publishes buffered BeliefV1"
+        - "cells compute aggregate_score using collective confidence"
+        - "quorum_count reflects distinct cells (>=2)"
+
+    - step: 4
+      name: "Escalate to A2 hard containment via collective confidence"
+      expected:
+        - "if quorum>=2 and aggregate_score>=0.85 then A2 block_domain may execute"
+        - "ExecutionIntentV1 includes idempotency_key"
+        - "Execution result is published and audited"
+
+    - step: 5
+      name: "Attempt A3 irreversible action requires human approval"
+      expected:
+        - "policy requires human approval for A3 disable_user"
+        - "safety verdict=require_human"
+        - "no A3 execution occurs without approval"
+        - "approval request is logged and auditable"
+
+    - step: 6
+      name: "Audit replay succeeds"
+      expected:
+        - "AuditRecordV1 chain reconstructs: ingest→facts→beliefs→quorum→safety→intent→result"
+        - "replay does not re-trigger side effects due to idempotency enforcement"
+
+  success_criteria:
+    - "All steps complete without schema violations"
+    - "No execution occurs when safety denies or approval missing"
+    - "Partition does not stop local A1 containment"
+    - "After reconnection, beliefs reconcile and collective thresholds work"
+    - "Audit trail is complete and replayable end-to-end"

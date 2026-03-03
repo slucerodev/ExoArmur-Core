@@ -1,0 +1,126 @@
+# coordination.observation.v2 Schema
+# "I observed Y at time T"
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coordination Observation v2",
+  "description": "Non-authoritative observation sharing",
+  "type": "object",
+  
+  "required": [
+    "coordination_id",
+    "sender_cell_id",
+    "owner_cell_id",
+    "scope",
+    "issued_at", 
+    "expires_at",
+    "schema_version",
+    "coordination_type",
+    "observation_type",
+    "observed_data",
+    "confidence_score"
+  ],
+  
+  "properties": {
+    "coordination_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this coordination instance"
+    },
+    
+    "sender_cell_id": {
+      "type": "string",
+      "description": "Cell that sent this observation"
+    },
+    
+    "owner_cell_id": {
+      "type": "string",
+      "description": "Cell that owns this coordination"
+    },
+    
+    "scope": {
+      "$ref": "#/definitions/coordination_scope",
+      "description": "Scope and boundaries of coordination"
+    },
+    
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this observation was issued"
+    },
+    
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this observation expires (max 24h from issued_at)"
+    },
+    
+    "schema_version": {
+      "type": "string",
+      "enum": ["2.0"],
+      "description": "Protocol version"
+    },
+    
+    "coordination_type": {
+      "type": "string",
+      "enum": ["observation_sharing"],
+      "description": "Message type identifier"
+    },
+    
+    "observation_type": {
+      "type": "string",
+      "description": "Type of observation being shared (descriptive only)"
+    },
+    
+    "observed_data": {
+      "type": "object",
+      "description": "Non-authoritative observation data",
+      "additionalProperties": true
+    },
+    
+    "confidence_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence in observation (0.0-1.0, descriptive only)"
+    }
+  },
+  
+  "definitions": {
+    "coordination_scope": {
+      "type": "object",
+      "required": ["coordination_type", "affected_cells"],
+      "properties": {
+        "coordination_type": {
+          "type": "string",
+          "enum": [
+            "availability_announcement",
+            "capability_sharing",
+            "observation_sharing",
+            "intent_broadcast",
+            "temporary_coordination"
+          ]
+        },
+        "affected_cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "resource_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "geographic_scope": {
+          "type": "string"
+        },
+        "temporal_scope": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

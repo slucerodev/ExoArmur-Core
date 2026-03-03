@@ -1,0 +1,122 @@
+# coordination.claim.v2 Schema
+# "I am coordinating X until T"
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coordination Claim v2",
+  "description": "Claim of temporary coordination role",
+  "type": "object",
+  
+  "required": [
+    "coordination_id",
+    "sender_cell_id",
+    "owner_cell_id", 
+    "scope",
+    "issued_at",
+    "expires_at",
+    "schema_version",
+    "coordination_type",
+    "coordination_role",
+    "claimed_resources"
+  ],
+  
+  "properties": {
+    "coordination_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this coordination instance"
+    },
+    
+    "sender_cell_id": {
+      "type": "string",
+      "description": "Cell that sent this claim"
+    },
+    
+    "owner_cell_id": {
+      "type": "string",
+      "description": "Cell that owns this coordination"
+    },
+    
+    "scope": {
+      "$ref": "#/definitions/coordination_scope",
+      "description": "Scope and boundaries of coordination"
+    },
+    
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this claim was issued"
+    },
+    
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this claim expires (max 1h from issued_at)"
+    },
+    
+    "schema_version": {
+      "type": "string",
+      "enum": ["2.0"],
+      "description": "Protocol version"
+    },
+    
+    "coordination_type": {
+      "type": "string",
+      "enum": ["temporary_coordination"],
+      "description": "Message type identifier"
+    },
+    
+    "coordination_role": {
+      "type": "string",
+      "enum": ["coordinator", "participant", "observer"],
+      "description": "Role being claimed in coordination"
+    },
+    
+    "claimed_resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "description": "Resources being claimed for coordination (descriptive only)"
+    }
+  },
+  
+  "definitions": {
+    "coordination_scope": {
+      "type": "object",
+      "required": ["coordination_type", "affected_cells"],
+      "properties": {
+        "coordination_type": {
+          "type": "string",
+          "enum": [
+            "availability_announcement",
+            "capability_sharing",
+            "observation_sharing",
+            "intent_broadcast", 
+            "temporary_coordination"
+          ]
+        },
+        "affected_cells": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "resource_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "geographic_scope": {
+          "type": "string"
+        },
+        "temporal_scope": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

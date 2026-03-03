@@ -1,0 +1,273 @@
+# ExoArmur ADMO V2 Federation Identity Contract
+# Multi-cell federation identity and authentication protocol
+
+federation_identity_v2:
+  purpose: "Multi-cell federation identity, authentication, and authorization protocol"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  
+  # Federation identity types
+  identity_types:
+    cell_identity:
+      description: "Unique identity for a cell in federation"
+      fields:
+        - name: cell_id
+          type: string
+          format: "cell-[region]-[cluster]-[node]"
+          example: "cell-us-east-1-cluster-01-node-01"
+          required: true
+        - name: cell_public_key
+          type: string
+          format: "base64_encoded_ed25519_public_key"
+          required: true
+        - name: cell_certificate_chain
+          type: array
+          items:
+            type: string
+            format: "pem_encoded_x509_certificate"
+          required: true
+        - name: federation_role
+          type: enum
+          values: ["member", "coordinator", "observer"]
+          default: "member"
+          required: true
+        - name: capabilities
+          type: array
+          items:
+            type: enum
+            values: ["belief_aggregation", "policy_distribution", "audit_consolidation", "operator_approval"]
+          required: true
+        - name: trust_score
+          type: float
+          range: [0.0, 1.0]
+          default: 0.8
+          required: true
+        - name: last_heartbeat
+          type: datetime
+          format: "iso8601_utc"
+          required: true
+        - name: status
+          type: enum
+          values: ["active", "inactive", "suspended", "decommissioned"]
+          default: "active"
+          required: true
+    
+    operator_identity:
+      description: "Human operator identity for approval workflows"
+      fields:
+        - name: operator_id
+          type: string
+          format: "operator-[username]"
+          example: "operator-admin-001"
+          required: true
+        - name: operator_public_key
+          type: string
+          format: "base64_encoded_ed25519_public_key"
+          required: true
+        - name: operator_certificate
+          type: string
+          format: "pem_encoded_x509_certificate"
+          required: true
+        - name: approval_authority
+          type: array
+          items:
+            type: enum
+            values: ["A3_actions", "policy_changes", "federation_management", "emergency_override"]
+          required: true
+        - name: clearance_level
+          type: enum
+          values: ["operator", "supervisor", "admin", "superuser"]
+          required: true
+        - name: active_sessions
+          type: array
+          items:
+            type: object
+            properties:
+              session_id: string
+              login_time: datetime
+              last_activity: datetime
+              ip_address: string
+              user_agent: string
+          required: true
+        - name: status
+          type: enum
+          values: ["active", "suspended", "revoked"]
+          default: "active"
+          required: true
+
+  # Federation authentication protocol
+  authentication_protocol:
+    handshake:
+      description: "Initial federation establishment between cells"
+      steps:
+        - name: "identity_exchange"
+          description: "Cells exchange signed identity certificates"
+          message_type: "federation.identity.exchange.v2"
+          required_fields: ["cell_identity", "signature", "timestamp", "nonce"]
+        - name: "capability_negotiation"
+          description: "Negotiate supported federation capabilities"
+          message_type: "federation.capability.negotiate.v2"
+          required_fields: ["supported_capabilities", "required_capabilities", "priority"]
+        - name: "trust_establishment"
+          description: "Establish trust relationships and trust scores"
+          message_type: "federation.trust.establish.v2"
+          required_fields: ["trust_score", "trust_reasons", "expiration"]
+        - name: "federation_confirmation"
+          description: "Confirm federation establishment"
+          message_type: "federation.confirm.v2"
+          required_fields: ["federation_id", "member_cells", "coordinator_cell", "terms"]
+    
+    ongoing_authentication:
+      description: "Continuous authentication for federation members"
+      mechanisms:
+        - name: "heartbeat_authentication"
+          interval: "30_seconds"
+          message_type: "federation.heartbeat.v2"
+          required_fields: ["cell_id", "timestamp", "sequence_number", "signature"]
+        - name: "capability_verification"
+          interval: "5_minutes"
+          message_type: "federation.capability.verify.v2"
+          required_fields: ["cell_id", "current_capabilities", "performance_metrics"]
+        - name: "trust_score_update"
+          interval: "1_hour"
+          message_type: "federation.trust.update.v2"
+          required_fields: ["cell_id", "new_trust_score", "update_reason", "evidence"]
+
+  # Authorization framework
+  authorization_framework:
+    permission_model:
+      description: "RBAC-based authorization for federation operations"
+      roles:
+        - name: "member_cell"
+          permissions:
+            - "publish_beliefs"
+            - "consume_beliefs"
+            - "request_approval"
+            - "submit_audit"
+        - name: "coordinator_cell"
+          permissions:
+            - "all_member_permissions"
+            - "coordinate_quorum"
+            - "aggregate_trust_scores"
+            - "manage_federation_membership"
+        - name: "operator"
+          permissions:
+            - "approve_A3_actions"
+            - "override_safety_decisions"
+            - "manage_policy"
+            - "view_audit_trail"
+        - name: "federation_admin"
+          permissions:
+            - "all_operator_permissions"
+            - "manage_certificates"
+            - "decommission_cells"
+            - "emergency_override"
+
+    access_control:
+      description: "Access control decisions for federation operations"
+      decision_factors:
+        - name: "identity_verification"
+          weight: 0.4
+          description: "Valid identity and certificate verification"
+        - name: "trust_score_threshold"
+          weight: 0.3
+          description: "Minimum trust score required"
+        - name: "capability_match"
+          weight: 0.2
+          description: "Required capabilities must be supported"
+        - name: "policy_compliance"
+          weight: 0.1
+          description: "Compliance with federation policies"
+
+  # Federation identity subjects (NATS)
+  nats_subjects:
+    identity_exchange: "exoarmur.federation.identity.exchange.v2"
+    capability_negotiate: "exoarmur.federation.capability.negotiate.v2"
+    trust_establish: "exoarmur.federation.trust.establish.v2"
+    federation_confirm: "exoarmur.federation.confirm.v2"
+    heartbeat: "exoarmur.federation.heartbeat.v2"
+    capability_verify: "exoarmur.federation.capability.verify.v2"
+    trust_update: "exoarmur.federation.trust.update.v2"
+    operator_auth: "exoarmur.operator.authenticate.v2"
+    approval_request: "exoarmur.operator.approval.request.v2"
+    approval_response: "exoarmur.operator.approval.response.v2"
+
+  # Security requirements
+  security_requirements:
+    cryptography:
+      signature_algorithm: "Ed25519"
+      certificate_format: "X.509 PEM"
+      key_exchange: "X25519"
+      hash_algorithm: "SHA-256"
+    
+    certificate_requirements:
+      minimum_key_length: 2048
+      certificate_validity: "1_year"
+      renewal_threshold: "30_days_before_expiry"
+      revocation_check: "CRL_or_OCSP"
+    
+    trust_requirements:
+      minimum_trust_score: 0.7
+      trust_decay_rate: 0.05_per_day
+      trust_recovery_rate: 0.1_per_successful_interaction
+      maximum_trust_score: 1.0
+
+  # Federation lifecycle events
+  lifecycle_events:
+    cell_join:
+      description: "Cell joins federation"
+      preconditions: ["valid_certificate", "minimum_trust_score", "capability_match"]
+      postconditions: ["identity_registered", "heartbeat_established", "capabilities_negotiated"]
+    
+    cell_leave:
+      description: "Cell leaves federation gracefully"
+      preconditions: ["no_pending_operations", "audit_sync_complete"]
+      postconditions: ["identity_deregistered", "connections_closed", "final_audit_submitted"]
+    
+    cell_suspend:
+      description: "Cell temporarily suspended from federation"
+      triggers: ["security_violation", "trust_score_below_threshold", "maintenance"]
+      effects: ["no_new_operations", "existing_operations_complete", "monitoring_continues"]
+    
+    cell_decommission:
+      description: "Cell permanently removed from federation"
+      triggers: ["end_of_life", "security_compromise", "policy_violation"]
+      effects: ["identity_revoked", "certificates_invalidated", "audit_archive"]
+
+  # Compliance and audit
+  compliance_requirements:
+    audit_events:
+      - "identity_verification_success"
+      - "identity_verification_failure"
+      - "trust_score_change"
+      - "capability_change"
+      - "authorization_grant"
+      - "authorization_denial"
+      - "certificate_issued"
+      - "certificate_revoked"
+      - "federation_join"
+      - "federation_leave"
+    
+    retention_period: "7_years"
+    audit_format: "JSON_schema_compliant"
+    integrity_protection: "cryptographic_hash_chain"
+    access_control: "role_based_with_approval"
+
+# Implementation notes
+implementation_notes:
+  backward_compatibility:
+    - V1 cells ignore V2 identity subjects
+    - V2 cells can federate with V1 cells using compatibility mode
+    - Feature flags control V2 identity activation
+  
+  performance_considerations:
+    - Identity verification cached for 5 minutes
+    - Trust score updates batched
+    - Heartbeat messages minimized
+    - Certificate validation optimized with caching
+  
+  security_considerations:
+    - All identity messages signed and timestamped
+    - Replay attack protection with nonces
+    - Certificate pinning for critical operations
+    - Zero-trust model for all federation interactions
