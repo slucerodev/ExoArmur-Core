@@ -1,6 +1,23 @@
 # ExoArmur Core
 
-Deterministic governance and replay infrastructure for auditable execution. ExoArmur Core freezes decisions into immutable intents, enforces safety and tenant isolation gates, and produces replayable audit trails that can be verified independently. It does not generate autonomous behavior; it verifies and governs execution downstream of external decision sources.
+ExoArmur is a deterministic governance runtime for autonomous and AI-driven systems. It makes decisions replayable, auditable, and enforceable under an immutable contract layer.
+
+It is designed for teams building AI agents or autonomous workflows that require strict accountability, reproducibility, and policy enforcement.
+
+## What It Does
+
+- Executes decisions under immutable governance contracts
+- Produces verifiable audit records
+- Enables deterministic replay of decision paths
+- Enforces phase-gated and feature-flag boundaries
+- Provides a stable Core with gated V2 capability scaffolding
+
+## What It Is Not
+
+- Not an orchestration framework
+- Not an LLM agent framework
+- Not a general workflow engine
+- Not a distributed systems research project
 
 ## Architectural Role
 
@@ -14,19 +31,6 @@ Architecture / Contract: v1.0.0 (stable)
 Package (pip): 0.2.0
 
 The core architecture is contract-stable. Public interfaces evolve only through test-verified changes.
-
-## What ExoArmur Core Provides
-
-- Deterministic IDs and replayable audit chains
-- JetStream publish/consume paths for audit evidence
-- Idempotent audit emission with bounded retries and backpressure
-- Explicit safety enforcement (kill switches, approvals, tenant isolation)
-
-## What This Is Not
-
-- An autonomous agent or decision-maker
-- A workflow orchestrator or SOAR/SIEM replacement
-- A prompt-based or real-time automation engine
 
 ## Installation
 
