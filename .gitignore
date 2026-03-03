@@ -88,6 +88,8 @@ test_*.sh
 
 # Local environments (additional entries)
 .venv/
+.venv_build/
+.venv_audit/
 .venv_clean_install/
 .venv_test/
 

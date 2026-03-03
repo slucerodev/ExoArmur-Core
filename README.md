@@ -6,9 +6,10 @@
 
 **Deterministic & Auditable — Beta**
 
-ExoArmur Core is a deterministic execution safety substrate designed to enforce
-guardrails, preserve auditability, and enable replayable decision verification
-for automation and autonomous-adjacent systems.
+ExoArmur Core is deterministic governance + replay infrastructure for
+autonomous decisions. It enforces guardrails, preserves auditability, and
+enables replayable decision verification for automation and
+autonomous-adjacent systems.
 
 This repository contains the open-core foundation of ExoArmur.
 
@@ -61,6 +62,8 @@ and documented by tests in this repository.
 
 - Docker
 - Docker Compose
+- NATS server (only for live Golden Demo; not bundled — download from
+  https://docs.nats.io/running-a-nats-service/nats_admin/installation)
 
 ### Start the runtime
 
@@ -80,7 +83,10 @@ source venv/bin/activate
 # Install ExoArmur Core
 pip install .
 
-# Run tests
+# Run deterministic replay quickstart (infra-free; no external deps)
+python examples/quickstart_replay.py
+
+# Run tests (optional)
 python -m pytest tests/ -v
 
 # Run Golden Demo (live NATS JetStream acceptance test)
@@ -102,9 +108,12 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golde
 - V1 core is implemented and immutable
 - Live Golden Demo exercises JetStream publish/consume and audit flow
 - Feature flags default OFF
+- Minimal public API: `ReplayEngine` (deterministic replay from audit
+  evidence) and `PhaseGate` (phase isolation guard)
 
 **WHAT IS GATED (V2):**
-- V2 scaffolding exists behind feature flags
+- V2 scaffolding (federation, autonomy pipelines) exists behind feature flags
+  and is considered advanced; not required for the quickstart
 - Optional extra: `pip install -e ".[v2]"`
 
 **WHAT IS NOT IMPLEMENTED YET:**
