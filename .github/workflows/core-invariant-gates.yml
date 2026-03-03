@@ -48,6 +48,13 @@ jobs:
       - name: Gate 2 — Test Execution (python3 -m pytest -q)
         run: python3 -m pytest -q
 
+      - name: Snapshot diagnostics on failure
+        if: failure()
+        run: |
+          python scripts/export_openapi_and_schemas.py || true
+          git status --porcelain=v1 || true
+          git diff || true
+
       - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
         run: python3 scripts/boundary_gate.py
 

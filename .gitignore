@@ -48,7 +48,8 @@ nats_data/
 *.pid
 
 # Local Artifacts and Runtime Files
-artifacts/
+artifacts/*
+!artifacts/openapi_v1.json
 *.log
 *.tmp
 *.temp
