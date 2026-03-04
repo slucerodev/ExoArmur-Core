@@ -65,7 +65,7 @@ class AuditEmitter:
 
 
 class ProxyPipeline:
-    """Minimal proxy pipeline using V1 primitives for execution governance."""
+    """Proxy execution pipeline that orchestrates policy, safety, and execution."""
     
     def __init__(
         self,
@@ -74,7 +74,7 @@ class ProxyPipeline:
         executor: ExecutorPlugin,
         audit_emitter: AuditEmitter
     ):
-        """Initialize proxy pipeline with required components."""
+        """Initialize the proxy pipeline with required components."""
         self.pdp = pdp
         self.safety_gate = safety_gate
         self.executor = executor
@@ -82,14 +82,7 @@ class ProxyPipeline:
         logger.info("ProxyPipeline initialized")
     
     def execute(self, intent: ActionIntent) -> Union[ExecutionResult, ExecutionDispatch]:
-        """Execute intent through governance pipeline.
-        
-        Args:
-            intent: ActionIntent to execute
-            
-        Returns:
-            ExecutionResult for immediate outcomes or ExecutionDispatch for async flows
-        """
+        """Execute an intent through the governance pipeline."""
         logger.info(f"Executing intent {intent.intent_id} through proxy pipeline")
         
         # Step 1: Policy evaluation
@@ -158,29 +151,135 @@ class ProxyPipeline:
                     evidence={"safety_verdict": safety_verdict.verdict}
                 )
             
-            # Step 4: Execute action
+            # Step 4: Execute the intent
             execution_result = self.executor.execute(intent)
             
+            # Step 5: Emit execution audit record
             self.audit_emitter.emit_audit_record(
                 intent_id=intent.intent_id,
                 event_type="execution",
                 outcome="success" if execution_result.success else "failed",
                 details={
-                    "executor_name": self.executor.name(),
                     "execution_success": execution_result.success,
+                    "executor_name": self.executor.name(),
                     "execution_error": execution_result.error
                 }
             )
             
             return execution_result
         
-        # Default fallback
+        # Default case
         return ExecutionResult(
             success=False,
             output={},
             error="UNKNOWN_POLICY_VERDICT",
             evidence={"policy_verdict": policy_decision.verdict.value}
         )
+    
+    def check_approval_and_execute(self, intent: ActionIntent) -> Union[ExecutionResult, ExecutionDispatch]:
+        """Check approval status and execute if approved.
+        
+        This method can be called explicitly in tests to re-check approval status
+        and proceed with execution if approved. No automatic polling or background checks.
+        """
+        logger.info(f"Checking approval status for intent {intent.intent_id}")
+        
+        # Check approval status
+        approval_status = self.pdp.approval_status(intent.intent_id)
+        
+        if approval_status == "not_required":
+            # No approval needed, proceed with normal execution
+            return self.execute(intent)
+        
+        elif approval_status == "pending":
+            # Still pending, return approval pending dispatch
+            return ExecutionDispatch(
+                intent_id=intent.intent_id,
+                status=DispatchStatus.APPROVAL_PENDING,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+                details={"approval_status": "pending"}
+            )
+        
+        elif approval_status == "denied":
+            # Approval denied, return execution result with error
+            self.audit_emitter.emit_audit_record(
+                intent_id=intent.intent_id,
+                event_type="approval_denied",
+                outcome="denied",
+                details={"approval_status": "denied"}
+            )
+            return ExecutionResult(
+                success=False,
+                output={},
+                error="APPROVAL_DENIED",
+                evidence={"approval_status": "denied"}
+            )
+        
+        elif approval_status == "approved":
+            # Approval granted, proceed with execution
+            logger.info(f"Approval granted for intent {intent.intent_id}, proceeding with execution")
+            
+            # Use approval bypass evaluation to proceed with execution
+            from ..models.policy_decision import PolicyVerdict
+            policy_decision = self.pdp.evaluate_with_approval_bypass(intent)
+            
+            if policy_decision.verdict == PolicyVerdict.ALLOW:
+                # Proceed with safety gate and execution
+                safety_verdict = self._evaluate_safety_gate(intent)
+                
+                if safety_verdict.verdict != "allow":
+                    self.audit_emitter.emit_audit_record(
+                        intent_id=intent.intent_id,
+                        event_type="safety_gate_block",
+                        outcome="blocked",
+                        details={
+                            "safety_verdict": safety_verdict.verdict,
+                            "rationale": safety_verdict.rationale,
+                            "rule_ids": safety_verdict.rule_ids
+                        }
+                    )
+                    return ExecutionResult(
+                        success=False,
+                        output={},
+                        error="SAFETY_GATE_BLOCKED",
+                        evidence={"safety_verdict": safety_verdict.verdict}
+                    )
+                
+                # Execute the intent
+                execution_result = self.executor.execute(intent)
+                
+                # Emit execution audit record
+                self.audit_emitter.emit_audit_record(
+                    intent_id=intent.intent_id,
+                    event_type="execution",
+                    outcome="success" if execution_result.success else "failed",
+                    details={
+                        "execution_success": execution_result.success,
+                        "executor_name": self.executor.name(),
+                        "execution_error": execution_result.error,
+                        "approval_bypassed": True
+                    }
+                )
+                
+                return execution_result
+            else:
+                # Something went wrong with the bypass
+                return ExecutionResult(
+                    success=False,
+                    output={},
+                    error="APPROVAL_BYPASS_FAILED",
+                    evidence={"policy_verdict": policy_decision.verdict.value}
+                )
+        
+        else:
+            # Unknown status
+            return ExecutionResult(
+                success=False,
+                output={},
+                error="UNKNOWN_APPROVAL_STATUS",
+                evidence={"approval_status": approval_status}
+            )
     
     def _evaluate_safety_gate(self, intent: ActionIntent) -> SafetyVerdict:
         """Evaluate safety gate using V1 SafetyGate with minimal context."""

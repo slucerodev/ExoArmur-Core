@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 class SimplePolicyDecisionPoint(PolicyDecisionPoint):
     """Simple deterministic Policy Decision Point for execution governance."""
     
-    def __init__(self, rules: List[PolicyRule]):
-        """Initialize PDP with a list of policy rules."""
+    def __init__(self, rules: List[PolicyRule], approval_store=None):
+        """Initialize PDP with a list of policy rules and optional approval store."""
         self.rules = rules
+        self.approval_store = approval_store
         logger.info(f"SimplePolicyDecisionPoint initialized with {len(rules)} rules")
     
     def evaluate(self, intent: ActionIntent) -> PolicyDecision:
@@ -99,8 +100,68 @@ class SimplePolicyDecisionPoint(PolicyDecisionPoint):
         )
     
     def approval_status(self, intent_id: str) -> str:
-        """Get approval status for an intent (simplified implementation)."""
-        return "not_required"
+        """Get approval status for an intent."""
+        if not self.approval_store:
+            return "not_required"
+        
+        # Check if any rule requires approval for this intent
+        # For simplicity, we'll check if there's any rule with require_approval=True
+        # In a real implementation, this would be more sophisticated
+        approval_required = any(rule.require_approval for rule in self.rules)
+        
+        if not approval_required:
+            return "not_required"
+        
+        # Check approval store for decision
+        record = self.approval_store.get(intent_id)
+        if not record:
+            return "pending"
+        
+        if record.decision.value == "APPROVE":
+            return "approved"
+        elif record.decision.value == "DENY":
+            return "denied"
+        else:
+            return "pending"
+    
+    def evaluate_with_approval_bypass(self, intent: ActionIntent) -> PolicyDecision:
+        """Evaluate intent with approval bypass for approved intents.
+        
+        This method is used by the pipeline to bypass approval requirements
+        when an approval has already been granted.
+        """
+        # Check if approval is granted
+        if self.approval_store:
+            approval_status = self.approval_status(intent.intent_id)
+            if approval_status == "approved":
+                # Find the matching rule and return ALLOW instead of REQUIRE_APPROVAL
+                try:
+                    parsed_url = urlparse(intent.target)
+                    domain = parsed_url.netloc.lower()
+                    method = intent.parameters.get("method", "").upper()
+                except Exception as e:
+                    logger.error(f"Failed to parse intent {intent.intent_id}: {e}")
+                    return PolicyDecision(
+                        verdict=PolicyVerdict.DENY,
+                        rationale=f"Invalid intent format: {e}",
+                        confidence=1.0,
+                        approval_required=False,
+                        policy_version="v0"
+                    )
+                
+                matching_rule = self._find_matching_rule(intent, domain, method)
+                if matching_rule and matching_rule.require_approval:
+                    logger.info(f"Intent {intent.intent_id} bypassing approval requirement (already approved)")
+                    return PolicyDecision(
+                        verdict=PolicyVerdict.ALLOW,
+                        rationale=f"Approval bypassed for intent {intent.intent_id} (previously approved by rule {matching_rule.rule_id})",
+                        confidence=1.0,
+                        approval_required=False,
+                        policy_version="v0"
+                    )
+        
+        # Fall back to normal evaluation
+        return self.evaluate(intent)
     
     def _find_matching_rule(self, intent: ActionIntent, domain: str, method: str) -> Optional[PolicyRule]:
         """Find the first rule that matches the intent."""
