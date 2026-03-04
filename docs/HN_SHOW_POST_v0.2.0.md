@@ -1,4 +1,4 @@
-Title:
+rootTitle:
 Show HN: ExoArmur — Deterministic Governance Runtime for AI Agents (v0.2.0)
 
 ## Problem
