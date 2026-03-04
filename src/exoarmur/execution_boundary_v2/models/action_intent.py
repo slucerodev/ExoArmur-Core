@@ -25,6 +25,7 @@ class ActionIntent(BaseModel):
     parameters: Dict[str, Any] = Field(default_factory=dict, description="Action parameters")
     safety_context: Dict[str, Any] = Field(default_factory=dict, description="Safety evaluation context")
     timestamp: datetime = Field(description="Intent creation timestamp")
+    tenant_id: str = Field(default="", description="Tenant identifier for multi-tenant isolation")
     
     class Config:
         extra = "forbid"
