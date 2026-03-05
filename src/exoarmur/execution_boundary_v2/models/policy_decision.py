@@ -22,6 +22,10 @@ class PolicyDecision(BaseModel):
     
     verdict: PolicyVerdict = Field(description="Policy verdict")
     rationale: Optional[str] = Field(default=None, description="Decision rationale")
+    evidence: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Decision evidence")
+    
+    class Config:
+        extra = "allow"  # Allow extra fields like 'fake'
     confidence: Optional[float] = Field(default=None, description="Decision confidence (0.0-1.0)")
     approval_required: bool = Field(default=False, description="Human approval required")
     policy_version: Optional[str] = Field(default=None, description="Policy version used")

@@ -214,12 +214,15 @@ class ProxyPipeline:
             
             # Step 4: Execute intent
             execution_result = self.executor.execute(intent)
+            executor_capabilities = self.executor.capabilities() or {}
             trace.events.append(TraceEvent(
                 stage=TraceStage.EXECUTOR_DISPATCHED,
                 ok=execution_result.success,
                 code="EXECUTED" if execution_result.success else "FAILED",
                 details={
                     "executor_name": self.executor.name(),
+                    "executor_capabilities": executor_capabilities,
+                    "executor_version": executor_capabilities.get("version", "unknown") if isinstance(executor_capabilities, dict) else "unknown",
                     "execution_success": execution_result.success,
                     "execution_error": execution_result.error
                 }
@@ -365,12 +368,15 @@ class ProxyPipeline:
             
             # Step 4: Execute intent
             execution_result = self.executor.execute(intent)
+            executor_capabilities = self.executor.capabilities() or {}
             trace.events.append(TraceEvent(
                 stage=TraceStage.EXECUTOR_DISPATCHED,
                 ok=execution_result.success,
                 code="EXECUTED" if execution_result.success else "FAILED",
                 details={
                     "executor_name": self.executor.name(),
+                    "executor_capabilities": executor_capabilities,
+                    "executor_version": executor_capabilities.get("version", "unknown") if isinstance(executor_capabilities, dict) else "unknown",
                     "execution_success": execution_result.success,
                     "execution_error": execution_result.error
                 }
@@ -538,8 +544,8 @@ class ProxyPipeline:
                     code="EXECUTED" if execution_result.success else "FAILED",
                     details={
                         "executor_name": self.executor.name(),
-                        "executor_capabilities": executor_capabilities.get("capabilities", []),
-                        "executor_version": executor_capabilities.get("version", "unknown"),
+                        "executor_capabilities": executor_capabilities,
+                        "executor_version": executor_capabilities.get("version", "unknown") if isinstance(executor_capabilities, dict) else "unknown",
                         "execution_success": execution_result.success,
                         "execution_error": execution_result.error
                     }
