@@ -339,7 +339,7 @@ class TestApprovalIntegration:
         approval_store.record(denial_record)
         
         # Check approval and execute - should return denied
-        result = pipeline.check_approval_and_execute(sample_intent)
+        result, trace = pipeline.check_approval_and_execute(sample_intent)
         
         assert result.success is False
         assert result.error == "APPROVAL_DENIED"
@@ -384,7 +384,7 @@ class TestApprovalIntegration:
         approval_store.record(approval_record)
         
         # Check approval and execute - should proceed to execution
-        result = pipeline.check_approval_and_execute(sample_intent)
+        result, trace = pipeline.check_approval_and_execute(sample_intent)
         
         # Should now succeed with approval bypass
         assert hasattr(result, 'success')
