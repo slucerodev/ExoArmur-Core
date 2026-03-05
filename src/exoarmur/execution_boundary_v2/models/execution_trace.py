@@ -39,6 +39,7 @@ class ExecutionTrace(BaseModel):
     """Complete execution trace for an intent."""
     
     intent_id: str = Field(description="Intent identifier being traced")
+    trace_version: str = Field(default="v1", description="Trace format version")
     events: List[TraceEvent] = Field(description="Ordered list of trace events")
     final_status: str = Field(description="Final execution status (DENIED, APPROVAL_PENDING, SAFETY_BLOCKED, EXECUTED, FAILED)")
     evidence: Dict[str, Any] = Field(default_factory=dict, description="Audit-friendly summary (no secrets)")

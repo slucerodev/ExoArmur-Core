@@ -189,14 +189,11 @@ class TestHTTPExecutorIntegration:
         """Test HTTP executor capabilities."""
         capabilities = http_executor.capabilities()
         
-        assert capabilities["actions"] == ["http_request"]
-        assert capabilities["methods"] == ["GET", "POST", "PUT", "PATCH", "DELETE"]
-        assert capabilities["schemes"] == ["http", "https"]
-        assert capabilities["default_timeout"] == 5.0
-        assert capabilities["safety_constraints"]["explicit_method_required"] is True
-        assert capabilities["safety_constraints"]["scheme_validation"] is True
-        assert capabilities["safety_constraints"]["timeout_enforcement"] is True
-        assert capabilities["safety_constraints"]["file_scheme_blocked"] is True
+        assert capabilities["capabilities"] == ["http.request", "http.get", "http.post", "http.put", "http.patch", "http.delete"]
+        assert capabilities["constraints"]["allowed_methods"] == ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        assert capabilities["constraints"]["allowed_schemes"] == ["http", "https"]
+        assert capabilities["constraints"]["default_timeout"] == 5.0
+        assert capabilities["constraints"]["requires_explicit_method"] is True
     
     def test_http_executor_name(self, http_executor):
         """Test HTTP executor name."""

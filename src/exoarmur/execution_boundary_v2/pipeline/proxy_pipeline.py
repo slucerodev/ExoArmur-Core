@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Union, Tuple
 
 from ..interfaces.policy_decision_point import PolicyDecisionPoint
-from ..interfaces.executor_plugin import ExecutorPlugin, ExecutionResult
+from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
 from ..models.action_intent import ActionIntent
 from ..models.policy_decision import PolicyDecision, PolicyVerdict
 from ..models.execution_dispatch import ExecutionDispatch, DispatchStatus
@@ -82,13 +82,13 @@ class ProxyPipeline:
         self.audit_emitter = audit_emitter
         logger.info("ProxyPipeline initialized")
     
-    def execute(self, intent: ActionIntent) -> Union[ExecutionResult, ExecutionDispatch]:
+    def execute(self, intent: ActionIntent) -> Union[ExecutorResult, ExecutionDispatch]:
         """Execute an intent through governance pipeline (backward compatibility)."""
         logger.info(f"Executing intent {intent.intent_id} through proxy pipeline (legacy method)")
         result, trace = self.execute_with_trace(intent)
         return result
     
-    def execute_with_trace(self, intent: ActionIntent) -> Tuple[Union[ExecutionResult, ExecutionDispatch], ExecutionTrace]:
+    def execute_with_trace(self, intent: ActionIntent) -> Tuple[Union[ExecutorResult, ExecutionDispatch], ExecutionTrace]:
         """Execute an intent through governance pipeline and return trace."""
         logger.info(f"Executing intent {intent.intent_id} through proxy pipeline with trace")
         
@@ -138,7 +138,7 @@ class ProxyPipeline:
                     "policy_version": policy_decision.policy_version
                 }
             )
-            return ExecutionResult(
+            return ExecutorResult(
                 success=False,
                 output={},
                 error="DENIED",
@@ -205,7 +205,7 @@ class ProxyPipeline:
                     }
                 )
                 
-                return ExecutionResult(
+                return ExecutorResult(
                     success=False,
                     output={},
                     error="SAFETY_GATE_BLOCKED",
@@ -253,7 +253,7 @@ class ProxyPipeline:
             "error": "Unknown policy verdict"
         }
         
-        return ExecutionResult(
+        return ExecutorResult(
             success=False,
             output={},
             error="UNKNOWN_POLICY_VERDICT",
@@ -290,7 +290,7 @@ class ProxyPipeline:
                     "policy_version": policy_decision.policy_version
                 }
             )
-            return ExecutionResult(
+            return ExecutorResult(
                 success=False,
                 output={},
                 error="DENIED",
@@ -356,7 +356,7 @@ class ProxyPipeline:
                         "rule_ids": safety_verdict.rule_ids
                     }
                 )
-                return ExecutionResult(
+                return ExecutorResult(
                     success=False,
                     output={},
                     error="SAFETY_GATE_BLOCKED",
@@ -404,14 +404,14 @@ class ProxyPipeline:
             "error": "Unknown policy verdict"
         }
         
-        return ExecutionResult(
+        return ExecutorResult(
             success=False,
             output={},
             error="UNKNOWN_POLICY_VERDICT",
             evidence={"policy_verdict": policy_decision.verdict.value}
         ), trace
     
-    def check_approval_and_execute(self, intent: ActionIntent) -> Union[ExecutionResult, ExecutionDispatch]:
+    def check_approval_and_execute(self, intent: ActionIntent) -> Union[ExecutorResult, ExecutionDispatch]:
         """Check approval status and execute if approved.
         
         This method can be called explicitly in tests to re-check approval status
@@ -475,7 +475,7 @@ class ProxyPipeline:
                 details={"approval_status": "denied"}
             )
             
-            return ExecutionResult(
+            return ExecutorResult(
                 success=False,
                 output={},
                 error="APPROVAL_DENIED",
@@ -522,7 +522,7 @@ class ProxyPipeline:
                         }
                     )
                     
-                    return ExecutionResult(
+                    return ExecutorResult(
                         success=False,
                         output={},
                         error="SAFETY_GATE_BLOCKED",
@@ -531,12 +531,15 @@ class ProxyPipeline:
                 
                 # Step 4: Execute intent
                 execution_result = self.executor.execute(intent)
+                executor_capabilities = self.executor.capabilities() or {}
                 trace.events.append(TraceEvent(
                     stage=TraceStage.EXECUTOR_DISPATCHED,
                     ok=execution_result.success,
                     code="EXECUTED" if execution_result.success else "FAILED",
                     details={
                         "executor_name": self.executor.name(),
+                        "executor_capabilities": executor_capabilities.get("capabilities", []),
+                        "executor_version": executor_capabilities.get("version", "unknown"),
                         "execution_success": execution_result.success,
                         "execution_error": execution_result.error
                     }
@@ -570,7 +573,7 @@ class ProxyPipeline:
                     "error": "Approval bypass failed"
                 }
                 
-                return ExecutionResult(
+                return ExecutorResult(
                     success=False,
                     output={},
                     error="APPROVAL_BYPASS_FAILED",
@@ -585,7 +588,7 @@ class ProxyPipeline:
                 "error": "Unknown approval status"
             }
             
-            return ExecutionResult(
+            return ExecutorResult(
                 success=False,
                 output={},
                 error="UNKNOWN_APPROVAL_STATUS",

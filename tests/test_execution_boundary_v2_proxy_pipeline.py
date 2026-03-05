@@ -14,7 +14,7 @@ from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.models.execution_dispatch import ExecutionDispatch, DispatchStatus
 from exoarmur.execution_boundary_v2.interfaces.policy_decision_point import PolicyDecisionPoint
-from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutionResult
+from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
 
 
 class FakePDP:
@@ -58,11 +58,11 @@ class FakeExecutor:
     def capabilities(self) -> dict:
         return {"actions": ["test_action"]}
     
-    def execute(self, intent: ActionIntent) -> ExecutionResult:
+    def execute(self, intent: ActionIntent) -> ExecutorResult:
         self.execute_called = True
         self.execute_intent = intent
         
-        return ExecutionResult(
+        return ExecutorResult(
             success=self.success,
             output=self.output,
             error=self.error,
@@ -131,7 +131,7 @@ def test_proxy_pipeline_policy_deny(sample_intent, audit_emitter):
     result = pipeline.execute(sample_intent)
     
     # Verify
-    assert isinstance(result, ExecutionResult)
+    assert isinstance(result, ExecutorResult)
     assert result.success is False
     assert result.error == "DENIED"
     assert result.evidence["policy_decision"] == "deny"
@@ -219,7 +219,7 @@ def test_proxy_pipeline_allow_safety_gate_blocks(sample_intent, audit_emitter):
     result = pipeline.execute(sample_intent)
     
     # Verify
-    assert isinstance(result, ExecutionResult)
+    assert isinstance(result, ExecutorResult)
     assert result.success is False
     assert result.error == "SAFETY_GATE_BLOCKED"
     assert result.evidence["safety_verdict"] == "deny"
@@ -254,7 +254,7 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_success(sample_intent,
     result = pipeline.execute(sample_intent)
     
     # Verify
-    assert isinstance(result, ExecutionResult)
+    assert isinstance(result, ExecutorResult)
     assert result.success is True
     assert result.output["status_code"] == 200
     assert result.output["response"] == "OK"
@@ -293,7 +293,7 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_failure(sample_intent,
     result = pipeline.execute(sample_intent)
     
     # Verify
-    assert isinstance(result, ExecutionResult)
+    assert isinstance(result, ExecutorResult)
     assert result.success is False
     assert result.error == "Connection timeout"
     assert result.evidence["execution_time"] == 0.1

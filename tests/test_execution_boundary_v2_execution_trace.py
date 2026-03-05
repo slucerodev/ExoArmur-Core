@@ -14,7 +14,7 @@ from exoarmur.execution_boundary_v2.models.execution_dispatch import ExecutionDi
 from exoarmur.execution_boundary_v2.models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
 from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
 from exoarmur.execution_boundary_v2.interfaces.policy_decision_point import PolicyDecisionPoint
-from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutionResult
+from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
 from exoarmur.execution_boundary_v2.approvals.approval_models import ApprovalDecision, ApprovalRecord
 from exoarmur.execution_boundary_v2.approvals.in_memory_store import InMemoryApprovalStore
 
@@ -29,8 +29,8 @@ class MockExecutor(ExecutorPlugin):
         self.should_succeed = should_succeed
         self._name = "mock_executor"
     
-    def execute(self, intent: ActionIntent) -> ExecutionResult:
-        return ExecutionResult(
+    def execute(self, intent: ActionIntent) -> ExecutorResult:
+        return ExecutorResult(
             success=self.should_succeed,
             output={"executed": True},
             error=None if self.should_succeed else "Mock execution failed"
@@ -113,6 +113,7 @@ class TestExecutionTrace:
             evidence={"test": "evidence"}
         )
         assert trace.intent_id == "test-intent-1"
+        assert trace.trace_version == "v1"
         assert len(trace.events) == 1
         assert trace.final_status == "COMPLETED"
         assert trace.evidence["test"] == "evidence"
@@ -140,7 +141,7 @@ class TestExecutionTrace:
         result, trace = pipeline.execute_with_trace(intent)
         
         # Verify result
-        assert isinstance(result, ExecutionResult)
+        assert isinstance(result, ExecutorResult)
         assert result.success is False
         assert result.error == "DENIED"
         
@@ -161,6 +162,7 @@ class TestExecutionTrace:
         
         # Verify final status
         assert trace.final_status == "DENIED"
+        assert trace.trace_version == "v1"
         assert "policy_decision" in trace.evidence
         assert trace.evidence["policy_decision"] == mock_pdp.verdict.value
         
@@ -198,6 +200,7 @@ class TestExecutionTrace:
         # Verify trace structure
         assert len(trace.events) == 2  # INTENT_RECEIVED, POLICY_EVALUATED
         assert trace.final_status == DispatchStatus.APPROVAL_PENDING.value
+        assert trace.trace_version == "v1"
         assert "policy_decision" in trace.evidence
         assert trace.evidence["policy_decision"] == PolicyVerdict.REQUIRE_APPROVAL.value
         
@@ -240,12 +243,13 @@ class TestExecutionTrace:
         result, trace = pipeline.check_approval_and_execute(intent)
         
         # Verify result
-        assert isinstance(result, ExecutionResult)
+        assert isinstance(result, ExecutorResult)
         assert result.success is True
         
         # Verify trace structure
         assert len(trace.events) == 4  # INTENT_RECEIVED, APPROVAL_CHECKED, SAFETY_EVALUATED, EXECUTOR_DISPATCHED
         assert trace.final_status == "EXECUTED" if result.success else "FAILED"
+        assert trace.trace_version == "v1"
         assert "executor_name" in trace.evidence
         assert trace.evidence["execution_success"] is result.success
         
@@ -286,13 +290,14 @@ class TestExecutionTrace:
         result, trace = pipeline.execute_with_trace(intent)
         
         # Verify result
-        assert isinstance(result, ExecutionResult)
+        assert isinstance(result, ExecutorResult)
         assert result.success is False
         assert result.error == "SAFETY_GATE_BLOCKED"
         
         # Verify trace structure
         assert len(trace.events) == 3  # INTENT_RECEIVED, POLICY_EVALUATED, SAFETY_EVALUATED
         assert trace.final_status == "SAFETY_BLOCKED"
+        assert trace.trace_version == "v1"
         assert "safety_verdict" in trace.evidence
         assert trace.evidence["safety_verdict"] == "block"
         
@@ -419,7 +424,7 @@ class TestExecutionTrace:
         result = pipeline.execute_with_trace(intent)[0]  # Get first element of tuple
         
         # Verify backward compatibility
-        assert isinstance(result, ExecutionResult)
+        assert isinstance(result, ExecutorResult)
         assert result.success is False
         assert result.error == "DENIED"
         # Should not return a tuple when using execute()

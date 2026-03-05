@@ -23,7 +23,7 @@ def test_v2_imports():
         PolicyDecisionPoint,
         ApprovalStatus,
         ExecutorPlugin,
-        ExecutionResult,
+        ExecutorResult,
         ExecutionDispatcher
     )
     
@@ -37,7 +37,7 @@ def test_v2_imports():
     assert PolicyDecisionPoint is not None
     assert ApprovalStatus is not None
     assert ExecutorPlugin is not None
-    assert ExecutionResult is not None
+    assert ExecutorResult is not None
     assert ExecutionDispatcher is not None
 
 
@@ -145,9 +145,9 @@ def test_approval_status_enum():
 
 def test_execution_result_model():
     """Test ExecutionResult model instantiation."""
-    from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutionResult
+    from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
     
-    result = ExecutionResult(
+    result = ExecutorResult(
         success=True,
         output={"status_code": 200, "response": "OK"},
         evidence={"execution_time": 0.123}
@@ -158,7 +158,7 @@ def test_execution_result_model():
     assert result.evidence["execution_time"] == 0.123
     
     # Test with error
-    error_result = ExecutionResult(
+    error_result = ExecutorResult(
         success=False,
         output={},
         error="Connection timeout"

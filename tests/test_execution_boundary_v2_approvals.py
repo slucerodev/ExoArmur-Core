@@ -367,8 +367,8 @@ class TestApprovalIntegration:
                 return {"actions": ["test"]}
             def execute(self, intent):
                 self.execute_called = True
-                from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutionResult
-                return ExecutionResult(success=True, output={"status": "success"}, error=None, evidence={})
+                from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
+                return ExecutorResult(success=True, output={"status": "success"}, error=None, evidence={})
         
         fake_executor = FakeExecutor()
         pipeline = ProxyPipeline(pdp, FakeSafetyGate(), fake_executor, AuditEmitter())

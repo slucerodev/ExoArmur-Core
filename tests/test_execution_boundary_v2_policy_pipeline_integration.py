@@ -46,8 +46,8 @@ class FakeExecutor:
     def execute(self, intent):
         self.execute_called = True
         self.execute_intent = intent
-        from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutionResult
-        return ExecutionResult(
+        from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
+        return ExecutorResult(
             success=True,
             output={"status": "success"},
             error=None,
