@@ -31,6 +31,8 @@ Replay result: success
 ## What Is Intentionally Gated
 
 - Federated / V2 capabilities
+
+- Federated / V2 capabilities
 - Live Golden Demo requires NATS JetStream
 - Acceptance tests xfailed intentionally
 
