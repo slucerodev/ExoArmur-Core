@@ -4,12 +4,28 @@ Human operator approval workflows - Phase 1 scaffolding only
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Literal
-from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Dict, Any, Optional, Literal
+from dataclasses import dataclass, field
+from enum import Enum
+import hashlib
+import json
 import uuid
 
 logger = logging.getLogger(__name__)
+
+
+def compute_deterministic_approval_id(correlation_id: str, tenant_id: str, action_class: str) -> str:
+    """Compute deterministic approval ID from stable fields"""
+    canonical = json.dumps({
+        "correlation_id": correlation_id,
+        "tenant_id": tenant_id,
+        "action_class": action_class
+    }, sort_keys=True)
+    hash_input = canonical.encode()
+    # Use first 12 characters for compact ID
+    hash_hex = hashlib.sha256(hash_input).hexdigest()[:12]
+    return f"apr-{hash_hex}"
 
 
 @dataclass
@@ -56,7 +72,7 @@ class ApprovalService:
         else:
             logger.info("ApprovalService initialized (minimum viable implementation)")
     
-    def create_request(
+    def create_approval_request(
         self,
         correlation_id: str,
         trace_id: str,
@@ -64,10 +80,11 @@ class ApprovalService:
         cell_id: str,
         idempotency_key: str,
         requested_action_class: str,
-        payload_ref: Dict[str, Any]
+        payload_ref: Dict[str, Any],
+        execution_timestamp: Optional[datetime] = None
     ) -> str:
         """Create approval request and return approval_id"""
-        approval_id = f"apr-{uuid.uuid4().hex[:12]}"
+        approval_id = compute_deterministic_approval_id(correlation_id, tenant_id, requested_action_class)
         
         approval = ApprovalRequest(
             approval_id=approval_id,
@@ -78,7 +95,7 @@ class ApprovalService:
             idempotency_key=idempotency_key,
             requested_action_class=requested_action_class,
             payload_ref=payload_ref,
-            created_at=datetime.now(timezone.utc),
+            created_at=execution_timestamp or datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),  # Deterministic fallback
             status="PENDING"
         )
         
@@ -94,7 +111,7 @@ class ApprovalService:
             raise ValueError(f"Approval {approval_id} not found")
         return approval.status
     
-    def approve(self, approval_id: str, operator_id: str) -> Literal["PENDING", "APPROVED", "DENIED", "EXPIRED"]:
+    def approve(self, approval_id: str, operator_id: str, execution_timestamp: Optional[datetime] = None) -> Literal["PENDING", "APPROVED", "DENIED", "EXPIRED"]:
         """Approve a request"""
         approval = self._approvals.get(approval_id)
         if not approval:
@@ -105,12 +122,12 @@ class ApprovalService:
         
         approval.status = "APPROVED"
         approval.approved_by = operator_id
-        approval.approved_at = datetime.now(timezone.utc)
+        approval.approved_at = execution_timestamp or datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)  # Deterministic fallback
         
         logger.info(f"Approved request {approval_id} by operator {operator_id}")
         return "APPROVED"
     
-    def deny(self, approval_id: str, operator_id: str, reason: str) -> Literal["PENDING", "APPROVED", "DENIED", "EXPIRED"]:
+    def deny(self, approval_id: str, operator_id: str, reason: str, execution_timestamp: Optional[datetime] = None) -> Literal["PENDING", "APPROVED", "DENIED", "EXPIRED"]:
         """Deny a request"""
         approval = self._approvals.get(approval_id)
         if not approval:
@@ -121,7 +138,7 @@ class ApprovalService:
         
         approval.status = "DENIED"
         approval.approved_by = operator_id
-        approval.denied_at = datetime.now(timezone.utc)
+        approval.denied_at = execution_timestamp or datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)  # Deterministic fallback
         approval.denial_reason = reason
         
         logger.info(f"Denied request {approval_id} by operator {operator_id}: {reason}")

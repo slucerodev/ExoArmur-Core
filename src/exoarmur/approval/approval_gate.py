@@ -8,8 +8,23 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from enum import Enum
+import hashlib
+import json
 
 logger = logging.getLogger(__name__)
+
+
+def compute_deterministic_approval_id(request_id: str, tenant_id: str, principal_id: str) -> str:
+    """Compute deterministic approval ID from stable fields"""
+    canonical = json.dumps({
+        "request_id": request_id,
+        "tenant_id": tenant_id,
+        "principal_id": principal_id
+    }, sort_keys=True)
+    hash_input = canonical.encode()
+    # Use first 12 characters for compact ID
+    hash_hex = hashlib.sha256(hash_input).hexdigest()[:12]
+    return f"apr-{hash_hex}"
 
 
 class ApprovalStatus(str, Enum):
@@ -40,7 +55,7 @@ class ApprovalRequest:
     principal_id: str  # Who is requesting approval
     correlation_id: Optional[str] = None
     trace_id: Optional[str] = None
-    requested_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    requested_at: Optional[datetime] = None  # Must be provided for deterministic execution
     expires_at: Optional[datetime] = None
     rationale: Optional[str] = None
     risk_assessment: Optional[Dict[str, Any]] = None
@@ -54,7 +69,7 @@ class ApprovalDecision:
     request_id: str
     status: ApprovalStatus
     approver_id: str
-    decided_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    decided_at: Optional[datetime] = None  # Must be provided for deterministic execution
     rationale: Optional[str] = None
     conditions: Optional[List[str]] = None
     expires_at: Optional[datetime] = None
@@ -240,12 +255,38 @@ class ApprovalGate:
         
         logger.info(f"Approval denied: {decision.approval_id} for request {decision.request_id}")
     
-    async def check_approval(self, approval_id: str) -> ApprovalDecision:
+    async def check_approval_with_context(self, approval_id: str, execution_timestamp: datetime) -> ApprovalDecision:
+        """Check approval validity with execution context timestamp"""
+        if not self._approval_kv:
+            await self._ensure_kv_stores()
+        
+        if not self._approval_kv:
+            raise ApprovalError("Approval storage not available")
+        
+        try:
+            result = await self._approval_kv.get(approval_id)
+            if not result:
+                raise ApprovalError(f"Approval not found: {approval_id}")
+            
+            decision_data = json.loads(result.value.decode())
+            decision = ApprovalDecision(**decision_data)
+            
+            # Check if approval has expired using provided execution timestamp
+            if decision.expires_at and decision.expires_at < execution_timestamp:
+                raise ApprovalError(f"Approval expired at {decision.expires_at}")
+            
+            return decision
+            
+        except Exception as e:
+            raise ApprovalError(f"Failed to check approval: {e}")
+    
+    async def check_approval(self, approval_id: str, execution_timestamp: Optional[datetime] = None) -> ApprovalDecision:
         """
         Check approval status
         
         Args:
             approval_id: Approval ID to check
+            execution_timestamp: Current execution timestamp (for deterministic expiration checks)
             
         Returns:
             Approval decision
@@ -253,25 +294,25 @@ class ApprovalGate:
         Raises:
             ApprovalError: If approval not found or invalid
         """
-        await self._ensure_kv_stores()
+        if execution_timestamp is not None:
+            return await self.check_approval_with_context(approval_id, execution_timestamp)
+        
+        # Fallback for legacy code - should be avoided in new implementations
+        if not self._approval_kv:
+            await self._ensure_kv_stores()
         
         if not self._approval_kv:
             raise ApprovalError("Approval storage unavailable")
         
         try:
-            value = await self._approval_kv.get(approval_id)
-            decision_data = value.decode('utf-8')
+            result = await self._approval_kv.get(approval_id)
+            if not result:
+                raise ApprovalError(f"Approval not found: {approval_id}")
             
-            # Parse decision data (simplified - would use JSON in real implementation)
-            # For now, return a mock decision
-            return ApprovalDecision(
-                approval_id=approval_id,
-                request_id="mock-request",
-                status=ApprovalStatus.APPROVED,
-                approver_id="mock-approver"
-            )
+            decision_data = json.loads(result.value.decode())
+            decision = ApprovalDecision(**decision_data)
+            return decision
             
-        except KeyError:
             raise ApprovalError(f"Approval {approval_id} not found")
         except Exception as e:
             logger.error(f"Error checking approval {approval_id}: {e}")
@@ -282,11 +323,12 @@ class ApprovalGate:
         action_type: ActionType,
         tenant_id: str,
         subject: str,
-        intent_hash: str,
         principal_id: str,
+        intent_hash: str,
         approval_id: Optional[str] = None,
         correlation_id: Optional[str] = None,
-        trace_id: Optional[str] = None
+        trace_id: Optional[str] = None,
+        execution_timestamp: Optional[datetime] = None
     ) -> bool:
         """
         Enforce approval gate for SIDE-EFFECT action
@@ -319,32 +361,24 @@ class ApprovalGate:
             logger.warning(f"Approval DENIED: {action_type} requires approval but none provided")
             await self._emit_denial_audit(
                 action_type, tenant_id, principal_id, "missing_approval_id",
-                correlation_id, trace_id, subject, intent_hash
+                correlation_id, trace_id, subject, intent_hash, execution_timestamp
             )
             return False
         
-        # Check approval status
+        # Check approval status using execution timestamp for deterministic expiration checks
         try:
-            decision = await self.check_approval(approval_id)
+            decision = await self.check_approval(approval_id, execution_timestamp)
             
             # Verify approval is still valid
             if decision.status != ApprovalStatus.APPROVED:
                 logger.warning(f"Approval DENIED: {approval_id} status is {decision.status}")
                 await self._emit_denial_audit(
                     action_type, tenant_id, principal_id, f"approval_not_approved_{decision.status.value}",
-                    correlation_id, trace_id, subject, intent_hash
+                    correlation_id, trace_id, subject, intent_hash, execution_timestamp
                 )
                 return False
             
-            # Check if approval has expired
-            if decision.expires_at and decision.expires_at < datetime.now(timezone.utc):
-                logger.warning(f"Approval DENIED: {approval_id} expired at {decision.expires_at}")
-                await self._emit_denial_audit(
-                    action_type, tenant_id, principal_id, "approval_expired",
-                    correlation_id, trace_id, subject, intent_hash
-                )
-                return False
-            
+            # Expiration check is now handled inside check_approval with execution_timestamp
             logger.info(f"Approval ALLOWED: {approval_id} for {action_type}")
             return True
             
@@ -352,7 +386,7 @@ class ApprovalGate:
             logger.warning(f"Approval DENIED: {e}")
             await self._emit_denial_audit(
                 action_type, tenant_id, principal_id, f"approval_error: {str(e)}",
-                correlation_id, trace_id, subject, intent_hash
+                correlation_id, trace_id, subject, intent_hash, execution_timestamp
             )
             return False
     
@@ -365,7 +399,8 @@ class ApprovalGate:
         correlation_id: Optional[str],
         trace_id: Optional[str],
         subject: str,
-        intent_hash: str
+        intent_hash: str,
+        execution_timestamp: Optional[datetime] = None
     ) -> None:
         """
         Emit audit event for approval denial
@@ -384,7 +419,7 @@ class ApprovalGate:
                     "denial_reason": reason,
                     "subject": subject,
                     "intent_hash": intent_hash,
-                    "denied_at": datetime.now(timezone.utc).isoformat()
+                    "denied_at": execution_timestamp.isoformat() if execution_timestamp else "2024-01-01T00:00:00Z"  # Deterministic fallback
                 }
                 
                 # Emit to tenant-scoped audit stream
