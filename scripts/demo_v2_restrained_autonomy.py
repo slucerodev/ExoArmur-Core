@@ -238,7 +238,7 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
             "execution_id": outcome.execution_id,
             "approval_id": outcome.approval_id,
             "audit_stream_id": outcome.audit_stream_id,
-            "timestamp": outcome.timestamp.isoformat()
+            "timestamp": outcome.timestamp.isoformat() if outcome.timestamp else None,
         },
         "audit_records": _serialize_audit_records(audit_logger.audit_records)
     }
