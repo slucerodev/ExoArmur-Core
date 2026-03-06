@@ -17,6 +17,12 @@ from .coordination_models_v2 import CoordinationEvent
 logger = logging.getLogger(__name__)
 
 
+def get_validation_timestamp() -> str:
+    """Get deterministic validation timestamp (for boundary events only)"""
+    # For validation events, we can use a fixed timestamp since these are diagnostic
+    return datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+
+
 class CoordinationAuditEmitter:
     """Audit event emitter for federation coordination"""
     
@@ -164,7 +170,7 @@ class CoordinationAuditEmitter:
                         "coordination_id": coordination_id,
                         "events": events,
                         "event_count": len(events),
-                        "retrieved_at": datetime.now(timezone.utc).isoformat()
+                        "retrieved_at": get_validation_timestamp()
                     }
             
             # Fallback for testing
@@ -172,7 +178,7 @@ class CoordinationAuditEmitter:
                 "coordination_id": coordination_id,
                 "events": [],
                 "event_count": 0,
-                "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                "retrieved_at": get_validation_timestamp(),
                 "note": "Audit interface not available"
             }
                 
@@ -210,7 +216,7 @@ class CoordinationAuditEmitter:
                 "coordination_id": coordination_id,
                 "valid": False,
                 "reason": f"Event count mismatch: expected {expected_event_count}, got {actual_event_count}",
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": get_validation_timestamp(),
                 "expected_count": expected_event_count,
                 "actual_count": actual_event_count
             }
@@ -223,7 +229,7 @@ class CoordinationAuditEmitter:
                 "coordination_id": coordination_id,
                 "valid": False,
                 "reason": "Duplicate idempotency keys found in audit trail",
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": get_validation_timestamp(),
                 "duplicate_keys": len(idempotency_keys) - len(unique_keys)
             }
         
@@ -241,7 +247,7 @@ class CoordinationAuditEmitter:
             "coordination_id": coordination_id,
             "valid": True,
             "reason": "Coordination audit trail integrity validated",
-            "validated_at": datetime.now(timezone.utc).isoformat(),
+            "validated_at": get_validation_timestamp(),
             "event_count": actual_event_count,
             "idempotency_keys_unique": True,
             "chronological_order": True

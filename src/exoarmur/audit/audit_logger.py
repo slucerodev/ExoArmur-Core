@@ -14,9 +14,31 @@ from exoarmur.nats_client import ExoArmurNATSClient
 logger = logging.getLogger(__name__)
 
 
-def utc_now() -> datetime:
-    """Get current UTC time"""
-    return datetime.now(timezone.utc)
+def compute_deterministic_audit_id(tenant_id: str, correlation_id: str, event_kind: str, sequence: int = 0) -> str:
+    """Compute deterministic audit ID from stable fields"""
+    canonical = json.dumps({
+        "tenant_id": tenant_id,
+        "correlation_id": correlation_id,
+        "event_kind": event_kind,
+        "sequence": sequence
+    }, sort_keys=True)
+    hash_input = canonical.encode()
+    # Use first 26 characters for ULID-like format
+    hash_hex = hashlib.sha256(hash_input).hexdigest()[:26]
+    # Convert to Crockford's base32 for ULID compatibility
+    ulid_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    result = ""
+    for i in range(26):
+        # Take 4 bits at a time from hash
+        byte_index = (i * 4) // 8
+        bit_offset = (i * 4) % 8
+        if byte_index < len(hash_hex):
+            byte_val = int(hash_hex[byte_index], 16)
+            nibble = (byte_val >> (4 - bit_offset - 4)) & 0xF if bit_offset <= 4 else 0
+            result += ulid_chars[nibble % 32]
+        else:
+            result += ulid_chars[0]
+    return result
 
 
 def compute_idempotency_key(tenant_id: str, correlation_id: str, event_kind: str, payload_ref: Dict[str, Any]) -> str:
@@ -37,6 +59,7 @@ class AuditLogger:
         self.nats_client = nats_client
         self.audit_records: Dict[str, List[AuditRecordV1]] = {}  # In-memory storage for testing
         self._idempotency_kv = None
+        self._sequence_counters: Dict[str, int] = {}  # Track sequence per correlation_id
         logger.info("AuditLogger initialized")
     
     async def _ensure_idempotency_kv(self):
@@ -103,7 +126,8 @@ class AuditLogger:
         trace_id: str,
         tenant_id: str,
         cell_id: str,
-        idempotency_key: str
+        idempotency_key: str,
+        execution_timestamp: Optional[datetime] = None
     ) -> AuditRecordV1:
         """Synchronous wrapper for emit_audit_record_async"""
         import asyncio
@@ -119,7 +143,7 @@ class AuditLogger:
                         asyncio.run, 
                         self.emit_audit_record_async(
                             event_kind, payload_ref, correlation_id, 
-                            trace_id, tenant_id, cell_id, idempotency_key
+                            trace_id, tenant_id, cell_id, idempotency_key, execution_timestamp
                         )
                     )
                     return future.result()
@@ -127,7 +151,7 @@ class AuditLogger:
                 return loop.run_until_complete(
                     self.emit_audit_record_async(
                         event_kind, payload_ref, correlation_id, 
-                        trace_id, tenant_id, cell_id, idempotency_key
+                        trace_id, tenant_id, cell_id, idempotency_key, execution_timestamp
                     )
                 )
         except RuntimeError:
@@ -135,7 +159,7 @@ class AuditLogger:
             return asyncio.run(
                 self.emit_audit_record_async(
                     event_kind, payload_ref, correlation_id, 
-                    trace_id, tenant_id, cell_id, idempotency_key
+                    trace_id, tenant_id, cell_id, idempotency_key, execution_timestamp
                 )
             )
     
@@ -147,7 +171,8 @@ class AuditLogger:
         trace_id: str,
         tenant_id: str,
         cell_id: str,
-        idempotency_key: str
+        idempotency_key: str,
+        execution_timestamp: Optional[datetime] = None
     ) -> AuditRecordV1:
         """Emit audit record with durable idempotency enforcement"""
         logger.info(f"Emitting audit record for {event_kind}")
@@ -155,6 +180,11 @@ class AuditLogger:
         # Compute deterministic idempotency key if not provided
         if not idempotency_key:
             idempotency_key = compute_idempotency_key(tenant_id, correlation_id, event_kind, payload_ref)
+        
+        # Get sequence counter for deterministic ID generation
+        if correlation_id not in self._sequence_counters:
+            self._sequence_counters[correlation_id] = 0
+        sequence = self._sequence_counters[correlation_id]
         
         # Check idempotency BEFORE creating audit record
         existing_audit_id = await self._check_idempotency(tenant_id, idempotency_key)
@@ -167,7 +197,7 @@ class AuditLogger:
                 tenant_id=tenant_id,
                 cell_id=cell_id,
                 idempotency_key=idempotency_key,
-                recorded_at=utc_now(),
+                recorded_at=execution_timestamp,  # Must be provided for governed events
                 event_kind=event_kind,
                 payload_ref=payload_ref,
                 hashes={
@@ -178,14 +208,17 @@ class AuditLogger:
                 trace_id=trace_id
             )
         
+        # Generate deterministic audit ID
+        audit_id = compute_deterministic_audit_id(tenant_id, correlation_id, event_kind, sequence)
+        
         # Create audit record
         audit_record = AuditRecordV1(
             schema_version="1.0.0",
-            audit_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            audit_id=audit_id,
             tenant_id=tenant_id,
             cell_id=cell_id,
             idempotency_key=idempotency_key,
-            recorded_at=utc_now(),
+            recorded_at=execution_timestamp,  # Must be provided for governed events
             event_kind=event_kind,
             payload_ref=payload_ref,
             hashes={
@@ -195,6 +228,9 @@ class AuditLogger:
             correlation_id=correlation_id,
             trace_id=trace_id
         )
+        
+        # Increment sequence counter
+        self._sequence_counters[correlation_id] += 1
         
         # Store in memory for retrieval
         if correlation_id not in self.audit_records:
@@ -251,7 +287,7 @@ class AuditLogger:
 
         return records
     
-    def record_audit(self, event_kind: str, payload_ref: Dict[str, Any], correlation_id: str, trace_id: str, tenant_id: str, cell_id: str, idempotency_key: str) -> AuditRecordV1:
+    def record_audit(self, event_kind: str, payload_ref: Dict[str, Any], correlation_id: str, trace_id: str, tenant_id: str, cell_id: str, idempotency_key: str, execution_timestamp: Optional[datetime] = None) -> AuditRecordV1:
         """Record audit event (alias for emit_audit_record)"""
         return self.emit_audit_record(
             event_kind=event_kind,
@@ -260,7 +296,8 @@ class AuditLogger:
             trace_id=trace_id,
             tenant_id=tenant_id,
             cell_id=cell_id,
-            idempotency_key=idempotency_key
+            idempotency_key=idempotency_key,
+            execution_timestamp=execution_timestamp
         )
     
     def _compute_hash(self, payload_ref: Dict[str, Any]) -> str:
