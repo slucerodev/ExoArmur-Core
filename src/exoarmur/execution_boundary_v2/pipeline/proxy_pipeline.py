@@ -18,6 +18,7 @@ from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
 # Import V1 primitives for integration
 from spec.contracts.models_v1 import AuditRecordV1, LocalDecisionV1
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
+from exoarmur.clock import get_clock, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class AuditEmitter:
             tenant_id="test-tenant",  # Placeholder
             cell_id="test-cell",  # Placeholder
             idempotency_key=f"audit-{intent_id}",
-            recorded_at=datetime.now(timezone.utc),
+            recorded_at=utc_now(),
             event_kind=event_type,
             payload_ref={
                 "kind": "inline",
@@ -168,8 +169,8 @@ class ProxyPipeline:
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=utc_now(),
+                updated_at=utc_now(),
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -323,8 +324,8 @@ class ProxyPipeline:
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=utc_now(),
+                updated_at=utc_now(),
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -464,8 +465,8 @@ class ProxyPipeline:
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=DispatchStatus.APPROVAL_PENDING,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=utc_now(),
+                updated_at=utc_now(),
                 details={"approval_status": "pending"}
             ), trace
         
