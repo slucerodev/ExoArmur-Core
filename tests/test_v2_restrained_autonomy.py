@@ -511,7 +511,7 @@ class TestBoundaryGateCompatibility:
         
         audit_calls = []
         
-        def capture_audit_call(event_kind, payload_ref, correlation_id, trace_id, tenant_id, cell_id, idempotency_key):
+        def capture_audit_call(event_kind, payload_ref, correlation_id, trace_id, tenant_id, cell_id, idempotency_key, execution_timestamp=None):
             mock_record = create_mock_audit_record()
             mock_record.event_kind = event_kind
             mock_record.correlation_id = correlation_id
