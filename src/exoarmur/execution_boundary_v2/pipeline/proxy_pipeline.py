@@ -18,7 +18,6 @@ from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
 # Import V1 primitives for integration
 from spec.contracts.models_v1 import AuditRecordV1, LocalDecisionV1
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
-from exoarmur.clock import get_clock, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,8 @@ class AuditEmitter:
         intent_id: str,
         event_type: str,
         outcome: str,
-        details: Dict[str, Any]
+        details: Dict[str, Any],
+        execution_timestamp: datetime
     ) -> AuditRecordV1:
         """Create and emit a V1 audit record."""
         # Generate placeholder ULID for audit_id (will be deterministic in later phases)
@@ -46,7 +46,7 @@ class AuditEmitter:
             tenant_id="test-tenant",  # Placeholder
             cell_id="test-cell",  # Placeholder
             idempotency_key=f"audit-{intent_id}",
-            recorded_at=utc_now(),
+            recorded_at=execution_timestamp,
             event_kind=event_type,
             payload_ref={
                 "kind": "inline",
@@ -57,8 +57,8 @@ class AuditEmitter:
             hashes={
                 "sha256": "placeholder-hash"
             },
-            correlation_id=intent_id,
-            trace_id=intent_id
+            signature=None,  # Placeholder
+            encryption_key_id=None  # Placeholder
         )
         
         self.audit_records.append(audit_record)
@@ -137,7 +137,8 @@ class ProxyPipeline:
                 details={
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             return ExecutorResult(
                 success=False,
@@ -163,14 +164,15 @@ class ProxyPipeline:
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version,
                     "approval_required": policy_decision.approval_required
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=utc_now(),
-                updated_at=utc_now(),
+                created_at=intent.timestamp,
+                updated_at=intent.timestamp,
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -245,7 +247,8 @@ class ProxyPipeline:
                     "execution_success": execution_result.success,
                     "executor_name": self.executor.name(),
                     "execution_error": execution_result.error
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             
             return execution_result, trace
@@ -292,7 +295,8 @@ class ProxyPipeline:
                 details={
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             return ExecutorResult(
                 success=False,
@@ -318,14 +322,15 @@ class ProxyPipeline:
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version,
                     "approval_required": policy_decision.approval_required
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=utc_now(),
-                updated_at=utc_now(),
+                created_at=intent.timestamp,
+                updated_at=intent.timestamp,
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -399,7 +404,8 @@ class ProxyPipeline:
                     "execution_success": execution_result.success,
                     "executor_name": self.executor.name(),
                     "execution_error": execution_result.error
-                }
+                },
+                execution_timestamp=intent.timestamp
             )
             
             return execution_result, trace
@@ -465,8 +471,8 @@ class ProxyPipeline:
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=DispatchStatus.APPROVAL_PENDING,
-                created_at=utc_now(),
-                updated_at=utc_now(),
+                created_at=intent.timestamp,
+                updated_at=intent.timestamp,
                 details={"approval_status": "pending"}
             ), trace
         
@@ -479,14 +485,16 @@ class ProxyPipeline:
                 intent_id=intent.intent_id,
                 event_type="approval_denied",
                 outcome="denied",
-                details={"approval_status": "denied"}
+                details={"approval_status": "denied"},
+                execution_timestamp=intent.timestamp
             )
             
             return ExecutorResult(
                 success=False,
                 output={},
                 error="APPROVAL_DENIED",
-                evidence={"approval_status": "denied"}
+                evidence={"approval_status": "denied"},
+                execution_timestamp=intent.timestamp
             ), trace
         
         elif approval_status == "approved":
@@ -599,7 +607,8 @@ class ProxyPipeline:
                 success=False,
                 output={},
                 error="UNKNOWN_APPROVAL_STATUS",
-                evidence={"approval_status": approval_status}
+                evidence={"approval_status": approval_status},
+                execution_timestamp=intent.timestamp
             ), trace
     
     def _evaluate_safety_gate(self, intent: ActionIntent) -> SafetyVerdict:
