@@ -154,7 +154,8 @@ class RestrainedAutonomyPipeline:
             trace_id=trace_id,
             tenant_id=tenant_id,
             cell_id=cell_id,
-            idempotency_key=f"{correlation_id}-{event_kind}"
+            idempotency_key=f"{correlation_id}-{event_kind}",
+            execution_timestamp=self.clock.now()
         )
         
         return audit_record.audit_id
