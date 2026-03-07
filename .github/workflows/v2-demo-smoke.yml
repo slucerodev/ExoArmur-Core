@@ -34,7 +34,7 @@ jobs:
         EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED: "true"
       run: |
         # Run demo with deny decision
-        python3 -m exoarmur.v2_restrained_autonomy.demo --operator-decision deny > demo_output.txt 2>&1
+        python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny > demo_output.txt 2>&1
         cat demo_output.txt
         
         # Extract audit stream ID for replay
