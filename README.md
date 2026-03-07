@@ -25,6 +25,30 @@ ExoArmur Core is the invariant enforcement layer within a modular execution arch
 
 Core deliberately separates intelligence from enforcement. Decision systems may evolve independently, but execution integrity and audit guarantees remain stable at this layer.
 
+### Execution Pipeline
+
+```
+Gateway → ActionIntent → ProxyPipeline.execute_with_trace() → PolicyDecisionPoint → SafetyGate → Approval Workflow → ExecutorPlugin → ExecutionTrace → ExecutionProofBundle
+```
+
+### Key Architectural Invariants
+
+- **ProxyPipeline is the sole execution boundary** - All actions must pass through this governance boundary
+- **Executors are untrusted capability modules** - Treated as external, sandboxed components
+- **Execution must remain deterministic** - Same inputs always produce identical outputs
+- **Evidence artifacts must be replayable** - Audit trails enable exact reconstruction of decisions
+- **CI invariant gates enforce integrity** - Automated checks preserve architectural guarantees
+
+### Feature Flags & V2 Capabilities
+
+V2 capabilities are gated behind feature flags to ensure safe, incremental adoption:
+
+- `v2_federation_enabled` - Enables multi-cell coordination
+- `v2_control_plane_enabled` - Activates governance control plane
+- `v2_operator_approval_required` - Requires human approval for actions
+
+V2 defaults to disabled - Core remains fully functional without any V2 features.
+
 ## Status
 
 Architecture / Contract: v1.0.0 (stable)
@@ -89,6 +113,30 @@ exoarmur --help
 ```bash
 python examples/quickstart_replay.py
 python -m pytest -q
+```
+
+## V2 Restrained Autonomy Demo
+
+The V2 demo shows ExoArmur's governance pipeline with operator approval:
+
+```bash
+# Enable V2 capabilities and run demo with deny decision
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+```
+
+**Expected Output Markers:**
+```
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=det-...
+```
+
+**Replay the audit stream:**
+```bash
+python scripts/demo_v2_restrained_autonomy.py --replay <AUDIT_STREAM_ID>
 ```
 
 ## Live Golden Demo (Requires NATS JetStream)

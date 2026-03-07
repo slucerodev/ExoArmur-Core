@@ -37,7 +37,6 @@ dependencies = [
 
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
-v2-demo = "exoarmur.v2_restrained_autonomy:demo"
 
 [project.optional-dependencies]
 v2 = []

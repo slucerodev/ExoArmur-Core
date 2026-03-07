@@ -15,6 +15,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 import click
+from exoarmur import __version__
 
 # Add src and spec/contracts to path for imports
 
@@ -29,7 +30,7 @@ def _script_env(base_env: Optional[dict] = None) -> dict:
     return env
 
 @click.group()
-@click.version_option(version="3.0.0", prog_name="exoarmur")
+@click.version_option(version=__version__, prog_name="exoarmur")
 def main():
     """ExoArmur Core — deterministic governance and replayable audit layer"""
     pass
@@ -174,7 +175,22 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
     
     if scenario == 'v2_restrained_autonomy':
         repo_root = Path(__file__).resolve().parents[2]
-        cmd = [sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py")]
+        script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
+        
+        # Fallback: try to find script in current working directory
+        if not script_path.exists():
+            script_path = Path.cwd() / "scripts" / "demo_v2_restrained_autonomy.py"
+        
+        # Final fallback: try relative to current directory
+        if not script_path.exists():
+            script_path = Path("scripts/demo_v2_restrained_autonomy.py")
+        
+        if not script_path.exists():
+            click.echo(f"❌ Demo script not found at: {script_path}")
+            click.echo("Please run from the repository root directory")
+            sys.exit(1)
+        
+        cmd = [sys.executable, str(script_path)]
         
         if replay:
             cmd.extend(["--replay", replay])
@@ -216,17 +232,16 @@ def health():
     
     try:
         # Test basic imports
-        from api_models import TelemetryIngestResponseV1
-        from models_v1 import TelemetryEventV1
+        from spec.contracts.models_v1 import TelemetryEventV1
         click.echo("✅ Core imports working")
         
         # Test feature flags
-        from feature_flags.feature_flags import get_feature_flags
+        from exoarmur.feature_flags.feature_flags import get_feature_flags
         flags = get_feature_flags()
         click.echo(f"✅ Feature flags loaded: {len(flags._flags)} configured")
         
         # Test V2 pipeline
-        from v2_restrained_autonomy import RestrainedAutonomyPipeline
+        from exoarmur.v2_restrained_autonomy.pipeline_impl import RestrainedAutonomyPipeline
         pipeline = RestrainedAutonomyPipeline()
         click.echo("✅ V2 pipeline initialized")
         
