@@ -46,9 +46,6 @@ dev = [
   "pytest-asyncio",
 ]
 
-[project.scripts]
-v2-demo = "exoarmur.v2_restrained_autonomy:demo"
-
 [tool.setuptools]
 package-dir = {"" = "src"}
 
