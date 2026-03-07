@@ -52,7 +52,12 @@ jobs:
           docker-compose --version
 
       - name: Gate 2 — Test Execution (python3 -m pytest -q)
-        run: python3 -m pytest -q
+        run: |
+          echo "=== BEFORE PYTEST ==="
+          git status --porcelain || true
+          python3 -m pytest -q
+          echo "=== AFTER PYTEST ==="
+          git status --porcelain || true
 
       - name: Snapshot diagnostics on failure
         if: failure()
@@ -62,9 +67,29 @@ jobs:
           git diff || true
 
       - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
-        run: python3 scripts/boundary_gate.py
+        run: |
+          echo "=== BEFORE BOUNDARY GATE ==="
+          git status --porcelain || true
+          python3 scripts/boundary_gate.py
+          echo "=== AFTER BOUNDARY GATE ==="
+          git status --porcelain || true
 
       - name: Gate 4 — Repo Cleanliness (No Generated Diffs)
         run: |
+          echo "=== BEFORE CLEANLINESS CHECK ==="
+          git status --porcelain
+          git rev-parse HEAD
+          echo "=== RUNNING CLEANLINESS CHECK ==="
           git status --porcelain
           test -z "$(git status --porcelain)"
+      
+      - name: Cleanliness Failure Diagnostics
+        if: failure()
+        run: |
+          echo "=== CLEANLINESS FAILURE DIAGNOSTICS ==="
+          echo "=== AFTER PREVIOUS STEPS ==="
+          git status --porcelain
+          echo "=== FILE DRIFT DETECTED ==="
+          git diff --name-status || true
+          echo "=== FULL DIFF OF CHANGES ==="
+          git diff || true
