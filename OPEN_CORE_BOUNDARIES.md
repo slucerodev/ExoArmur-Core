@@ -159,7 +159,7 @@ logs/                      # ❌ No runtime logs
 ## LICENSING IMPLICATIONS
 
 ### Core Components (Open Source)
-- **License**: MIT/Apache 2.0 (permissive open source)
+- **License**: Apache 2.0 (permissive open source)
 - **Usage**: Free to use, modify, and distribute
 - **Support**: Community support only
 - **Updates**: Regular updates with core improvements
