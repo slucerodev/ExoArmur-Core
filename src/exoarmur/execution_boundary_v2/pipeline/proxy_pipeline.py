@@ -5,8 +5,11 @@ Minimal orchestration using existing V1 primitives without modifying V1 behavior
 """
 
 import logging
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Dict, Any, Union, Tuple
+import ulid
 
 from ..interfaces.policy_decision_point import PolicyDecisionPoint
 from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
@@ -22,6 +25,55 @@ from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, 
 logger = logging.getLogger(__name__)
 
 
+def _deterministic_timestamp() -> datetime:
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _deterministic_audit_id(intent_id: str, event_type: str, outcome: str, details: Dict[str, Any]) -> str:
+    canonical = json.dumps(
+        {
+            "intent_id": intent_id,
+            "event_type": event_type,
+            "outcome": outcome,
+            "details": details,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(canonical.encode("utf-8")).digest()
+    return str(ulid.ULID.from_bytes(digest[:16]))
+
+
+def _deterministic_audit_hash(intent_id: str, event_type: str, outcome: str, details: Dict[str, Any]) -> str:
+    canonical = json.dumps(
+        {
+            "intent_id": intent_id,
+            "event_type": event_type,
+            "outcome": outcome,
+            "details": details,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _deterministic_local_decision_id(intent: ActionIntent) -> str:
+    canonical = json.dumps(
+        {
+            "intent_id": intent.intent_id,
+            "actor_id": intent.actor_id,
+            "action_type": intent.action_type,
+            "target": intent.target,
+            "timestamp": intent.timestamp.isoformat(),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(canonical.encode("utf-8")).digest()
+    return str(ulid.ULID.from_bytes(digest[:16]))
+
+
 class AuditEmitter:
     """Minimal adapter for emitting V1 audit records from V2 pipeline."""
     
@@ -33,19 +85,22 @@ class AuditEmitter:
         intent_id: str,
         event_type: str,
         outcome: str,
-        details: Dict[str, Any]
+        details: Dict[str, Any],
+        recorded_at: datetime | None = None,
+        tenant_id: str = "test-tenant",
+        cell_id: str = "test-cell",
     ) -> AuditRecordV1:
         """Create and emit a V1 audit record."""
         # Generate placeholder ULID for audit_id (will be deterministic in later phases)
-        audit_id = "01H2X6VZB5Z2Z2Z2Z2Z2Z2Z2Z2"
+        audit_id = _deterministic_audit_id(intent_id, event_type, outcome, details)
         
         audit_record = AuditRecordV1(
             schema_version="1.0.0",
             audit_id=audit_id,
-            tenant_id="test-tenant",  # Placeholder
-            cell_id="test-cell",  # Placeholder
+            tenant_id=tenant_id,
+            cell_id=cell_id,
             idempotency_key=f"audit-{intent_id}",
-            recorded_at=datetime.now(timezone.utc),
+            recorded_at=recorded_at or _deterministic_timestamp(),
             event_kind=event_type,
             payload_ref={
                 "kind": "inline",
@@ -54,7 +109,7 @@ class AuditEmitter:
                 "details": details
             },
             hashes={
-                "sha256": "placeholder-hash"
+                "sha256": _deterministic_audit_hash(intent_id, event_type, outcome, details)
             },
             correlation_id=intent_id,
             trace_id=intent_id
@@ -91,6 +146,7 @@ class ProxyPipeline:
     def execute_with_trace(self, intent: ActionIntent) -> Tuple[Union[ExecutorResult, ExecutionDispatch], ExecutionTrace]:
         """Execute an intent through governance pipeline and return trace."""
         logger.info(f"Executing intent {intent.intent_id} through proxy pipeline with trace")
+        intent_timestamp = intent.timestamp
         
         # Initialize execution trace
         trace = ExecutionTrace(
@@ -136,7 +192,9 @@ class ProxyPipeline:
                 details={
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             return ExecutorResult(
                 success=False,
@@ -162,14 +220,16 @@ class ProxyPipeline:
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version,
                     "approval_required": policy_decision.approval_required
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=intent_timestamp,
+                updated_at=intent_timestamp,
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -202,7 +262,9 @@ class ProxyPipeline:
                         "safety_verdict": safety_verdict.verdict,
                         "rationale": safety_verdict.rationale,
                         "rule_ids": safety_verdict.rule_ids
-                    }
+                    },
+                    tenant_id=intent.tenant_id,
+                    cell_id=intent.cell_id,
                 )
                 
                 return ExecutorResult(
@@ -244,7 +306,9 @@ class ProxyPipeline:
                     "execution_success": execution_result.success,
                     "executor_name": self.executor.name(),
                     "execution_error": execution_result.error
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             
             return execution_result, trace
@@ -291,7 +355,9 @@ class ProxyPipeline:
                 details={
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             return ExecutorResult(
                 success=False,
@@ -317,14 +383,16 @@ class ProxyPipeline:
                     "rationale": policy_decision.rationale,
                     "policy_version": policy_decision.policy_version,
                     "approval_required": policy_decision.approval_required
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=intent_timestamp,
+                updated_at=intent_timestamp,
                 details={"policy_decision": policy_decision.verdict.value}
             ), trace
         
@@ -357,7 +425,9 @@ class ProxyPipeline:
                         "safety_verdict": safety_verdict.verdict,
                         "rationale": safety_verdict.rationale,
                         "rule_ids": safety_verdict.rule_ids
-                    }
+                    },
+                    tenant_id=intent.tenant_id,
+                    cell_id=intent.cell_id,
                 )
                 return ExecutorResult(
                     success=False,
@@ -398,7 +468,9 @@ class ProxyPipeline:
                     "execution_success": execution_result.success,
                     "executor_name": self.executor.name(),
                     "execution_error": execution_result.error
-                }
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             
             return execution_result, trace
@@ -464,8 +536,8 @@ class ProxyPipeline:
             return ExecutionDispatch(
                 intent_id=intent.intent_id,
                 status=DispatchStatus.APPROVAL_PENDING,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=intent.timestamp,
+                updated_at=intent.timestamp,
                 details={"approval_status": "pending"}
             ), trace
         
@@ -478,7 +550,9 @@ class ProxyPipeline:
                 intent_id=intent.intent_id,
                 event_type="approval_denied",
                 outcome="denied",
-                details={"approval_status": "denied"}
+                details={"approval_status": "denied"},
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
             )
             
             return ExecutorResult(
@@ -525,7 +599,9 @@ class ProxyPipeline:
                             "safety_verdict": safety_verdict.verdict,
                             "rationale": safety_verdict.rationale,
                             "rule_ids": safety_verdict.rule_ids
-                        }
+                        },
+                        tenant_id=intent.tenant_id,
+                        cell_id=intent.cell_id,
                     )
                     
                     return ExecutorResult(
@@ -567,7 +643,9 @@ class ProxyPipeline:
                         "execution_success": execution_result.success,
                         "executor_name": self.executor.name(),
                         "execution_error": execution_result.error
-                    }
+                    },
+                    tenant_id=intent.tenant_id,
+                    cell_id=intent.cell_id,
                 )
                 
                 return execution_result, trace
@@ -618,9 +696,9 @@ class ProxyPipeline:
         # Note: In a real implementation, this would be properly constructed
         local_decision = LocalDecisionV1(
             schema_version="1.0.0",
-            decision_id="01H2X6VZB5Z2Z2Z2Z2Z2Z2Z2Z2",  # Placeholder ULID
-            tenant_id="test-tenant",
-            cell_id="test-cell",
+            decision_id=_deterministic_local_decision_id(intent),
+            tenant_id=intent.tenant_id,
+            cell_id=intent.cell_id,
             subject={
                 "subject_type": "agent",
                 "subject_id": intent.actor_id

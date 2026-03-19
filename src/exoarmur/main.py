@@ -46,6 +46,10 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
+from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
+from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
 
 # Configure structured logging
 logging.basicConfig(
@@ -69,6 +73,147 @@ audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
 background_tasks = set()  # Track background tasks for deterministic shutdown
+
+
+class _AllowPolicyDecisionPoint:
+    def evaluate(self, intent: ActionIntent) -> PolicyDecision:
+        return PolicyDecision(
+            verdict=PolicyVerdict.ALLOW,
+            rationale="allow_path_adapter",
+            confidence=1.0,
+            approval_required=False,
+            policy_version="v1-ingest-adapter"
+        )
+
+    def approval_status(self, intent_id: str) -> str:
+        return "not_required"
+
+
+class _FixedSafetyGate:
+    def __init__(self, safety_verdict):
+        self._safety_verdict = safety_verdict
+
+    def evaluate_safety(self, intent, local_decision, collective_state, policy_state, trust_state, environment_state):
+        return self._safety_verdict
+
+
+class _ExecutionIntentRecorder:
+    def __init__(self, kernel: ExecutionKernel, execution_intent):
+        self._kernel = kernel
+        self._execution_intent = execution_intent
+
+    def name(self) -> str:
+        return "execution-intent-recorder"
+
+    def capabilities(self) -> Dict[str, Any]:
+        return {
+            "version": "1.0.0",
+            "actions": ["execution_intent.record"],
+            "mode": "local_deterministic"
+        }
+
+    def execute(self, intent: ActionIntent) -> ExecutorResult:
+        status = "duplicate"
+        if self._execution_intent.idempotency_key not in self._kernel.executed_intents:
+            self._kernel.executed_intents[self._execution_intent.idempotency_key] = self._execution_intent
+            status = "recorded"
+
+        return ExecutorResult(
+            success=True,
+            output={
+                "intent_id": self._execution_intent.intent_id,
+                "action_class": self._execution_intent.action_class,
+                "status": status,
+            },
+            evidence={
+                "side_effect": "execution_intent_recorded",
+                "idempotency_key": self._execution_intent.idempotency_key,
+            },
+        )
+
+
+class _BufferedPipelineAuditEmitter:
+    def __init__(self):
+        self.events: List[Dict[str, Any]] = []
+
+    def emit_audit_record(
+        self,
+        intent_id: str,
+        event_type: str,
+        outcome: str,
+        details: Dict[str, Any],
+        tenant_id: str | None = None,
+        cell_id: str | None = None,
+    ):
+        event = {
+            "intent_id": intent_id,
+            "event_type": event_type,
+            "outcome": outcome,
+            "details": details,
+            "tenant_id": tenant_id,
+            "cell_id": cell_id,
+        }
+        self.events.append(event)
+        return event
+
+
+def _deterministic_audit_retrieved_at(audit_records: List[AuditRecordV1]) -> datetime:
+    if audit_records:
+        return max(record.recorded_at for record in audit_records)
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _to_action_intent(execution_intent) -> ActionIntent:
+    subject = execution_intent.subject or {}
+    subject_id = str(subject.get("subject_id", execution_intent.intent_id))
+    subject_type = str(subject.get("subject_type", "subject"))
+    return ActionIntent(
+        intent_id=execution_intent.intent_id,
+        actor_id=subject_id,
+        actor_type=subject_type,
+        action_type=execution_intent.intent_type,
+        target=f"exoarmur://execution-intent/{subject_id}",
+        parameters=dict(execution_intent.parameters),
+        safety_context=dict(execution_intent.safety_context),
+        timestamp=execution_intent.requested_at,
+        tenant_id=execution_intent.tenant_id,
+        cell_id=execution_intent.cell_id,
+    )
+
+
+async def _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict) -> bool:
+    if execution_kernel is None or audit_logger is None:
+        raise RuntimeError("Execution runtime is not initialized")
+
+    pipeline_audit_emitter = _BufferedPipelineAuditEmitter()
+
+    pipeline = ProxyPipeline(
+        _AllowPolicyDecisionPoint(),
+        _FixedSafetyGate(safety_verdict),
+        _ExecutionIntentRecorder(execution_kernel, execution_intent),
+        pipeline_audit_emitter,
+    )
+    result = pipeline.execute(_to_action_intent(execution_intent))
+
+    for event in pipeline_audit_emitter.events:
+        await audit_logger.emit_audit_record_async(
+            event_kind=event["event_type"],
+            payload_ref={
+                "kind": "inline",
+                "ref": {
+                    "intent_id": event["intent_id"],
+                    "outcome": event["outcome"],
+                    "details": event["details"],
+                },
+            },
+            correlation_id=execution_intent.correlation_id,
+            trace_id=execution_intent.trace_id,
+            tenant_id=execution_intent.tenant_id,
+            cell_id=execution_intent.cell_id,
+            idempotency_key=f"{execution_intent.idempotency_key}:{event['event_type']}:{event['outcome']}",
+        )
+
+    return getattr(result, "success", False)
 
 
 def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = None):
@@ -267,7 +412,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
         
         if safety_verdict.verdict == "allow":
             # Execute intent immediately
-            await execution_kernel.execute_intent(execution_intent)
+            await _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict)
             
             # Audit: intent executed
             audit_logger.emit_audit_record(
@@ -372,7 +517,7 @@ async def get_audit_records(correlation_id: str):
             correlation_id=correlation_id,
             audit_records=audit_records_dicts,
             total_count=len(audit_records),
-            retrieved_at=datetime.now(timezone.utc)
+            retrieved_at=_deterministic_audit_retrieved_at(audit_records)
         )
         
         logger.info(f"Retrieved {len(audit_records)} audit records for correlation {correlation_id}")

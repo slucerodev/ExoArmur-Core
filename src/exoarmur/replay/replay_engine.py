@@ -4,6 +4,7 @@ Reconstructs and verifies organism behavior from audit logs
 """
 
 import logging
+import json
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
@@ -20,6 +21,10 @@ from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1, BeliefV1
 logger = logging.getLogger(__name__)
 
 
+def _deterministic_replay_timestamp() -> datetime:
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
 class ReplayResult(Enum):
     """Replay outcome status"""
     SUCCESS = "success"
@@ -32,7 +37,7 @@ class ReplayReport:
     """Comprehensive replay execution report"""
     
     correlation_id: str
-    replay_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    replay_timestamp: datetime = field(default_factory=_deterministic_replay_timestamp)
     result: ReplayResult = ReplayResult.SUCCESS
     
     # Event processing metrics
@@ -154,6 +159,31 @@ class ReplayEngine:
                 report.add_failure(f"Failed to create envelope for record {record.event_id}: {e}")
         
         return envelopes
+
+    def _extract_payload_ref(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {}
+
+        kind = payload.get("kind")
+        if kind == "inline":
+            ref = payload.get("ref", {})
+            if isinstance(ref, dict):
+                return ref
+            if isinstance(ref, str):
+                try:
+                    parsed = json.loads(ref)
+                except json.JSONDecodeError:
+                    return {}
+                return parsed if isinstance(parsed, dict) else {}
+            return {}
+
+        legacy_kind = payload.get("kind", {})
+        if isinstance(legacy_kind, dict):
+            ref = legacy_kind.get("ref", {})
+            return ref if isinstance(ref, dict) else {}
+
+        ref = payload.get("ref", {})
+        return ref if isinstance(ref, dict) else {}
     
     def _process_envelope(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process individual envelope based on event type"""
@@ -178,7 +208,7 @@ class ReplayEngine:
         """Process telemetry ingestion event"""
         # Reconstruct telemetry event from payload
         try:
-            telemetry_data = envelope.payload.get("kind", {}).get("ref", {})
+            telemetry_data = self._extract_payload_ref(envelope.payload)
             if not telemetry_data:
                 report.add_failure("Telemetry payload missing reference data")
                 return
@@ -198,7 +228,7 @@ class ReplayEngine:
     def _process_safety_gate_evaluated(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process safety gate evaluation event"""
         try:
-            verdict_data = envelope.payload.get("kind", {}).get("ref", {})
+            verdict_data = self._extract_payload_ref(envelope.payload)
             if not verdict_data:
                 report.add_failure("Safety gate payload missing verdict data")
                 return
@@ -221,7 +251,7 @@ class ReplayEngine:
     def _process_approval_requested(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process approval request event"""
         try:
-            approval_data = envelope.payload.get("kind", {}).get("ref", {})
+            approval_data = self._extract_payload_ref(envelope.payload)
             if not approval_data:
                 report.add_failure("Approval request payload missing data")
                 return
@@ -239,7 +269,7 @@ class ReplayEngine:
     def _process_approval_bound_to_intent(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process approval-intent binding event"""
         try:
-            binding_data = envelope.payload.get("kind", {}).get("ref", {})
+            binding_data = self._extract_payload_ref(envelope.payload)
             if not binding_data:
                 report.add_failure("Intent binding payload missing data")
                 return
@@ -274,12 +304,12 @@ class ReplayEngine:
     def _process_intent_executed(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process intent execution event"""
         try:
-            execution_data = envelope.payload.get("kind", {}).get("ref", {})
+            execution_data = self._extract_payload_ref(envelope.payload)
             if not execution_data:
                 report.add_failure("Intent execution payload missing data")
                 return
             
-            intent_data = execution_data.get("intent")
+            intent_data = execution_data.get("intent", execution_data)
             if not intent_data:
                 report.add_failure("Intent execution missing intent data")
                 return
@@ -312,7 +342,7 @@ class ReplayEngine:
     def _process_intent_denied(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process intent denial event"""
         try:
-            denial_data = envelope.payload.get("kind", {}).get("ref", {})
+            denial_data = self._extract_payload_ref(envelope.payload)
             if not denial_data:
                 report.add_failure("Intent denial payload missing data")
                 return

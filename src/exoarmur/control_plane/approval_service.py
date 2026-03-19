@@ -4,12 +4,54 @@ Human operator approval workflows - Phase 1 scaffolding only
 """
 
 import logging
+import hashlib
+import json
 from typing import Dict, Any, List, Optional, Literal
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 
 logger = logging.getLogger(__name__)
+
+
+def _deterministic_approval_created_at(approval_id: str) -> datetime:
+    digest = hashlib.sha256(approval_id.encode("utf-8")).digest()
+    seconds = int.from_bytes(digest[:4], "big")
+    microseconds = int.from_bytes(digest[4:7], "big") % 1_000_000
+    return datetime.fromtimestamp(seconds, tz=timezone.utc).replace(microsecond=microseconds)
+
+
+def _deterministic_approval_transition_at(approval_id: str, operator_id: str, status: str) -> datetime:
+    digest = hashlib.sha256(f"{approval_id}:{operator_id}:{status}".encode("utf-8")).digest()
+    seconds = int.from_bytes(digest[:4], "big")
+    microseconds = int.from_bytes(digest[4:7], "big") % 1_000_000
+    return datetime.fromtimestamp(seconds, tz=timezone.utc).replace(microsecond=microseconds)
+
+
+def _deterministic_approval_id(
+    correlation_id: str,
+    trace_id: str,
+    tenant_id: str,
+    cell_id: str,
+    idempotency_key: str,
+    requested_action_class: str,
+    payload_ref: Dict[str, Any],
+) -> str:
+    canonical = json.dumps(
+        {
+            "correlation_id": correlation_id,
+            "trace_id": trace_id,
+            "tenant_id": tenant_id,
+            "cell_id": cell_id,
+            "idempotency_key": idempotency_key,
+            "requested_action_class": requested_action_class,
+            "payload_ref": payload_ref,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return f"apr-{digest[:12]}"
 
 
 @dataclass
@@ -67,7 +109,15 @@ class ApprovalService:
         payload_ref: Dict[str, Any]
     ) -> str:
         """Create approval request and return approval_id"""
-        approval_id = f"apr-{uuid.uuid4().hex[:12]}"
+        approval_id = _deterministic_approval_id(
+            correlation_id,
+            trace_id,
+            tenant_id,
+            cell_id,
+            idempotency_key,
+            requested_action_class,
+            payload_ref,
+        )
         
         approval = ApprovalRequest(
             approval_id=approval_id,
@@ -78,7 +128,7 @@ class ApprovalService:
             idempotency_key=idempotency_key,
             requested_action_class=requested_action_class,
             payload_ref=payload_ref,
-            created_at=datetime.now(timezone.utc),
+            created_at=_deterministic_approval_created_at(approval_id),
             status="PENDING"
         )
         
@@ -105,7 +155,7 @@ class ApprovalService:
         
         approval.status = "APPROVED"
         approval.approved_by = operator_id
-        approval.approved_at = datetime.now(timezone.utc)
+        approval.approved_at = _deterministic_approval_transition_at(approval_id, operator_id, "APPROVED")
         
         logger.info(f"Approved request {approval_id} by operator {operator_id}")
         return "APPROVED"
@@ -121,7 +171,7 @@ class ApprovalService:
         
         approval.status = "DENIED"
         approval.approved_by = operator_id
-        approval.denied_at = datetime.now(timezone.utc)
+        approval.denied_at = _deterministic_approval_transition_at(approval_id, operator_id, "DENIED")
         approval.denial_reason = reason
         
         logger.info(f"Denied request {approval_id} by operator {operator_id}: {reason}")
