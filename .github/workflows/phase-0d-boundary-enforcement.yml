@@ -157,6 +157,19 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-asyncio
 
+    - name: Provide docker-compose (shim to docker compose v2)
+      run: |
+        set -euo pipefail
+        docker --version
+        docker compose version
+        sudo tee /usr/local/bin/docker-compose >/dev/null <<'SH'
+        #!/usr/bin/env bash
+        set -euo pipefail
+        exec docker compose "$@"
+        SH
+        sudo chmod +x /usr/local/bin/docker-compose
+        docker-compose --version
+
     - name: Run full test suite
       run: |
         echo "Running full test suite..."
