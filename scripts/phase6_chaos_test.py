@@ -15,10 +15,7 @@ from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass, field
 import json
 
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from reliability import (
+from exoarmur.reliability import (
     get_timeout_manager,
     get_retry_manager,
     get_backpressure_manager,

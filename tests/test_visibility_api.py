@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     ObservationV1,
     BeliefV1,
     BeliefTelemetryV1,

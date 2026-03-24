@@ -10,6 +10,7 @@ import uuid
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from exoarmur.feature_flags import get_feature_flags
 
 try:
     import nats
@@ -149,13 +150,8 @@ class FederationManager:
     async def _initialize_identity_manager(self) -> None:
         """Initialize V2 identity manager if feature flag is enabled"""
         try:
-            # Import feature flags to check V2 federation status
-            import sys
-            import os
-            from feature_flags import get_feature_flags
-            
             flags = get_feature_flags()
-            v2_federation_enabled = flags.get('v2_federation_enabled', {}).get('current_value', False)
+            v2_federation_enabled = flags.is_v2_federation_enabled()
             
             if v2_federation_enabled:
                 # Create handshake config from federation config

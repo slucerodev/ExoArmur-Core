@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 # Add src to path
 
 from nats_client import ExoArmurNATSClient, NATSConfig
-from audit.audit_logger import AuditLogger
+from exoarmur.audit.audit_logger import AuditLogger
 
 
 def get_nats_store_dir():

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock
 
 from exoarmur.federation.federate_identity_store import FederateIdentityStore
-from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
+from exoarmur.spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
 class TestFederateIdentityStore:

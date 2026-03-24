@@ -16,7 +16,7 @@ from exoarmur.control_plane.approval_service import ApprovalService
 # Import contract models
 import sys
 import os
-from spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
+from exoarmur.spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
 
 
 class TestCanonicalUtils:

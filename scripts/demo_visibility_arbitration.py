@@ -11,17 +11,17 @@ from pathlib import Path
 
 # Add src to path
 
-from federation.observation_ingest import ObservationIngestService
-from federation.belief_aggregation import BeliefAggregationService
-from federation.arbitration_service import ArbitrationService
-from federation.conflict_detection import ConflictDetectionService
-from federation.observation_store import ObservationStore
-from federation.arbitration_store import ArbitrationStore
-from federation.federate_identity_store import FederateIdentityStore
-from federation.clock import FixedClock
-from federation.audit import AuditService
-from federation.crypto import FederateKeyPair
-from spec.contracts.models_v1 import (
+from exoarmur.federation.observation_ingest import ObservationIngestService
+from exoarmur.federation.belief_aggregation import BeliefAggregationService
+from exoarmur.federation.arbitration_service import ArbitrationService
+from exoarmur.federation.conflict_detection import ConflictDetectionService
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.arbitration_store import ArbitrationStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.audit import AuditService
+from exoarmur.federation.crypto import FederateKeyPair
+from exoarmur.spec.contracts.models_v1 import (
     ObservationType,
     TelemetrySummaryPayloadV1,
     ThreatIntelPayloadV1,
@@ -133,7 +133,7 @@ def main():
             ioc_count=3,
             threat_types=["benign"],
             confidence_score=0.8,
-            sources["threat_feed_2"]
+            sources=["threat_feed_2"]
         ),
         correlation_id="conflict-demo-123"
     )

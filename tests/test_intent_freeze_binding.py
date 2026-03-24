@@ -17,7 +17,7 @@ from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 from exoarmur.execution.execution_kernel import ExecutionKernel
-from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
 
 
 class TestIntentFreezeBinding:
@@ -26,7 +26,7 @@ class TestIntentFreezeBinding:
     @pytest.fixture(autouse=True)
     def setup_components(self):
         """Initialize components for testing"""
-        import main
+        import exoarmur.main as main
         main.initialize_components(None)
     
     @pytest.fixture
@@ -87,7 +87,7 @@ class TestIntentFreezeBinding:
     
     def test_require_human_freezes_intent_and_binds_approval(self, client, sample_telemetry):
         """Test that require_human verdict freezes intent and binds approval"""
-        import main
+        import exoarmur.main as main
         
         # Mock the safety gate to return require_human
         with patch('main.safety_gate.evaluate_safety') as mock_safety:
@@ -125,11 +125,11 @@ class TestIntentFreezeBinding:
     
     def test_execution_blocked_until_approved(self, sample_local_decision):
         """Test that execution is blocked until approval is granted"""
-        import main
+        import exoarmur.main as main
         
         # Enable V2 feature flags for this test
         from unittest.mock import patch
-        from feature_flags import get_feature_flags
+        from exoarmur.feature_flags import get_feature_flags
         
         with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
             # Create execution kernel with services
@@ -187,7 +187,7 @@ class TestIntentFreezeBinding:
     
     def test_execution_allowed_after_approved_and_matches_binding(self, sample_local_decision):
         """Test that execution is allowed after approval and binding matches"""
-        import main
+        import exoarmur.main as main
         
         # Create execution kernel with services
         execution_kernel = ExecutionKernel(
@@ -241,11 +241,11 @@ class TestIntentFreezeBinding:
     
     def test_execution_blocked_on_binding_mismatch(self, sample_local_decision):
         """Test that execution is blocked on binding mismatch"""
-        import main
+        import exoarmur.main as main
         
         # Enable V2 feature flags for this test
         from unittest.mock import patch
-        from feature_flags import get_feature_flags
+        from exoarmur.feature_flags import get_feature_flags
         
         with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
             # Create execution kernel with services

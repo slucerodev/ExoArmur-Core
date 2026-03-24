@@ -13,12 +13,12 @@ from fastapi.testclient import TestClient
 
 # Add src and spec to path for imports
 
-from spec.contracts.models_v1 import TelemetryEventV1, ExecutionIntentV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, ExecutionIntentV1
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 from exoarmur.execution.execution_kernel import ExecutionKernel
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.audit.audit_logger import AuditLogger
-from exoarmur.main import app
+import exoarmur.main as runtime_main
 
 
 class TestApprovalWiring:
@@ -27,19 +27,17 @@ class TestApprovalWiring:
     @pytest.fixture(autouse=True)
     def setup_components(self):
         """Initialize components for testing"""
-        import main
-        main.initialize_components(None)
+        runtime_main.initialize_components(None)
     
     @pytest.fixture
     def client(self):
         """FastAPI test client"""
-        return TestClient(app)
+        return TestClient(runtime_main.app)
     
     @pytest.fixture
     def approval_service(self):
         """Approval service for testing"""
-        import main
-        return main.approval_service
+        return runtime_main.approval_service
     
     @pytest.fixture
     def safety_gate(self):
@@ -54,8 +52,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def audit_logger(self):
         """Audit logger for testing"""
-        import main
-        return main.audit_logger
+        return runtime_main.audit_logger
     
     @pytest.fixture
     def sample_telemetry(self):
@@ -87,7 +84,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def sample_local_decision(self):
         """Sample local decision"""
-        from spec.contracts.models_v1 import LocalDecisionV1
+        from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
         return LocalDecisionV1(
             schema_version="1.0.0",
             decision_id="01J4NR5X9Z8GABCDEF12345679",  # Valid ULID
@@ -112,7 +109,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def sample_local_decision_suspicious(self):
         """Sample local decision for A1/A2/A3 actions"""
-        from spec.contracts.models_v1 import LocalDecisionV1
+        from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
         return LocalDecisionV1(
             schema_version="1.0.0",
             decision_id="01J4NR5X9Z8GABCDEF12345680",  # Valid ULID
@@ -137,7 +134,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def sample_collective_state(self):
         """Sample collective state"""
-        from collective_confidence.aggregator import CollectiveState
+        from exoarmur.collective_confidence.aggregator import CollectiveState
         return CollectiveState(
             quorum_count=1,
             aggregate_score=0.75,
@@ -318,7 +315,7 @@ class TestApprovalWiring:
         
         # Enable V2 feature flags for this test
         from unittest.mock import patch
-        from feature_flags import get_feature_flags
+        from exoarmur.feature_flags import get_feature_flags
         
         with patch.object(get_feature_flags(), 'is_v2_operator_approval_required', return_value=True):
             # Create safety verdict that allows execution
@@ -371,7 +368,6 @@ class TestApprovalWiring:
         
         # Verify execution was allowed
         assert result is True
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

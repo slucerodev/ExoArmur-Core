@@ -34,7 +34,7 @@ from exoarmur.federation.messages import (
     create_trust_establish_message
 )
 from exoarmur.federation.federate_identity_store import FederateIdentityStore
-from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
+from exoarmur.spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
 class TestFederateKeyPair:

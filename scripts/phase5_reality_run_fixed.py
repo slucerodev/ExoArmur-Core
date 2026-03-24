@@ -9,9 +9,6 @@ import sys
 import os
 from datetime import datetime, timezone
 
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 
 class MockNATSClient:
     """Mock NATS client that allows execution"""
@@ -45,7 +42,7 @@ async def test_execution_gate():
     print("Testing Execution Gate...")
     
     # Use mock NATS client that allows execution
-    from safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
+    from exoarmur.safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
     
     gate = ExecutionGate(nats_client=MockNATSClient())
     
@@ -75,7 +72,7 @@ async def test_tenant_isolation():
     print("Testing Tenant Isolation...")
     
     # Set tenant context
-    from tenancy import TenantContext, set_tenant_context, get_tenant_context
+    from exoarmur.tenancy import TenantContext, set_tenant_context, get_tenant_context
     
     context = TenantContext(tenant_id="isolation-test-tenant")
     set_tenant_context(context)
@@ -85,7 +82,7 @@ async def test_tenant_isolation():
     assert current_context.tenant_id == "isolation-test-tenant", "Context should be set"
     
     # Test tenant-scoped key generation
-    from tenancy import TenantScopedOperations
+    from exoarmur.tenancy import TenantScopedOperations
     ops = TenantScopedOperations()
     
     scoped_key = ops._tenant_scoped_key("test_key")
@@ -139,7 +136,7 @@ async def test_authentication():
     """Test authentication system"""
     print("Testing Authentication...")
     
-    from auth import AuthService, APIKeyStore, Permission
+    from exoarmur.auth import AuthService, APIKeyStore, Permission
     
     store = APIKeyStore()
     auth_service = AuthService(store)
@@ -167,7 +164,7 @@ async def test_integration():
     print("Testing Phase 5 Integration...")
     
     # Set up tenant context
-    from tenancy import TenantContext, set_tenant_context
+    from exoarmur.tenancy import TenantContext, set_tenant_context
     tenant_context = TenantContext(
         tenant_id="integration-test",
         principal_id="integration-operator"
@@ -175,7 +172,7 @@ async def test_integration():
     set_tenant_context(tenant_context)
     
     # Test execution gate with tenant context
-    from safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
+    from exoarmur.safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
     gate = ExecutionGate(nats_client=MockNATSClient())
     
     context = ExecutionContext(
@@ -188,7 +185,7 @@ async def test_integration():
     assert result.decision == GateDecision.ALLOW, "Integration should succeed"
     
     # Test approval gate
-    from approval import ApprovalGate, ActionType
+    from exoarmur.approval import ApprovalGate, ActionType
     approval_gate = ApprovalGate()
     
     approval_result = await approval_gate.enforce_approval_gate(

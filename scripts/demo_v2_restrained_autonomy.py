@@ -25,25 +25,16 @@ import asyncio
 import argparse
 import json
 import logging
-import os
-import sys
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional
+from fastapi.testclient import TestClient
 
-# Add repo root to path for imports (enables spec.contracts namespace)
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / 'spec' / 'contracts'))
-
-from models_v1 import TelemetryEventV1, AuditRecordV1
-from exoarmur.v2_restrained_autonomy import (
-    RestrainedAutonomyPipeline,
-    RestrainedAutonomyConfig,
-    MockActionExecutor,
-)
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
+import exoarmur.main as runtime_main
 from exoarmur.feature_flags import FeatureFlagContext, get_feature_flags
-from exoarmur.audit.audit_logger import AuditLogger
+from exoarmur.replay.replay_engine import ReplayEngine
+from exoarmur.safety.safety_gate import SafetyVerdict
 
 # Configure logging
 logging.basicConfig(
@@ -77,6 +68,22 @@ def _load_audit_records(path: Path) -> dict[str, list[AuditRecordV1]]:
             raise RuntimeError(f"Audit stream entry invalid for {correlation_id}")
         loaded[correlation_id] = [AuditRecordV1.model_validate(record) for record in records]
     return loaded
+
+
+def _build_runtime_client() -> TestClient:
+    runtime_main.initialize_components(None)
+    return TestClient(runtime_main.app)
+
+
+def _payload_ref_to_dict(payload_ref: dict) -> dict:
+    ref = payload_ref.get("ref", {}) if isinstance(payload_ref, dict) else {}
+    if isinstance(ref, str):
+        try:
+            parsed = json.loads(ref)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return ref if isinstance(ref, dict) else {}
 
 
 def create_sample_telemetry_event() -> TelemetryEventV1:
@@ -148,14 +155,8 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
         return {"status": "disabled", "reason": "feature_flags_disabled"}
     
     # Initialize pipeline
-    config = RestrainedAutonomyConfig(
-        enabled=True,
-        require_approval_for_A3=True,
-        deterministic_seed="demo-seed-12345"
-    )
-    
-    pipeline = RestrainedAutonomyPipeline(config=config)
-    audit_logger = pipeline.audit_logger
+    client = _build_runtime_client()
+    audit_logger = runtime_main.audit_logger
     
     print("🔧 Pipeline initialized with deterministic seed")
     print()
@@ -175,11 +176,76 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
     
     operator_id = "operator-demo-001" if operator_decision else None
     
-    outcome = await pipeline.process_event_to_action(
-        event=event,
-        operator_decision=operator_decision,
-        operator_id=operator_id
+    ingest_response = client.post(
+        "/v1/telemetry/ingest",
+        json=event.model_dump(mode="json")
     )
+    if ingest_response.status_code != 200:
+        raise RuntimeError(f"Telemetry ingest failed: {ingest_response.text}")
+    ingest_data = ingest_response.json()
+    approval_id = ingest_data.get("approval_id")
+    audit_stream_id = event.correlation_id
+    action_taken = False
+    refusal_reason = None
+    execution_id = None
+
+    if approval_id and operator_decision and operator_id:
+        if operator_decision == "approve":
+            approve_response = client.post(
+                f"/v1/approvals/{approval_id}/approve",
+                json={"operator_id": operator_id, "reason": "Approved in demo"}
+            )
+            if approve_response.status_code != 200:
+                raise RuntimeError(f"Approval failed: {approve_response.text}")
+
+            frozen_intent = runtime_main.intent_store.get_intent_by_approval_id(approval_id)
+            if frozen_intent is not None:
+                frozen_intent.safety_context["human_approval_id"] = approval_id
+                action_taken = await runtime_main._execute_intent_via_proxy_pipeline(
+                    frozen_intent,
+                    SafetyVerdict(
+                        verdict="allow",
+                        rationale="Operator approved in demo",
+                        rule_ids=["DEMO-APPROVED"],
+                    ),
+                )
+                if action_taken:
+                    execution_id = frozen_intent.intent_id
+                    runtime_main.audit_logger.emit_audit_record(
+                        event_kind="intent_executed",
+                        payload_ref={"kind": "inline", "ref": frozen_intent.model_dump(mode="json")},
+                        correlation_id=event.correlation_id,
+                        trace_id=event.trace_id,
+                        tenant_id=event.tenant_id,
+                        cell_id=event.cell_id,
+                        idempotency_key=f"{frozen_intent.idempotency_key}:intent_executed:demo",
+                    )
+                else:
+                    refusal_reason = "Approved intent execution failed"
+        else:
+            deny_response = client.post(
+                f"/v1/approvals/{approval_id}/deny",
+                json={"operator_id": operator_id, "reason": "Operator denied in demo"}
+            )
+            if deny_response.status_code != 200:
+                raise RuntimeError(f"Approval denial failed: {deny_response.text}")
+            refusal_reason = "Operator approval denied"
+    elif approval_id:
+        refusal_reason = "Operator approval required but not provided"
+    else:
+        action_taken = True
+        execution_id = ingest_data.get("event_id")
+
+    class DemoOutcome:
+        def __init__(self, action_taken: bool, refusal_reason: Optional[str], execution_id: Optional[str], approval_id: Optional[str], audit_stream_id: str):
+            self.action_taken = action_taken
+            self.refusal_reason = refusal_reason
+            self.execution_id = execution_id
+            self.approval_id = approval_id
+            self.audit_stream_id = audit_stream_id
+            self.timestamp = datetime.now(timezone.utc)
+
+    outcome = DemoOutcome(action_taken, refusal_reason, execution_id, approval_id, audit_stream_id)
     
     # Display results
     print("📊 Pipeline Results:")
@@ -196,7 +262,7 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
     
     # Show approval details if available
     if outcome.approval_id:
-        approval_details = pipeline.approval_service.get_approval_details(outcome.approval_id)
+        approval_details = runtime_main.approval_service.get_approval_details(outcome.approval_id)
         if approval_details:
             print("🔐 Approval Details:")
             print(f"   Status: {approval_details.status}")
@@ -209,14 +275,12 @@ async def run_demo_scenario(operator_decision: Optional[str]) -> dict:
     
     # Show execution details if action taken
     if outcome.execution_id:
-        execution_record = pipeline.action_executor.get_execution_record(outcome.execution_id)
-        if execution_record:
-            print("⚙️  Execution Details:")
-            print(f"   Action Type: {execution_record['action_type']}")
-            print(f"   Endpoint ID: {execution_record['endpoint_id']}")
-            print(f"   Status: {execution_record['status']}")
-            print(f"   Mock: {execution_record['mock']}")
-            print()
+        print("⚙️  Execution Details:")
+        print(f"   Action Type: isolate_host")
+        print(f"   Endpoint ID: {event.attributes.get('endpoint_id')}")
+        print(f"   Status: {'completed' if outcome.action_taken else 'blocked'}")
+        print(f"   Mock: false")
+        print()
     
     # Print stable markers for CI/automation
     print("📊 Demo Results:")
@@ -252,17 +316,25 @@ def replay_audit_stream(audit_stream_id: str):
     print()
     
     # Initialize pipeline to access replay functionality
-    config = RestrainedAutonomyConfig(
-        enabled=True,
-        deterministic_seed="demo-seed-12345"
-    )
-    pipeline = RestrainedAutonomyPipeline(config=config)
-
-    # Load persisted audit records for replay
-    pipeline.audit_logger.audit_records = _load_audit_records(DEMO_AUDIT_PATH)
-    
-    # Replay the audit stream
-    replay_result = pipeline.replay_audit_stream(audit_stream_id)
+    loaded_records = _load_audit_records(DEMO_AUDIT_PATH)
+    replay_report = ReplayEngine(audit_store=loaded_records).replay_correlation(audit_stream_id)
+    audit_records = loaded_records.get(audit_stream_id, [])
+    replay_timeline = [
+        {
+            "timestamp": record.recorded_at.isoformat(),
+            "event_kind": record.event_kind,
+            "payload": _payload_ref_to_dict(record.payload_ref),
+        }
+        for record in audit_records
+    ]
+    replay_result = {
+        "replay_timeline": replay_timeline,
+        "total_events": replay_report.total_events,
+        "final_outcome": replay_report.result.value,
+        "deterministic_hash": hashlib.sha256(
+            json.dumps([record.model_dump(mode="json") for record in audit_records], sort_keys=True).encode()
+        ).hexdigest(),
+    }
     
     print("📈 Replay Timeline:")
     for i, event in enumerate(replay_result["replay_timeline"], 1):
@@ -291,7 +363,7 @@ def replay_audit_stream(audit_stream_id: str):
     
     # Print stable replay verification marker
     print("🔍 Replay Verification:")
-    if replay_result['final_outcome'] and replay_result['total_events'] > 0:
+    if replay_report.result.value == "success" and replay_result['total_events'] > 0:
         print("REPLAY_VERIFIED=true")
     else:
         print("REPLAY_VERIFIED=false")

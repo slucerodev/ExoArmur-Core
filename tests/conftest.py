@@ -9,14 +9,7 @@ import faulthandler
 from pathlib import Path
 from unittest.mock import patch
 
-try:
-    from exoarmur.feature_flags import get_feature_flags  # type: ignore
-except ModuleNotFoundError:
-    repo_root = Path(__file__).resolve().parents[1]
-    src_dir = repo_root / "src"
-    if str(src_dir) not in sys.path:
-        sys.path.insert(0, str(src_dir))
-    from exoarmur.feature_flags import get_feature_flags  # type: ignore
+from exoarmur.feature_flags import get_feature_flags  # type: ignore
 
 
 def pytest_sessionstart(session):

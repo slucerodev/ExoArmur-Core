@@ -16,7 +16,7 @@ from exoarmur.federation.crypto import (
 )
 from exoarmur.federation.messages import create_identity_exchange_message
 from exoarmur.federation.federate_identity_store import FederateIdentityStore
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     FederateIdentityV1,
     FederationRole,
     CellStatus,

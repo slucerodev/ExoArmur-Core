@@ -12,7 +12,7 @@ from datetime import datetime
 from exoarmur.clock import utc_now
 
 from exoarmur.analysis.facts_deriver import FactsDeriver
-from spec.contracts.models_v1 import TelemetryEventV1, SignalFactsV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, SignalFactsV1
 
 
 class TestFactsDerivation:

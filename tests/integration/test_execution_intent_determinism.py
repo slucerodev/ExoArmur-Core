@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 from exoarmur.execution.execution_kernel import ExecutionKernel
-from spec.contracts.models_v1 import LocalDecisionV1
+from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
 
 
 def _make_decision(decision_id: str, correlation_id: str) -> LocalDecisionV1:

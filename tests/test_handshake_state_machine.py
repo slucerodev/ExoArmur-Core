@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     HandshakeState,
     FederateIdentityV1,
     FederationRole,

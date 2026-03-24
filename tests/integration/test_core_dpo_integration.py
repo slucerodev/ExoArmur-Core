@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from spec.contracts.models_v1 import AuditRecordV1
+from exoarmur.spec.contracts.models_v1 import AuditRecordV1
 
 pytest.importorskip(
     "exoarmur_dpo",

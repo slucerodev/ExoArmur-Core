@@ -29,13 +29,13 @@ class TestSchemaSnapshots:
         cls.schemas_dir = cls.artifacts_dir / 'schemas'
         
         # Import contract models
-        from models_v1 import (
+        from exoarmur.spec.contracts.models_v1 import (
             TelemetryEventV1, SignalFactsV1, BeliefV1, 
             LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
         )
         
         # Import API models
-        from api_models import (
+        from exoarmur.api_models import (
             TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1
         )
         

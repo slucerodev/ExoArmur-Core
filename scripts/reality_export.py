@@ -10,10 +10,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime, timezone
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from nats_client import ExoArmurNATSClient, NATSConfig
+from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 
 
 async def export_audit_stream(nats_url: str, stream_name: str, output_file: str):

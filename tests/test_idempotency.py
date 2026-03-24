@@ -10,7 +10,7 @@ from exoarmur.execution.execution_kernel import ExecutionKernel
 # Import contract models
 import sys
 import os
-from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
+from exoarmur.spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 
 
 class TestIdempotency:

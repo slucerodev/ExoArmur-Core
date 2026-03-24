@@ -14,7 +14,7 @@ import os
 # Add src to path for imports
 
 from tests.factories import create_identity_subject, make_observation_v1
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     IdentitySubjectV1,
     IdentityContainmentScopeV1,
     IdentityContainmentIntentV1,
@@ -425,7 +425,7 @@ class TestIdentityContainmentReplay:
         """Test that replay reproduces ICW apply and revert outcomes exactly"""
         from exoarmur.replay.replay_engine import ReplayReport
         from exoarmur.federation.audit import AuditEventType
-        from spec.contracts.models_v1 import AuditRecordV1
+        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
         
         # Create ICW components
         effector = SimulatedIdentityProviderEffector(
@@ -499,7 +499,7 @@ class TestIdentityContainmentReplay:
     
     def test_replay_fails_if_icw_event_payload_mutated(self, fixed_clock, audit_service, mock_audit_store, replay_engine):
         """Test that replay fails if ICW event payload is mutated"""
-        from spec.contracts.models_v1 import AuditRecordV1
+        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
         
         # Create malicious audit event with mutated intent_hash
         malicious_event = AuditRecordV1(

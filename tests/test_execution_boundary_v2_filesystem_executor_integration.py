@@ -16,7 +16,6 @@ from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision
 # This test will be skipped if the package is not available
 try:
     import sys
-    sys.path.insert(0, '/home/oem/CascadeProjects/exoarmur-executors-fs/src')
     from exoarmur_executors_fs.executor import FilesystemExecutorPlugin
     FILESYSTEM_EXECUTOR_AVAILABLE = True
 except ImportError as e:
@@ -25,6 +24,8 @@ except ImportError as e:
     # If the error is about missing exoarmur package, it's likely a CI environment issue
     # This is expected and should be handled gracefully
     if "exoarmur" in str(e):
+        print(f" Filesystem executor not available in CI environment: {e}")
+        print(" This is expected - filesystem executor is an optional capability")
         print(f"ℹ️  Filesystem executor not available in CI environment: {e}")
         print("ℹ️  This is expected - filesystem executor is an optional capability")
 

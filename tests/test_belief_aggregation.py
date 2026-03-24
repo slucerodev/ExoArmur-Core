@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock
 
 from tests.factories import make_observation_v1
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     ObservationV1,
     BeliefV1,
     ObservationType,

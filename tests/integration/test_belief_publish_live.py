@@ -9,7 +9,7 @@ import pytest
 
 from exoarmur.beliefs.belief_generator import BeliefGenerator
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
-from spec.contracts.models_v1 import LocalDecisionV1
+from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
 
 
 @pytest.fixture

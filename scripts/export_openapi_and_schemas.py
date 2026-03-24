@@ -4,23 +4,11 @@ Export OpenAPI spec and schemas from the running FastAPI application
 """
 
 import json
-import sys
 from pathlib import Path
-
-
-def _add_src_to_path() -> None:
-    repo_root = Path(__file__).resolve().parent.parent
-    src_path = repo_root / "src"
-    for path in (src_path, repo_root):
-        path_str = str(path)
-        if path_str not in sys.path:
-            sys.path.insert(0, path_str)
 
 
 def main():
     """Export OpenAPI spec to artifacts directory"""
-    _add_src_to_path()
-
     # Import the app from the installed package namespace
     from exoarmur.main import app
 

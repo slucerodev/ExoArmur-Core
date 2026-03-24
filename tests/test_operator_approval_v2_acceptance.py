@@ -29,7 +29,7 @@ from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
 from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
 
 # V1 imports (should work)
-from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 
 
 @pytest.mark.xfail(strict=True, reason="V2 operator approval requires Phase 2. Current phase: 1.")

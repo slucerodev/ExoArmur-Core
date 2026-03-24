@@ -102,14 +102,10 @@ class TestFederationIdentityIntegration:
         with patch('exoarmur.core.phase_gate.PhaseGate.current_phase', return_value=SystemPhase.PHASE_2):
             with patch('exoarmur.federation.federation_manager.nats', mock_nats):
                 # Mock feature flags to return enabled
-                mock_flags = {
-                    'v2_federation_enabled': {
-                        'current_value': True,
-                        'description': 'Enable multi-cell federation capabilities'
-                    }
-                }
+                mock_flags = Mock()
+                mock_flags.is_v2_federation_enabled.return_value = True
                 
-                with patch('exoarmur.feature_flags.get_feature_flags', return_value=mock_flags):
+                with patch('exoarmur.federation.federation_manager.get_feature_flags', return_value=mock_flags):
                     config = FederationConfig(
                         enabled=True,
                         cell_id="test-cell-1",

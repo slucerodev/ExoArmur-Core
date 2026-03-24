@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     ArbitrationV1,
     ArbitrationStatus,
     ArbitrationConflictType,

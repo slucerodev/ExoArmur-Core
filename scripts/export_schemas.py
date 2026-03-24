@@ -4,19 +4,12 @@ Export model schemas to artifacts directory
 """
 
 import json
-import sys
-import os
 from pathlib import Path
-
-# Add repo root and contracts to path for imports
-repo_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(repo_root))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
 
 def main():
     """Export model schemas to artifacts directory"""
     # Import contract models
-    from models_v1 import (
+    from exoarmur.spec.contracts.models_v1 import (
         TelemetryEventV1, SignalFactsV1, BeliefV1, 
         LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
     )

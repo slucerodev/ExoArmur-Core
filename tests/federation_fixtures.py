@@ -13,7 +13,7 @@ from exoarmur.federation.protocol_enforcer import ProtocolEnforcer
 from exoarmur.federation.handshake_context import HandshakeContext
 from exoarmur.federation.crypto import FederateKeyPair
 from exoarmur.feature_flags.feature_flags import FeatureFlags
-from spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
+from exoarmur.spec.contracts.models_v1 import FederateIdentityV1, FederationRole, CellStatus
 
 
 class MockFeatureFlags:

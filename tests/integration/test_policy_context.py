@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from exoarmur.analysis.facts_deriver import FactsDeriver
 from exoarmur.beliefs.belief_generator import BeliefGenerator
 from exoarmur.decision.local_decider import LocalDecider
-from spec.contracts.models_v1 import TelemetryEventV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1
 
 
 def test_belief_policy_context_is_real_and_not_placeholder():

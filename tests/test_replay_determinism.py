@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     BeliefV1,
     ObservationV1,
     ObservationType,

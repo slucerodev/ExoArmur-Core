@@ -28,7 +28,7 @@ from exoarmur.federation.federation_manager import FederationManager, Federation
 # from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
 
 # V1 imports (should work)
-from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1
 
 
 @pytest.mark.xfail(strict=True, reason="V2 federation requires real Phase 2 implementation - future acceptance gate")

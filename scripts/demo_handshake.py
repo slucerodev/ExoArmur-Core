@@ -11,11 +11,11 @@ from pathlib import Path
 
 # Add src to path
 
-from federation.handshake_controller import HandshakeController
-from federation.federate_identity_store import FederateIdentityStore
-from federation.clock import FixedClock
-from federation.crypto import FederateKeyPair
-from spec.contracts.models_v1 import FederationRole, CellStatus
+from exoarmur.federation.handshake_controller import HandshakeController
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.crypto import FederateKeyPair
+from exoarmur.spec.contracts.models_v1 import FederationRole, CellStatus
 from datetime import datetime, timezone
 
 

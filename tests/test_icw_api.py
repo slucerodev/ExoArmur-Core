@@ -13,7 +13,7 @@ import os
 
 from exoarmur.main import app
 from exoarmur.identity_containment.icw_api import IdentityContainmentAPI
-from spec.contracts.models_v1 import IdentityContainmentScopeV1
+from exoarmur.spec.contracts.models_v1 import IdentityContainmentScopeV1
 
 
 class TestICWAPI:

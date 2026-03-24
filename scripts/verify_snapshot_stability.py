@@ -49,7 +49,6 @@ def calculate_schema_hash():
     """Calculate hash of current shared primitives schemas"""
     try:
         # Import and get schemas
-        sys.path.insert(0, str(Path(__file__).parent.parent / "spec" / "contracts"))
         
         from shared_primitives_v1 import (
             BeliefDeltaV1,

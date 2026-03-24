@@ -4,7 +4,7 @@ Test factories for creating valid model instances
 
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     IdentitySubjectV1, 
     ObservationV1, 
     ObservationType,

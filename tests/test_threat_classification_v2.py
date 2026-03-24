@@ -412,7 +412,7 @@ class TestPhase2AConstitutionalCompliance:
         # In practice, this would run the full V1 test suite
         # For Phase 2A, we verify our additions are isolated
         from exoarmur.decision.local_decider import LocalDecider
-        from spec.contracts.models_v1 import SignalFactsV1, LocalDecisionV1
+        from exoarmur.spec.contracts.models_v1 import SignalFactsV1, LocalDecisionV1
         
         # V1 decision maker should work unchanged
         decider = LocalDecider()

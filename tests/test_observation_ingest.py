@@ -6,7 +6,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock, patch
 
-from spec.contracts.models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     ObservationV1,
     ObservationType,
     TelemetrySummaryPayloadV1,

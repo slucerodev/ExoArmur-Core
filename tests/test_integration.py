@@ -19,7 +19,7 @@ from exoarmur.clock import utc_now
 
 # Import the main app
 from exoarmur.main import app, initialize_components
-from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
 
 
 @pytest.fixture(autouse=True)

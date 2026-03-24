@@ -10,11 +10,8 @@ import argparse
 from pathlib import Path
 from datetime import datetime, timezone
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent))
-
 from nats_client import ExoArmurNATSClient, NATSConfig
-from audit.audit_logger import AuditLogger
+from exoarmur.audit.audit_logger import AuditLogger
 
 
 async def inject_scenario(nats_url: str, stream_name: str, output_file: str):

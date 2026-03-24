@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from typing import Dict, Any
 
-from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
 from exoarmur.v2_restrained_autonomy import (
     RestrainedAutonomyPipeline,
     RestrainedAutonomyConfig,

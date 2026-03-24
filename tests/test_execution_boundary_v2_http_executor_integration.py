@@ -10,11 +10,6 @@ from unittest.mock import Mock, patch
 import sys
 from pathlib import Path
 
-# Add the HTTP executor to the path for testing
-http_executor_path = Path(__file__).resolve().parents[2] / "exoarmur-executors-http" / "src"
-if str(http_executor_path) not in sys.path:
-    sys.path.insert(0, str(http_executor_path))
-
 from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict

@@ -16,7 +16,7 @@ from typing import Dict, Any
 # Add src to path
 
 from nats_client import ExoArmurNATSClient, NATSConfig
-from audit.audit_logger import AuditLogger
+from exoarmur.audit.audit_logger import AuditLogger
 
 
 def get_nats_store_dir():

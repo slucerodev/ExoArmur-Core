@@ -9,12 +9,9 @@ import sys
 import os
 from datetime import datetime, timezone
 
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from safety import ExecutionGate, ExecutionActionType, GateDecision
-from tenancy import TenantContext, set_tenant_context, get_tenant_context
-from approval import ApprovalGate, ActionType, ApprovalStatus
+from exoarmur.safety import ExecutionGate, ExecutionActionType, GateDecision
+from exoarmur.tenancy import TenantContext, set_tenant_context, get_tenant_context
+from exoarmur.approval import ApprovalGate, ActionType, ApprovalStatus
 
 
 async def test_execution_gate():
@@ -24,7 +21,7 @@ async def test_execution_gate():
     gate = ExecutionGate()
     
     # Test missing tenant context (should DENY)
-    from safety import ExecutionContext
+    from exoarmur.safety import ExecutionContext
     context = ExecutionContext(
         action_type=ExecutionActionType.IDENTITY_CONTAINMENT_APPLY,
         tenant_id=None
@@ -58,7 +55,7 @@ async def test_tenant_isolation():
     assert current_context.tenant_id == "isolation-test-tenant", "Context should be set"
     
     # Test tenant-scoped key generation
-    from tenancy import TenantScopedOperations
+    from exoarmur.tenancy import TenantScopedOperations
     ops = TenantScopedOperations()
     
     scoped_key = ops._tenant_scoped_key("test_key")
@@ -110,8 +107,7 @@ async def test_authentication():
     """Test authentication system"""
     print("Testing Authentication...")
     
-    from auth import AuthService, APIKeyStore, Permission
-    
+    from exoarmur.auth import AuthService, APIKeyStore, Permission
     store = APIKeyStore()
     auth_service = AuthService(store)
     
@@ -146,7 +142,7 @@ async def test_integration():
     
     # Test execution gate with tenant context
     gate = ExecutionGate()
-    from safety import ExecutionContext
+    from exoarmur.safety import ExecutionContext
     context = ExecutionContext(
         action_type=ExecutionActionType.IDENTITY_CONTAINMENT_APPLY,
         tenant_id="integration-test",

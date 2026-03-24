@@ -61,7 +61,7 @@ def main():
     results.append(run_command(
         """python3 -c "
 # V1 Core imports
-from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
+from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
 
 # Core system imports  
 from exoarmur.audit import AuditLogger, NoOpAuditInterface, FederationAuditInterface
@@ -94,7 +94,7 @@ print('✅ Analysis: FactsDeriver, BeliefGenerator, CollectiveConfidenceAggregat
     
     # 3. Schema validation
     results.append(run_command(
-        "python3 -c \"from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ObservationV1, ArbitrationV1; print('Schema validation passed')\"",
+        "python3 -c \"from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ObservationV1, ArbitrationV1; print('Schema validation passed')\"",
         "Schema Validation"
     ))
     

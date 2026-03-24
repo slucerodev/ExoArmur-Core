@@ -9,9 +9,6 @@ import sys
 import os
 from datetime import datetime, timezone
 
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 
 class MockKVStore:
     """Mock KV store that defaults to inactive kill switches"""
@@ -46,7 +43,7 @@ async def test_execution_gate():
     print("Testing Execution Gate...")
     
     # Use mock NATS client that allows execution
-    from safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
+    from exoarmur.safety import ExecutionGate, ExecutionActionType, GateDecision, ExecutionContext
     
     gate = ExecutionGate(nats_client=MockNATSClient())
     
@@ -76,7 +73,7 @@ async def test_tenant_isolation():
     print("Testing Tenant Isolation...")
     
     # Set tenant context
-    from tenancy import TenantContext, set_tenant_context, get_tenant_context
+    from exoarmur.tenancy import TenantContext, set_tenant_context, get_tenant_context
     
     context = TenantContext(tenant_id="isolation-test-tenant")
     set_tenant_context(context)
@@ -86,7 +83,7 @@ async def test_tenant_isolation():
     assert current_context.tenant_id == "isolation-test-tenant", "Context should be set"
     
     # Test tenant-scoped key generation
-    from tenancy import TenantScopedOperations
+    from exoarmur.tenancy import TenantScopedOperations
     ops = TenantScopedOperations()
     
     scoped_key = ops._tenant_scoped_key("test_key")
@@ -106,7 +103,7 @@ async def test_approval_gate():
     """Test approval gate enforcement"""
     print("Testing Approval Gate...")
     
-    from approval import ApprovalGate, ActionType
+    from exoarmur.approval import ApprovalGate, ActionType
     
     gate = ApprovalGate()
     
@@ -140,7 +137,7 @@ async def test_authentication():
     """Test authentication system"""
     print("Testing Authentication...")
     
-    from auth import AuthService, APIKeyStore, Permission
+    from exoarmur.auth import AuthService, APIKeyStore, Permission
     
     store = APIKeyStore()
     auth_service = AuthService(store)

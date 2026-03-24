@@ -6,7 +6,7 @@ import pytest
 
 from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.execution.execution_kernel import ExecutionKernel
-from spec.contracts.models_v1 import LocalDecisionV1
+from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
 
 
 @pytest.mark.asyncio

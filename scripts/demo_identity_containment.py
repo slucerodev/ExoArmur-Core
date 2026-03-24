@@ -4,38 +4,32 @@ Identity Containment Window (ICW) Demo Script
 Demonstrates the complete ICW workflow from recommendation to auto-revert
 """
 
-import sys
 import os
 import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-# Add src to path and ensure src is in Python path for relative imports
-src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
-sys.path.insert(0, os.path.dirname(__file__))  # Add scripts dir too
-
 # Import ICW components
-from federation.clock import FixedClock
-from federation.audit import AuditService
-from identity_containment.recommender import IdentityContainmentRecommender
-from identity_containment.intent_service import IdentityContainmentIntentService
-from identity_containment.execution import IdentityContainmentExecutor
-from identity_containment.effector import SimulatedIdentityProviderEffector
-from control_plane.approval_service import ApprovalService
-from control_plane.intent_store import IntentStore
-from safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.federation.clock import FixedClock
+from exoarmur.federation.audit import AuditService
+from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
+from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
+from exoarmur.identity_containment.execution import IdentityContainmentExecutor
+from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
+from exoarmur.control_plane.approval_service import ApprovalService
+from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
 
 # Import models
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'spec', 'contracts'))
-from models_v1 import (
+from exoarmur.spec.contracts.models_v1 import (
     IdentitySubjectV1,
     IdentityContainmentScopeV1,
     IdentityContainmentRecommendationV1
 )
 
 # Import replay engine
-from replay.replay_engine import ReplayEngine
+from exoarmur.replay.replay_engine import ReplayEngine
 
 # Configure logging
 logging.basicConfig(

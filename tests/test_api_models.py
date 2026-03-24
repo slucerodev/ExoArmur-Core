@@ -19,7 +19,7 @@ from exoarmur.api_models import (
     AuditResponseV1,
     ErrorResponseV1
 )
-from spec.contracts.models_v1 import AuditRecordV1
+from exoarmur.spec.contracts.models_v1 import AuditRecordV1
 
 
 class TestTelemetryIngestResponseV1:

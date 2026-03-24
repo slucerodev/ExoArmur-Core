@@ -17,7 +17,7 @@ from exoarmur.collective_confidence.aggregator import CollectiveState
 # Import contract models
 import sys
 import os
-from spec.contracts.models_v1 import LocalDecisionV1
+from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
 
 
 class TestSafetyGateArbitration:
