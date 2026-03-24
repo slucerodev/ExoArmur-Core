@@ -1,5 +1,7 @@
 # ExoArmur Core v0.2.0 Release Notes
 
+This document captures the release-time state for `v0.2.0` and should not be treated as the authoritative current-state status of `main`.
+
 ## Release Overview
 
 ExoArmur Core v0.2.0 is a deterministic governance runtime for autonomous and AI-driven systems. This release establishes the foundation for replayable, auditable, and enforceable execution under an immutable contract layer.
@@ -24,7 +26,7 @@ ExoArmur Core v0.2.0 is a deterministic governance runtime for autonomous and AI
 
 ### 🎭 Restrained Autonomy Demo
 - **V2 governance pipeline**: Complete demo of operator approval workflow
-- **Deterministic markers**: `DEMO_RESULT=DENIED`, `ACTION_EXECUTED=false`, `AUDIT_STREAM_ID=det-...`
+- **Deterministic markers**: `DEMO_RESULT=DENIED`, `ACTION_EXECUTED=false`, `AUDIT_STREAM_ID=<stream-id>`
 - **Replay functionality**: Full audit stream replay with verification
 - **Feature flag controls**: Safe demonstration of V2 capabilities
 
@@ -107,7 +109,7 @@ None. This release maintains full backward compatibility with V1 contracts.
 ## Known Limitations
 
 - V2 capabilities are feature-flagged and disabled by default
-- Editable installs (`pip install -e .`) have known issues
+- This document reflects release-time state; current editable-install behavior should be verified against the live `main` branch documentation and CI
 - Golden Demo requires NATS JetStream + Docker infrastructure
 
 ## Future Roadmap

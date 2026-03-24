@@ -1,6 +1,8 @@
 # ExoArmur Phase Status
 
-## Current Implementation Status (Snapshot Date: 2025-01-25)
+This document is a historical implementation snapshot and should not be treated as the authoritative current-state status of `main`.
+
+## Historical Implementation Status (Snapshot Date: 2025-01-25)
 
 ### ✅ Phase 2A: Threat Classification (COMPLETE)
 **Status**: Fully implemented and tested

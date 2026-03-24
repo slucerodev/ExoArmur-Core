@@ -53,7 +53,6 @@ jobs:
         EXOARMUR_FLAG_V2_FEDERATION_ENABLED: "true"
         EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED: "true"
         EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED: "true"
-        PYTHONPATH: "${{ github.workspace }}/src:${{ github.workspace }}/spec/contracts"
       run: |
         # Run replay using the audit ID from previous step
         python3 scripts/demo_v2_restrained_autonomy.py --replay "$AUDIT_ID" > replay_output.txt 2>&1
@@ -71,7 +70,6 @@ jobs:
 
     - name: Run V2 Demo Tests
       run: |
-        export PYTHONPATH="${{ github.workspace }}/src:${{ github.workspace }}/spec/contracts"
         python3 -m pytest tests/test_v2_restrained_autonomy.py -v
         
     - name: Upload demo artifacts

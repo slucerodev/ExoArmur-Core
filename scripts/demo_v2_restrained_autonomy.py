@@ -24,6 +24,7 @@ Usage:
 import asyncio
 import argparse
 import json
+import hashlib
 import logging
 from pathlib import Path
 from datetime import datetime, timezone

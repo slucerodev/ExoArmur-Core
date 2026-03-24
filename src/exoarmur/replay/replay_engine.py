@@ -191,19 +191,27 @@ class ReplayEngine:
         
         if event_type == "telemetry_ingested":
             self._process_telemetry_ingested(envelope, report)
+        elif event_type == "belief_creation_started":
+            self._process_belief_creation_started(envelope, report)
+        elif event_type == "belief_created":
+            self._process_belief_created(envelope, report)
+        elif event_type == "intent_created":
+            self._process_intent_created(envelope, report)
         elif event_type == "safety_gate_evaluated":
             self._process_safety_gate_evaluated(envelope, report)
         elif event_type == "approval_requested":
             self._process_approval_requested(envelope, report)
         elif event_type == "approval_bound_to_intent":
             self._process_approval_bound_to_intent(envelope, report)
+        elif event_type == "approval_denied":
+            self._process_approval_denied(envelope, report)
         elif event_type == "intent_executed":
             self._process_intent_executed(envelope, report)
         elif event_type == "intent_denied":
             self._process_intent_denied(envelope, report)
         else:
             report.add_warning(f"Unknown event type: {event_type}")
-    
+
     def _process_telemetry_ingested(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process telemetry ingestion event"""
         # Reconstruct telemetry event from payload
@@ -224,7 +232,60 @@ class ReplayEngine:
             
         except Exception as e:
             report.add_failure(f"Failed to process telemetry ingestion: {e}")
-    
+
+    def _process_belief_creation_started(self, envelope: AuditEventEnvelope, report: ReplayReport):
+        """Process belief creation start event"""
+        try:
+            belief_data = self._extract_payload_ref(envelope.payload)
+            if not belief_data:
+                report.add_failure("Belief creation start payload missing data")
+                return
+
+            if "event_id" not in belief_data:
+                report.add_failure("Belief creation start missing event_id")
+                return
+
+            self.logger.debug(f"Reconstructed belief creation start: {belief_data.get('event_id')}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process belief creation start: {e}")
+
+    def _process_belief_created(self, envelope: AuditEventEnvelope, report: ReplayReport):
+        """Process belief creation event"""
+        try:
+            belief_data = self._extract_payload_ref(envelope.payload)
+            if not belief_data:
+                report.add_failure("Belief creation payload missing data")
+                return
+
+            belief_id = belief_data.get("belief_id")
+            if not belief_id:
+                report.add_failure("Belief creation missing belief_id")
+                return
+
+            self.logger.debug(f"Reconstructed belief creation: {belief_id}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process belief creation: {e}")
+
+    def _process_intent_created(self, envelope: AuditEventEnvelope, report: ReplayReport):
+        """Process intent creation event"""
+        try:
+            intent_data = self._extract_payload_ref(envelope.payload)
+            if not intent_data:
+                report.add_failure("Intent creation payload missing data")
+                return
+
+            intent_id = intent_data.get("intent_id")
+            if not intent_id:
+                report.add_failure("Intent creation missing intent_id")
+                return
+
+            self.logger.debug(f"Reconstructed intent creation: {intent_id}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process intent creation: {e}")
+
     def _process_safety_gate_evaluated(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process safety gate evaluation event"""
         try:
@@ -247,7 +308,7 @@ class ReplayEngine:
             
         except Exception as e:
             report.add_failure(f"Failed to process safety gate evaluation: {e}")
-    
+
     def _process_approval_requested(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process approval request event"""
         try:
@@ -265,7 +326,25 @@ class ReplayEngine:
             
         except Exception as e:
             report.add_failure(f"Failed to process approval request: {e}")
-    
+
+    def _process_approval_denied(self, envelope: AuditEventEnvelope, report: ReplayReport):
+        """Process approval denial event"""
+        try:
+            approval_data = self._extract_payload_ref(envelope.payload)
+            if not approval_data:
+                report.add_failure("Approval denial payload missing data")
+                return
+
+            approval_id = approval_data.get("approval_id")
+            if not approval_id:
+                report.add_failure("Approval denial missing approval_id")
+                return
+
+            self.logger.debug(f"Reconstructed approval denial: {approval_id}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process approval denial: {e}")
+
     def _process_approval_bound_to_intent(self, envelope: AuditEventEnvelope, report: ReplayReport):
         """Process approval-intent binding event"""
         try:

@@ -90,7 +90,14 @@ pip install .
 pip install ".[v2]"   # optional extras
 ```
 
-Editable installs (`pip install -e .`) are currently unsupported due to upstream packaging issues.
+Editable installs (`pip install -e .` and `pip install -e ".[v2]"`) are supported for current development and CI validation.
+
+### Import Surface
+
+- Runtime and CLI imports should use the installed `exoarmur.*` namespace.
+- V1 contracts are available via `exoarmur.spec.contracts.models_v1`.
+- `spec.contracts.models_v1` remains available as an installed compatibility surface for existing V1 consumers.
+- Repo-root compatibility shims such as `main.py` and `models_v1.py` are not installed package entry points and should not be treated as canonical imports.
 
 ## 5-Minute Proof
 
@@ -131,7 +138,7 @@ python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
 ```
 DEMO_RESULT=DENIED
 ACTION_EXECUTED=false
-AUDIT_STREAM_ID=det-...
+AUDIT_STREAM_ID=<stream-id>
 ```
 
 **Replay the audit stream:**
@@ -170,7 +177,7 @@ Core is fully functional on its own. Optional proprietary modules can extend cap
 
 ## V2 status
 
-V2 paths are gated scaffolding; defaults keep V2 disabled. See `docs/PHASE_STATUS.md` for current phase and expectations.
+V2 paths are gated scaffolding; defaults keep V2 disabled. `docs/PHASE_STATUS.md` is a historical phase snapshot rather than the authoritative current-state status page for `main`.
 
 ## Versioning Discipline
 
@@ -204,7 +211,7 @@ exoarmur demo --operator-decision deny  # V2 restrained autonomy with human appr
 The V2 demo produces verifiable output markers:
 - `DEMO_RESULT=DENIED` - Action approval decision
 - `ACTION_EXECUTED=false` - Execution status  
-- `AUDIT_STREAM_ID=det-...` - Replayable audit stream identifier
+- `AUDIT_STREAM_ID=<stream-id>` - Replayable audit stream identifier
 
 ### CI Invariant Gate Enforcement
 - Core invariant gates prevent architectural violations
@@ -212,15 +219,15 @@ The V2 demo produces verifiable output markers:
 - Deterministic replay verification through test suites
 - Schema stability checks prevent contract drift
 
-### Test Suite Coverage Summary
-- 669 passing tests with comprehensive coverage
-- 9 intentionally skipped tests with documented justification
-- 11 expected failures (xfailed) for known limitations
-- 0 unexpected failures in current release
+### Current Verified Lanes
+- `pip install .` in a fresh isolated environment
+- `pip install -e .` in a fresh isolated environment
+- `pip install -e ".[v2]"` with the V2 deny demo
+- `tests/test_v2_restrained_autonomy.py` with 18 passing tests
 
 ### Reproducible Release Notes
 - `RELEASE_NOTES_v0.2.0.md` provides complete release documentation
-- All claims verified through automated testing
+- Release notes capture release-time state and should not be treated as the current status of `main`
 - Demo output markers provide deterministic proof points
 
 ### Transparency Statement
