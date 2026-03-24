@@ -120,4 +120,4 @@ ExoArmur is **NOT**:
 - A production deployment platform
 - A complete autonomous defense solution
 
-This snapshot represents ExoArmur exactly as implemented today, with no speculative or future-facing capabilities.
+This snapshot represents ExoArmur as implemented on the snapshot date above, with no speculative or future-facing capabilities.

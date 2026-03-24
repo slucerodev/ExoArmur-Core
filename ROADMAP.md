@@ -4,13 +4,15 @@
 
 ExoArmur Core v0.2.0 provides deterministic governance and replayable audit capabilities for autonomous systems.
 
-**Production-Ready Features:**
+**Currently Verified Repository Scope:**
 - Deterministic execution pipeline with ProxyPipeline boundary
 - V1 core cognition loop with immutable contracts
-- V2 restrained autonomy demo with human approval workflows
-- Comprehensive test suite (669 passing tests)
-- Complete audit trail generation and replay functionality
+- Source installation via `pip install .`
+- Editable installation support for `pip install -e .` and `pip install -e ".[v2]"`
+- V2 restrained autonomy deny/replay demonstration path
 - Feature-flagged V2 capabilities (disabled by default)
+
+Current validation details should be taken from live CI and the current `README.md` / `VALIDATE.md` guidance rather than from hardcoded test counts in this roadmap.
 
 ## Near-Term Improvements
 

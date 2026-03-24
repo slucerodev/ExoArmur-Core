@@ -27,6 +27,8 @@ pip install .
 
 Expected result: Package installs successfully with all dependencies.
 
+Editable installs (`pip install -e .` and `pip install -e ".[v2]"`) are also supported for current development and CI verification.
+
 ## Step 3: Verify CLI Version
 
 ```bash
@@ -46,13 +48,16 @@ Expected result: `Replay result: success`
 ## Step 5: Run Demo Execution Path
 
 ```bash
-exoarmur demo --operator-decision deny
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
 ```
 
 Expected output markers:
 - `DEMO_RESULT=DENIED`
 - `ACTION_EXECUTED=false`
-- `AUDIT_STREAM_ID=det-...` (unique identifier)
+- `AUDIT_STREAM_ID=<stream-id>`
 
 ## What Constitutes Success
 
@@ -65,7 +70,7 @@ Expected output markers:
 ### CLI Functionality Success
 - `exoarmur --version` returns consistent version
 - `exoarmur --help` shows all commands
-- Demo command executes with proper output markers
+- Demo execution path produces the expected output markers
 
 ### Demo Execution Success
 - V2 demo produces required deterministic markers
@@ -74,7 +79,7 @@ Expected output markers:
 
 ### Deterministic Behavior
 - Same inputs produce identical outputs
-- Audit stream IDs are reproducible
+- Replay verification succeeds for the emitted audit stream
 - No hidden state or non-deterministic behavior
 
 ## Reporting Validation Results
@@ -115,7 +120,7 @@ External validation helps ensure project reliability and builds community trust.
 python -m pytest -q
 ```
 
-Expected: 669 passing tests with comprehensive coverage
+Expected: the command completes successfully; use the live output on `main` as the current source of truth for suite size and status.
 
 ### Architecture Compliance Check
 ```bash
@@ -126,8 +131,10 @@ python -c "from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import Pr
 ### Audit Trail Verification
 ```bash
 # Verify audit trail generation
-exoarmur demo --operator-decision deny
-grep "AUDIT_STREAM_ID" <<<$(exoarmur demo --operator-decision deny | grep AUDIT_STREAM_ID)
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
 ```
 
 This validation guide ensures that ExoArmur Core can be independently verified for functionality, deterministic behavior, and architectural compliance.
