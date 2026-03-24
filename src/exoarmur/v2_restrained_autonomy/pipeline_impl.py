@@ -20,17 +20,10 @@ import os
 from exoarmur.feature_flags.feature_flags import get_feature_flags, FeatureFlagContext
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
 from exoarmur.audit.audit_logger import AuditLogger
-try:
-    from spec.contracts.models_v1 import (
-        TelemetryEventV1, BeliefV1 as BeliefV1Original, ExecutionIntentV1, AuditRecordV1
-    )
-    BeliefV1 = BeliefV1Original  # Use the first BeliefV1 definition
-except ImportError:
-    # Fallback for running without package installation
-    from models_v1 import (
-        TelemetryEventV1, BeliefV1 as BeliefV1Original, ExecutionIntentV1, AuditRecordV1
-    )
-    BeliefV1 = BeliefV1Original  # Use the first BeliefV1 definition
+from exoarmur.spec.contracts.models_v1 import (
+    TelemetryEventV1, BeliefV1 as BeliefV1Original, ExecutionIntentV1, AuditRecordV1
+)
+BeliefV1 = BeliefV1Original  # Use the first BeliefV1 definition
 from .mock_executor import MockActionExecutor
 
 logger = logging.getLogger(__name__)

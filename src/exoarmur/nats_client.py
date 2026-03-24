@@ -586,7 +586,7 @@ class ExoArmurNATSClient:
                             # Validate correlation_id matches
                             if audit_data.get('correlation_id') == correlation_id:
                                 # Convert to AuditRecordV1
-                                from models_v1 import AuditRecordV1
+                                from exoarmur.spec.contracts.models_v1 import AuditRecordV1
                                 audit_record = AuditRecordV1.model_validate(audit_data)
                                 audit_records.append(audit_record)
                                 logger.info(f"Found matching audit record: {audit_record.audit_id}")

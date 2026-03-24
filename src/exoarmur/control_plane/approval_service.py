@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional, Literal
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
+from exoarmur.feature_flags import get_feature_flags
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +218,6 @@ class ApprovalService:
             return  # No-op when disabled
         
         # Check V2 feature flags
-        from feature_flags import get_feature_flags
         feature_flags = get_feature_flags()
         if not feature_flags.is_v2_operator_approval_required():
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
@@ -231,7 +231,6 @@ class ApprovalService:
             return f"legacy-{uuid.uuid4().hex[:8]}"
         
         # Check V2 feature flags
-        from feature_flags import get_feature_flags
         feature_flags = get_feature_flags()
         if not feature_flags.is_v2_operator_approval_required():
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
@@ -262,7 +261,6 @@ class ApprovalService:
             return []
         
         # Check V2 feature flags
-        from feature_flags import get_feature_flags
         feature_flags = get_feature_flags()
         if not feature_flags.is_v2_operator_approval_required():
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
@@ -279,7 +277,6 @@ class ApprovalService:
             }
         
         # Check V2 feature flags
-        from feature_flags import get_feature_flags
         feature_flags = get_feature_flags()
         if not feature_flags.is_v2_operator_approval_required():
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
@@ -297,7 +294,6 @@ class ApprovalService:
             return f"legacy-emergency-{uuid.uuid4().hex[:8]}"
         
         # Check V2 feature flags
-        from feature_flags import get_feature_flags
         feature_flags = get_feature_flags()
         if not feature_flags.is_v2_operator_approval_required():
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
