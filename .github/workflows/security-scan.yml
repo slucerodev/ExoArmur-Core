@@ -49,27 +49,27 @@ jobs:
       run: |
         if [ -f bandit-report.json ]; then
           python - <<'PY'
-import json
-from pathlib import Path
-
-report = json.loads(Path("bandit-report.json").read_text())
-results = report.get("results", [])
-relevant = [
-    {
-        "file": result.get("filename"),
-        "issue": result.get("issue_text"),
-        "severity": result.get("severity"),
-    }
-    for result in results
-    if result.get("severity") in {"HIGH", "MEDIUM"}
-]
-
-if relevant:
-    print("FAIL: High or Medium severity issues found")
-    for item in relevant:
-        print(json.dumps(item, sort_keys=True))
-    raise SystemExit(1)
-PY
+          import json
+          from pathlib import Path
+          
+          report = json.loads(Path("bandit-report.json").read_text())
+          results = report.get("results", [])
+          relevant = [
+              {
+                  "file": result.get("filename"),
+                  "issue": result.get("issue_text"),
+                  "severity": result.get("severity"),
+              }
+              for result in results
+              if result.get("severity") in {"HIGH", "MEDIUM"}
+          ]
+          
+          if relevant:
+              print("FAIL: High or Medium severity issues found")
+              for item in relevant:
+                  print(json.dumps(item, sort_keys=True))
+              raise SystemExit(1)
+          PY
         fi
         
     - name: Run secret scan (gitleaks)
