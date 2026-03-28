@@ -147,6 +147,8 @@ def test_belief_aggregation_with_different_types(belief_service, fixed_clock):
     
     # Check belief types
     belief_types = [belief.belief_type for belief in all_beliefs]
+    print(f"DEBUG: belief_types = {belief_types}")
+    print(f"DEBUG: all_beliefs = {[b for b in all_beliefs]}")
     assert any("TELEMETRY_SUMMARY" in bt for bt in belief_types)
     assert any("THREAT_INTEL" in bt for bt in belief_types)
 
