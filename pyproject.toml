@@ -4,24 +4,44 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exoarmur-core"
-version = "0.2.0"
-description = "ExoArmur Core – deterministic governance runtime for autonomous and AI-driven systems"
+version = "0.3.0"
+description = "ExoArmur Core – production-ready deterministic governance runtime for autonomous and AI-driven systems"
 authors = [
+    {name = "ExoArmur Team", email = "team@exoarmur.dev"}
+]
+maintainers = [
     {name = "ExoArmur Team", email = "team@exoarmur.dev"}
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+    "governance",
+    "deterministic",
+    "autonomous",
+    "ai",
+    "audit",
+    "replay",
+    "security",
+    "policy",
+    "enforcement",
 ]
 dependencies = [
     "fastapi>=0.104.0",
@@ -35,14 +55,48 @@ dependencies = [
     "cryptography>=46.0.4",
 ]
 
+[project.urls]
+Homepage = "https://github.com/slucerodev/ExoArmur-Core"
+Documentation = "https://slucerodev.github.io/ExoArmur-Core/"
+Repository = "https://github.com/slucerodev/ExoArmur-Core.git"
+"Bug Tracker" = "https://github.com/slucerodev/ExoArmur-Core/issues"
+Changelog = "https://github.com/slucerodev/ExoArmur-Core/blob/main/CHANGELOG.md"
+"Source Code" = "https://github.com/slucerodev/ExoArmur-Core"
+Discussions = "https://github.com/slucerodev/ExoArmur-Core/discussions"
+
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
 
 [project.optional-dependencies]
 v2 = []
 dev = [
-  "pytest",
-  "pytest-asyncio",
+  "pytest>=7.0.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-benchmark>=4.0.0",
+  "pytest-cov>=4.0.0",
+  "black>=23.0.0",
+  "isort>=5.12.0",
+  "mypy>=1.0.0",
+  "bandit>=1.7.0",
+  "pip-audit>=2.5.0",
+]
+docs = [
+  "sphinx>=6.0.0",
+  "sphinx-rtd-theme>=1.2.0",
+  "sphinx-autodoc-typehints>=1.22.0",
+  "myst-parser>=1.0.0",
+]
+monitoring = [
+  "prometheus-client>=0.16.0",
+  "structlog>=23.0.0",
+]
+test = [
+  "pytest>=7.0.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-benchmark>=4.0.0",
+  "pytest-cov>=4.0.0",
+  "httpx>=0.25.0",
+  "factory-boy>=3.2.0",
 ]
 
 [tool.setuptools]
