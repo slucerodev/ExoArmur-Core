@@ -4,7 +4,7 @@ Canonical signed message models for federation identity handshake
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Literal
+from typing import Dict, Any, List, Optional, Literal, Union
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 from enum import Enum
@@ -284,7 +284,7 @@ class TrustEstablishMessage(BaseModel):
 
 
 # Union type for all signed messages
-FederationSignedMessage = IdentityExchangeMessage | CapabilityNegotiateMessage | TrustEstablishMessage
+FederationSignedMessage = Union[IdentityExchangeMessage, CapabilityNegotiateMessage, TrustEstablishMessage]
 
 
 def create_identity_exchange_message(
