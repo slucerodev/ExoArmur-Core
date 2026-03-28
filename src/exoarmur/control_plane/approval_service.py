@@ -9,8 +9,8 @@ import json
 from typing import Dict, Any, List, Optional, Literal
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import uuid
 from exoarmur.feature_flags import get_feature_flags
+from exoarmur.clock import deterministic_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,12 @@ def _deterministic_approval_id(
     )
     digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return f"apr-{digest[:12]}"
+
+
+def _deterministic_legacy_token(prefix: str, *seed_parts: Any) -> str:
+    canonical = json.dumps(seed_parts, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return f"{prefix}-{digest[:8]}"
 
 
 @dataclass
@@ -228,7 +234,7 @@ class ApprovalService:
     async def submit_approval_request(self, request_data: Dict[str, Any]) -> str:
         """Submit approval request"""
         if not self.config.enabled:
-            return f"legacy-{uuid.uuid4().hex[:8]}"
+            return _deterministic_legacy_token("legacy", "submit_approval_request", request_data)
         
         # Check V2 feature flags
         feature_flags = get_feature_flags()
@@ -236,14 +242,14 @@ class ApprovalService:
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
         
         # V2 implementation would go here
-        return f"v2-{uuid.uuid4().hex[:8]}"
+        return _deterministic_legacy_token("v2", "submit_approval_request", request_data)
     
     async def get_approval_status(self, request_id: str) -> Dict[str, Any]:
         """Get approval request status (legacy - no-op)"""
         return {
             "request_id": request_id,
             "status": "legacy",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": deterministic_timestamp(request_id, "legacy_status").isoformat(),
             "approval_required": False
         }
     
@@ -291,7 +297,7 @@ class ApprovalService:
     async def request_emergency_override(self, emergency_data: Dict[str, Any]) -> str:
         """Request emergency override"""
         if not self.config.enabled:
-            return f"legacy-emergency-{uuid.uuid4().hex[:8]}"
+            return _deterministic_legacy_token("legacy-emergency", "request_emergency_override", emergency_data)
         
         # Check V2 feature flags
         feature_flags = get_feature_flags()
@@ -299,7 +305,7 @@ class ApprovalService:
             raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
         
         # V2 implementation would go here
-        return f"v2-emergency-{uuid.uuid4().hex[:8]}"
+        return _deterministic_legacy_token("v2-emergency", "request_emergency_override", emergency_data)
     
     def is_approval_required(self, request_type: str, risk_score: float) -> bool:
         """Check if approval is required for request (legacy - no-op)"""

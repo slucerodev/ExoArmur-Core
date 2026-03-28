@@ -837,7 +837,7 @@
     },
     "/v1/telemetry/ingest": {
       "post": {
-        "description": "Ingest telemetry event and process through ADMO loop",
+        "description": "Ingest telemetry event into the governed decision and audit pipeline",
         "operationId": "ingest_telemetry_v1_telemetry_ingest_post",
         "requestBody": {
           "content": {

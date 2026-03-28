@@ -2,8 +2,10 @@
 Clock interface for deterministic time handling
 """
 
-from datetime import datetime, timezone
-from typing import Protocol, Optional
+import hashlib
+import json
+from datetime import datetime, timezone, timedelta
+from typing import Protocol, Optional, Any
 from abc import ABC, abstractmethod
 
 
@@ -76,3 +78,15 @@ def set_clock(clock: Clock) -> None:
 def utc_now() -> datetime:
     """Get current UTC time using global clock"""
     return get_clock().utc_now()
+
+
+def deterministic_timestamp(*seed_parts: Any, base_time: Optional[datetime] = None) -> datetime:
+    """Derive a stable UTC timestamp from deterministic seed inputs."""
+    if base_time is None:
+        base_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+    canonical = json.dumps(seed_parts, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(canonical.encode("utf-8")).digest()
+    seconds = int.from_bytes(digest[:4], "big")
+    microseconds = int.from_bytes(digest[4:7], "big") % 1_000_000
+    return base_time + timedelta(seconds=seconds, microseconds=microseconds)

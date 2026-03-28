@@ -109,12 +109,9 @@ def _wrap_async_tool(
         # Create ActionIntent
         intent = _create_action_intent(tool_name, args, kwargs, clock)
         
-        # Execute through pipeline (run sync pipeline in async context)
+        # Execute through pipeline
         pipeline = pipeline_factory()
-        # Run the sync execute method in the async context
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: pipeline.execute(intent)
-        )
+        result = pipeline.execute(intent)
         
         # Return the executor result output
         return result.output

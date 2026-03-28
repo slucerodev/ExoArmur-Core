@@ -1,6 +1,6 @@
 """
-ExoArmur ADMO Phase Gate Mechanism
-Ensures strict Phase isolation while allowing prototype development
+ExoArmur Phase Gate mechanism.
+Ensures strict phase isolation while allowing controlled prototype development.
 """
 
 import os
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class SystemPhase(Enum):
-    """System Phase enumeration for ADMO development"""
-    PHASE_1 = 1  # Core ADMO loop only - production safe
+    """System phase enumeration for staged ExoArmur development"""
+    PHASE_1 = 1  # Core governed runtime only - production safe
     PHASE_2 = 2  # Federation and advanced features - prototype
 
 
@@ -21,10 +21,10 @@ class PhaseGate:
     """
     Phase Gate enforcement mechanism.
     
-    ADMO Organism Law Compliance:
-    - LAW-01: No Central Brain - Phase gate is local decision
-    - LAW-06: Evidence-Backed Decisions - Phase changes are explicit and auditable
-    - LAW-09: Graceful Degradation - Phase 1 remains fully functional without Phase 2
+    Governance principles:
+    - Phase changes are explicit and auditable
+    - Phase 1 remains fully functional without Phase 2
+    - Prototype activation requires explicit opt-in
     
     Purpose:
     Prevents governance contradiction where enabled=True alone activates

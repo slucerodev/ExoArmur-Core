@@ -1,5 +1,5 @@
 """
-API Response Models for ExoArmur ADMO
+API response models for ExoArmur Core.
 
 Contract-first response models for FastAPI endpoints using Pydantic v2.
 All models reference the core contract models from spec/contracts/models_v1.py.

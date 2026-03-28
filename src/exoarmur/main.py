@@ -17,7 +17,7 @@ import uuid
 # Add contracts to path
 
 # Import clock for deterministic time handling
-from exoarmur.clock import utc_now
+from exoarmur.clock import deterministic_timestamp
 
 # Import contract models
 from spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
@@ -311,12 +311,12 @@ async def health_check():
 @app.get("/")
 async def root():
     """Root endpoint"""
-    return {"message": "ExoArmur Core - Workflow 1 Implementation"}
+    return {"message": "ExoArmur Core - deterministic governance runtime"}
 
 
 @app.post("/v1/telemetry/ingest", response_model=TelemetryIngestResponseV1)
 async def ingest_telemetry(event: TelemetryEventV1):
-    """Ingest telemetry event and process through ADMO loop"""
+    """Ingest telemetry event into the governed decision and audit pipeline"""
     global telemetry_validator, facts_deriver, local_decider, belief_generator
     global collective_aggregator, safety_gate, execution_kernel, audit_logger
     
@@ -485,7 +485,15 @@ async def ingest_telemetry(event: TelemetryEventV1):
             correlation_id=event.correlation_id,
             event_id=event.event_id,
             belief_id=belief.belief_id,
-            processed_at=utc_now(),
+            processed_at=deterministic_timestamp(
+                event.event_id,
+                event.correlation_id,
+                event.trace_id,
+                belief.belief_id,
+                safety_verdict.verdict,
+                approval_id,
+                "processed_at",
+            ),
             trace_id=event.trace_id,
             approval_id=approval_id,
             approval_status="PENDING" if approval_id else None,

@@ -7,9 +7,11 @@ import hashlib
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
+import ulid
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.nats_client import ExoArmurNATSClient
+from exoarmur.clock import deterministic_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,18 @@ def compute_idempotency_key(tenant_id: str, correlation_id: str, event_kind: str
         "payload_ref": payload_ref
     }, sort_keys=True)
     return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def compute_audit_id(tenant_id: str, correlation_id: str, event_kind: str, idempotency_key: str, payload_ref: Dict[str, Any]) -> str:
+    canonical = json.dumps({
+        "tenant_id": tenant_id,
+        "correlation_id": correlation_id,
+        "event_kind": event_kind,
+        "idempotency_key": idempotency_key,
+        "payload_ref": payload_ref,
+    }, sort_keys=True)
+    digest = hashlib.sha256(canonical.encode()).digest()
+    return str(ulid.ULID.from_bytes(digest[:16]))
 
 
 class AuditLogger:
@@ -167,7 +181,14 @@ class AuditLogger:
                 tenant_id=tenant_id,
                 cell_id=cell_id,
                 idempotency_key=idempotency_key,
-                recorded_at=utc_now(),
+                recorded_at=deterministic_timestamp(
+                    tenant_id,
+                    correlation_id,
+                    event_kind,
+                    idempotency_key,
+                    payload_ref,
+                    existing_audit_id,
+                ),
                 event_kind=event_kind,
                 payload_ref=payload_ref,
                 hashes={
@@ -181,11 +202,18 @@ class AuditLogger:
         # Create audit record
         audit_record = AuditRecordV1(
             schema_version="1.0.0",
-            audit_id="01J4NR5X9Z8GABCDEF12345678",  # TODO: generate ULID
+            audit_id=compute_audit_id(tenant_id, correlation_id, event_kind, idempotency_key, payload_ref),
             tenant_id=tenant_id,
             cell_id=cell_id,
             idempotency_key=idempotency_key,
-            recorded_at=utc_now(),
+            recorded_at=deterministic_timestamp(
+                tenant_id,
+                correlation_id,
+                event_kind,
+                idempotency_key,
+                payload_ref,
+                "new",
+            ),
             event_kind=event_kind,
             payload_ref=payload_ref,
             hashes={

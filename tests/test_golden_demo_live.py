@@ -28,7 +28,7 @@ from fastapi.testclient import TestClient
 from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def nats_jetstream():
     """Start NATS JetStream for live testing"""
     import subprocess

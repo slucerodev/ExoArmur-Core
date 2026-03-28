@@ -12,6 +12,10 @@ import sys
 import os
 import subprocess
 import asyncio
+import json
+import io
+import importlib.util
+from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from typing import Optional
 import click
@@ -28,6 +32,44 @@ def _script_env(base_env: Optional[dict] = None) -> dict:
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(src_dir) + (os.pathsep + existing if existing else "")
     return env
+
+
+def _load_demo_module():
+    repo_root = Path(__file__).resolve().parents[2]
+    module_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
+    spec = importlib.util.spec_from_file_location("exoarmur_cli_demo", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load demo module from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optional[str] = None, env: Optional[dict] = None):
+    module = _load_demo_module()
+    buffer = io.StringIO()
+    original_env: dict[str, Optional[str]] = {}
+    for key, value in (env or {}).items():
+        original_env[key] = os.environ.get(key)
+        os.environ[key] = value
+
+    try:
+        with redirect_stdout(buffer), redirect_stderr(buffer):
+            if replay:
+                module.replay_audit_stream(replay)
+            else:
+                result = asyncio.run(module.run_demo_scenario(operator_decision))
+                if result.get("status") == "completed" and "outcome" in result:
+                    module.DEMO_AUDIT_PATH.write_text(json.dumps(result["audit_records"], indent=2, sort_keys=True))
+        return 0, buffer.getvalue()
+    except Exception:
+        return 1, buffer.getvalue()
+    finally:
+        for key, prior in original_env.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
 
 @click.group()
 @click.version_option(version=__version__, prog_name="exoarmur")
@@ -90,17 +132,15 @@ def verify_all(verbose: bool, fast: bool):
             'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
         })
         
-        result = subprocess.run(demo_cmd, cwd=repo_root, 
-                              capture_output=True, text=True, env=env)
+        demo_exit_code, output = _run_demo_inline(operator_decision="deny", env=env)
         
-        if result.returncode != 0:
+        if demo_exit_code != 0:
             click.echo("❌ Demo smoke test failed")
             if verbose:
-                click.echo(result.stderr)
+                click.echo(output)
             exit_code = 1
         else:
             # Check for required markers
-            output = result.stdout
             required_markers = [
                 "DEMO_RESULT=DENIED",
                 "ACTION_EXECUTED=false", 
@@ -126,21 +166,15 @@ def verify_all(verbose: bool, fast: bool):
                         break
                 
                 if audit_id:
-                    replay_cmd = [
-                        sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py"),
-                        "--replay", audit_id
-                    ]
+                    replay_exit_code, replay_output = _run_demo_inline(replay=audit_id, env=env)
                     
-                    result = subprocess.run(replay_cmd, cwd=repo_root,
-                                          capture_output=True, text=True, env=env)
-                    
-                    if result.returncode != 0:
+                    if replay_exit_code != 0:
                         click.echo("❌ Replay verification failed")
                         if verbose:
-                            click.echo(result.stderr)
+                            click.echo(replay_output)
                         exit_code = 1
                     else:
-                        if "REPLAY_VERIFIED=true" in result.stdout:
+                        if "REPLAY_VERIFIED=true" in replay_output:
                             click.echo("✅ Replay verification passed")
                         else:
                             click.echo("⚠️ Replay verification incomplete (known limitation)")
@@ -176,27 +210,6 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
     if scenario == 'v2_restrained_autonomy':
         repo_root = Path(__file__).resolve().parents[2]
         script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
-        
-        # Fallback: try to find script in current working directory
-        if not script_path.exists():
-            script_path = Path.cwd() / "scripts" / "demo_v2_restrained_autonomy.py"
-        
-        # Final fallback: try relative to current directory
-        if not script_path.exists():
-            script_path = Path("scripts/demo_v2_restrained_autonomy.py")
-        
-        if not script_path.exists():
-            click.echo(f"❌ Demo script not found at: {script_path}")
-            click.echo("Please run from the repository root directory")
-            sys.exit(1)
-        
-        cmd = [sys.executable, str(script_path)]
-        
-        if replay:
-            cmd.extend(["--replay", replay])
-        else:
-            cmd.extend(["--operator-decision", operator_decision])
-        
         env = _script_env(os.environ.copy())
         if not replay:
             env.update({
@@ -204,7 +217,13 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
                 'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
                 'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
             })
-        
+
+        cmd = [sys.executable, str(script_path)]
+        if replay:
+            cmd.extend(["--replay", replay])
+        else:
+            cmd.extend(["--operator-decision", operator_decision])
+
         result = subprocess.run(cmd, cwd=repo_root, env=env)
         sys.exit(result.returncode)
     else:
@@ -240,10 +259,12 @@ def health():
         flags = get_feature_flags()
         click.echo(f"✅ Feature flags loaded: {len(flags._flags)} configured")
         
-        # Test V2 pipeline
-        from exoarmur.v2_restrained_autonomy.pipeline_impl import RestrainedAutonomyPipeline
-        pipeline = RestrainedAutonomyPipeline()
-        click.echo("✅ V2 pipeline initialized")
+        # Test governed runtime initialization
+        import exoarmur.main as runtime_main
+        runtime_main.initialize_components(None)
+        if runtime_main.execution_kernel is None or runtime_main.audit_logger is None:
+            raise RuntimeError("Governed runtime components not initialized")
+        click.echo("✅ Governed runtime initialized")
         
         click.echo("🎯 System healthy")
         sys.exit(0)

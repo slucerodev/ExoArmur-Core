@@ -12,7 +12,7 @@ import sys
 import os
 import ulid
 from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
-from exoarmur.clock import utc_now
+from exoarmur.clock import deterministic_timestamp
 from exoarmur.audit.audit_logger import compute_idempotency_key
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 from exoarmur.feature_flags import get_feature_flags
@@ -91,7 +91,14 @@ class ExecutionKernel:
             subject=local_decision.subject,
             intent_type="isolate_host",  # TODO: derive from decision
             action_class=action_class,
-            requested_at=utc_now(),
+            requested_at=deterministic_timestamp(
+                local_decision.decision_id,
+                local_decision.correlation_id,
+                local_decision.trace_id,
+                idempotency_identifier,
+                action_class,
+                "requested_at",
+            ),
             parameters={"isolation_type": "network"},  # TODO: derive from decision
             policy_context={
                 "bundle_hash_sha256": bundle_hash,

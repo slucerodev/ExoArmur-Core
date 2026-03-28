@@ -12,7 +12,7 @@ import os
 import ulid
 from spec.contracts.models_v1 import LocalDecisionV1, BeliefV1, BeliefTelemetryV1
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
-from exoarmur.clock import utc_now
+from exoarmur.clock import deterministic_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,18 @@ class BeliefGenerator:
                 "trust_score_at_emit": max(0.0, min(1.0, decision.confidence)),
             },
             ttl_seconds=3600,  # 1 hour default
-            first_seen=utc_now(),
-            last_seen=utc_now(),
+            first_seen=deterministic_timestamp(
+                decision.decision_id,
+                decision.correlation_id,
+                decision.trace_id,
+                "first_seen",
+            ),
+            last_seen=deterministic_timestamp(
+                decision.decision_id,
+                decision.correlation_id,
+                decision.trace_id,
+                "first_seen",
+            ),
             correlation_id=decision.correlation_id,
             trace_id=decision.trace_id
         )
