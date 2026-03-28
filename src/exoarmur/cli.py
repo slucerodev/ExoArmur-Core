@@ -99,9 +99,9 @@ def verify_all(verbose: bool, fast: bool):
     repo_root = Path(__file__).resolve().parents[2]
     
     try:
-        # 1. Full test suite
+        # 1. Full test suite (excluding integration tests that require Docker)
         click.echo("1️⃣ Running full test suite...")
-        test_cmd = [sys.executable, "-m", "pytest", "tests/", "-x", "--tb=short"]
+        test_cmd = [sys.executable, "-m", "pytest", "tests/", "--ignore=tests/integration/", "-x", "--tb=short"]
         if verbose:
             test_cmd.append("-v")
         
@@ -204,7 +204,6 @@ def verify_all(verbose: bool, fast: bool):
             fail_symbol = "❌" if sys.platform != "win32" else "[FAILED]"
             click.echo(f"{fail_symbol} VERIFY_ALL: FAILED")
             click.echo("System not ready - fix failures before proceeding")
-            click.echo(f"Debug info: exit_code={exit_code}, platform={sys.platform}")
         
         sys.exit(exit_code)
         
