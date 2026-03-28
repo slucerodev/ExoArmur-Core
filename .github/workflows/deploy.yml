@@ -160,9 +160,9 @@ jobs:
       run: |
         bandit -r src -f json -o bandit-report.json || true
         # Check for high/medium severity issues
-        if grep -q '"severity": "HIGH"\|"severity": "MEDIUM"' bandit-report.json; then
+        if grep -q '"severity": "HIGH"' bandit-report.json || grep -q '"severity": "MEDIUM"' bandit-report.json; then
           echo "FAIL: High or Medium severity issues found"
-          cat bandit-report.json | python3 -c "import json,sys; data=json.load(sys.stdin); [print(f\"{r['filename']}: {r['issue_text']} ({r['severity']})\") for r in data.get('results',[]) if r.get('severity') in ['HIGH','MEDIUM']]"
+          cat bandit-report.json
           exit 1
         else
           echo "PASS: No high or medium severity issues"
