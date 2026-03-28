@@ -204,6 +204,7 @@ def verify_all(verbose: bool, fast: bool):
             fail_symbol = "❌" if sys.platform != "win32" else "[FAILED]"
             click.echo(f"{fail_symbol} VERIFY_ALL: FAILED")
             click.echo("System not ready - fix failures before proceeding")
+            click.echo(f"Debug info: exit_code={exit_code}, platform={sys.platform}")
         
         sys.exit(exit_code)
         
