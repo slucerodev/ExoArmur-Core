@@ -21,6 +21,16 @@ from typing import Optional
 import click
 from exoarmur import __version__
 
+# Handle Windows encoding issues
+if sys.platform == "win32":
+    import locale
+    # Set UTF-8 encoding for Windows console
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        pass  # Fallback if reconfigure fails
+
 # Add src and spec/contracts to path for imports
 
 
@@ -185,10 +195,14 @@ def verify_all(verbose: bool, fast: bool):
         # Final result
         click.echo("\n" + "=" * 50)
         if exit_code == 0:
-            click.echo("🎯 VERIFY_ALL: PASSED")
+            # Use Windows-safe output
+            success_symbol = "🎯" if sys.platform != "win32" else "[SUCCESS]"
+            click.echo(f"{success_symbol} VERIFY_ALL: PASSED")
             click.echo("All systems green and ready for production")
         else:
-            click.echo("❌ VERIFY_ALL: FAILED")
+            # Use Windows-safe output
+            fail_symbol = "❌" if sys.platform != "win32" else "[FAILED]"
+            click.echo(f"{fail_symbol} VERIFY_ALL: FAILED")
             click.echo("System not ready - fix failures before proceeding")
         
         sys.exit(exit_code)
@@ -247,7 +261,9 @@ def evidence(export: Optional[str], intent_id: Optional[str]):
 @main.command()
 def health():
     """Quick health check"""
-    click.echo("🏥 ExoArmur Health Check")
+    # Use Windows-safe output
+    health_symbol = "🏥" if sys.platform != "win32" else "[HEALTH]"
+    click.echo(f"{health_symbol} ExoArmur Health Check")
     
     try:
         # Test basic imports
