@@ -52,7 +52,7 @@ V2 defaults to disabled - Core remains fully functional without any V2 features.
 ## Status
 
 Architecture / Contract: v1.0.0 (stable)
-Package (pip): 0.2.0
+Package (pip): 0.3.0
 
 The core architecture is contract-stable. Public interfaces evolve only through test-verified changes.
 
