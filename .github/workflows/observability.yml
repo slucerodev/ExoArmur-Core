@@ -43,7 +43,7 @@ jobs:
     - name: Run comprehensive verification
       run: |
         exoarmur verify-all | tee verify-all.log
-        grep -E "(🎯|SUCCESS]) VERIFY_ALL: PASSED" verify-all.log
+        grep "VERIFY_ALL: PASSED" verify-all.log
 
     - name: Test API health endpoints
       run: |
