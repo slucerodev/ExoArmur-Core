@@ -102,7 +102,9 @@ class APIKeyStore:
         """Create new API key and return the actual key value"""
         # Generate random key
         actual_key = secrets.token_urlsafe(32)
-        key_hash = hashlib.sha256(actual_key.encode()).hexdigest()
+        # Use the same hashing algorithm as AuthService
+        salt = "exoarmur-api-key-salt-v1"
+        key_hash = hashlib.pbkdf2_hmac('sha256', actual_key.encode(), salt.encode(), 100000).hex()
         
         api_key = APIKey(
             key_id=key_id,
@@ -161,8 +163,10 @@ class AuthService:
         logger.info("AuthService initialized")
     
     def hash_api_key(self, api_key: str) -> str:
-        """Hash API key for storage/comparison"""
-        return hashlib.sha256(api_key.encode()).hexdigest()
+        """Hash API key for storage/comparison using HMAC-SHA256 with salt"""
+        # Use a static salt for API keys (in production, this should be from environment)
+        salt = "exoarmur-api-key-salt-v1"
+        return hashlib.pbkdf2_hmac('sha256', api_key.encode(), salt.encode(), 100000).hex()
     
     async def authenticate(self, api_key: str) -> AuthContext:
         """
