@@ -43,6 +43,7 @@ def reset_feature_flags_isolation():
     # Set test mode defaults (only if not already set)
     os.environ.setdefault('EXOARMUR_FAIL_OPEN_KILL_SWITCH', '1')
     os.environ.setdefault('EXOARMUR_TEST_API_KEY', 'test-api-key-12345')
+    os.environ.setdefault('EXOARMUR_FLAG_V2_FEDERATION_ENABLED', 'true')
     
     # Reset global feature flags instance
     from exoarmur.feature_flags.feature_flags import _feature_flags_instance

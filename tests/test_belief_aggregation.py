@@ -103,10 +103,6 @@ def test_belief_aggregation_is_deterministic(belief_service, fixed_clock):
 
 def test_belief_aggregation_with_different_types(belief_service, fixed_clock):
     """Test belief aggregation with different observation types"""
-    # Enable V2 federation for this test
-    import os
-    os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
-    
     base_time = fixed_clock.now()
     
     # Create telemetry observations
