@@ -2,9 +2,13 @@
 Tests for belief aggregation service
 """
 
+import os
 import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock
+
+# Set V2 federation flag before any imports
+os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
 
 from tests.factories import make_observation_v1
 from exoarmur.spec.contracts.models_v1 import (
