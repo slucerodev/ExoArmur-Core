@@ -1,8 +1,17 @@
-# ExoArmur Core
+# ExoArmur - AI Agent Governance Framework
 
-ExoArmur is a deterministic governance runtime for autonomous and AI-driven systems. It makes decisions replayable, auditable, and enforceable under an immutable contract layer.
+ExoArmur is an AI agent governance framework that provides deterministic governance runtime for autonomous and AI-driven systems. It makes decisions replayable, auditable, and enforceable under an immutable contract layer with comprehensive audit trails and safety checks.
 
 It is designed for teams building AI agents or autonomous workflows that require strict accountability, reproducibility, and policy enforcement.
+
+## Why AI Agent Governance?
+
+AI agents are making autonomous decisions in production environments without proper oversight. ExoArmur provides the governance framework needed for safe AI agent deployment through:
+
+- **Audit Trail**: Complete decision logging for compliance and debugging
+- **Safety Checks**: Pre-execution validation and policy enforcement
+- **Replay System**: Deterministic replay of autonomous decisions
+- **Risk Management**: Controlled execution with approval workflows
 
 ## What It Does
 
@@ -21,7 +30,7 @@ It is designed for teams building AI agents or autonomous workflows that require
 
 ## Architectural Role
 
-ExoArmur Core is the invariant enforcement layer within a modular execution architecture. It sits between upstream decision systems and downstream execution targets, ensuring that execution remains deterministic, replayable, and independently verifiable.
+ExoArmur Core is the invariant enforcement layer within a modular execution architecture. It sits between upstream decision systems and downstream execution targets, ensuring that autonomous system execution remains deterministic, replayable, and independently verifiable through proper governance and audit trails.
 
 Core deliberately separates intelligence from enforcement. Decision systems may evolve independently, but execution integrity and audit guarantees remain stable at this layer.
 
@@ -121,6 +130,10 @@ exoarmur --help
 python examples/quickstart_replay.py
 python -m pytest -q
 ```
+
+## AI Agent Framework Integration
+
+ExoArmur integrates with existing AI agent frameworks as a governance layer, adding audit trails and safety checks to autonomous decision making without requiring changes to your existing agent architecture.
 
 ## V2 Restrained Autonomy Demo
 
