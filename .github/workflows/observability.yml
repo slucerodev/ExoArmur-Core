@@ -103,7 +103,7 @@ jobs:
         python -m memory_profiler scripts/demo_v2_restrained_autonomy.py --operator-decision deny || echo "Memory profiling needs setup"
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: benchmark-results
@@ -122,7 +122,7 @@ jobs:
       run: mkdir -p monitoring scripts docs
 
     - name: Upload monitoring directories
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: monitoring-config
         path: monitoring/
@@ -169,7 +169,7 @@ jobs:
         echo "See src/exoarmur for logging examples" >> docs/logging_standards.md
 
     - name: Upload logging standards
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: logging-standards
         path: docs/logging_standards.md
