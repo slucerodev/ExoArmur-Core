@@ -55,6 +55,21 @@ def _load_demo_module():
     return module
 
 
+def _ensure_windows_utf8_output() -> None:
+    """Ensure Windows consoles can render CLI status output safely."""
+    if sys.platform != "win32":
+        return
+
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, OSError, ValueError):
+                pass
+
+
 def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optional[str] = None, env: Optional[dict] = None):
     module = _load_demo_module()
     buffer = io.StringIO()
@@ -92,6 +107,7 @@ def main():
 @click.option('--fast', is_flag=True, help='Skip boundary gate randomization')
 def verify_all(verbose: bool, fast: bool):
     """Run complete system verification"""
+    _ensure_windows_utf8_output()
     click.echo("🔍 ExoArmur System Verification")
     click.echo("=" * 50)
     
