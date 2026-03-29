@@ -4,6 +4,8 @@ Proxy Pipeline for execution governance boundary.
 Minimal orchestration using existing V1 primitives without modifying V1 behavior.
 """
 
+from __future__ import annotations
+
 import logging
 import hashlib
 import json
