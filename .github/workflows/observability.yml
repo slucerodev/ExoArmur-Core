@@ -118,116 +118,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Create monitoring configuration
-      run: |
-        mkdir -p monitoring
-        
-        # Create Prometheus configuration
-        cat > monitoring/prometheus.yml << 'EOF'
-global:
-  scrape_interval: 15s
+    - name: Create monitoring directories
+      run: mkdir -p monitoring scripts docs
 
-scrape_configs:
-  - job_name: 'exoarmur'
-    static_configs:
-      - targets: ['localhost:8000']
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-EOF
-
-        # Create Grafana dashboard configuration
-        cat > monitoring/grafana-dashboard.json << 'EOF'
-{
-  "dashboard": {
-    "title": "ExoArmur Monitoring",
-    "panels": [
-      {
-        "title": "API Response Time",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-            "legendFormat": "95th percentile"
-          }
-        ]
-      },
-      {
-        "title": "Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "Requests/sec"
-          }
-        ]
-      },
-      {
-        "title": "Error Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
-            "legendFormat": "Error rate"
-          }
-        ]
-      }
-    ]
-  }
-}
-EOF
-
-    - name: Create health check script
-      run: |
-        cat > scripts/health_check.sh << 'EOF'
-#!/bin/bash
-
-set -euo pipefail
-
-echo "🏥 ExoArmur Health Check"
-echo "========================"
-
-# Check if CLI is available
-if ! command -v exoarmur &> /dev/null; then
-    echo "❌ ExoArmur CLI not found"
-    exit 1
-fi
-
-# Run CLI health check
-echo "Running CLI health check..."
-exoarmur health
-
-# Check if API server can start
-echo "Starting API server for health check..."
-exoarmur serve --host 0.0.0.0 --port 8000 --daemon
-SERVER_PID=$!
-
-# Wait for server to start
-sleep 3
-
-# Test health endpoint
-echo "Testing API health endpoint..."
-if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-    echo "✅ API health endpoint responding"
-else
-    echo "❌ API health endpoint not responding"
-fi
-
-# Test metrics endpoint
-if curl -f http://localhost:8000/metrics > /dev/null 2>&1; then
-    echo "✅ Metrics endpoint responding"
-else
-    echo "❌ Metrics endpoint not responding"
-fi
-
-# Clean up
-kill $SERVER_PID 2>/dev/null || true
-
-echo "🎯 Health check completed"
-EOF
-
-        chmod +x scripts/health_check.sh
-
-    - name: Upload monitoring configuration
+    - name: Upload monitoring directories
       uses: actions/upload-artifact@v3
       with:
         name: monitoring-config
@@ -270,36 +164,9 @@ EOF
 
     - name: Create logging standards document
       run: |
-        cat > docs/logging_standards.md << 'EOF'
-# ExoArmur Logging Standards
-
-## Log Format
-All logs should follow the structured format:
-```
-YYYY-MM-DD HH:MM:SS,mmm - module_name - LEVEL - message
-```
-
-## Log Levels
-- **DEBUG**: Detailed debugging information
-- **INFO**: General information messages
-- **WARNING**: Warning messages for potentially problematic situations
-- **ERROR**: Error messages for failures that don't stop the program
-- **CRITICAL**: Critical errors that may cause the program to stop
-
-## Structured Logging
-ExoArmur uses python-json-logger for structured logging in production.
-
-## Log Context
-Include relevant context in log messages:
-- Correlation IDs for request tracing
-- Component names for system identification
-- Action identifiers for audit trails
-
-## Performance Considerations
-- Avoid excessive logging in hot paths
-- Use appropriate log levels
-- Consider async logging for high-throughput scenarios
-EOF
+        mkdir -p docs
+        echo "# ExoArmur Logging Standards" > docs/logging_standards.md
+        echo "See src/exoarmur for logging examples" >> docs/logging_standards.md
 
     - name: Upload logging standards
       uses: actions/upload-artifact@v3
