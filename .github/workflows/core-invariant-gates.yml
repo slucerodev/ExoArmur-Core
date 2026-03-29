@@ -12,13 +12,13 @@ jobs:
     name: Core Invariant Gates (Fail-Fast)
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Gate 0 — No untracked under src/exoarmur
         run: bash scripts/governance/guard_untracked_src_exoarmur.sh
 
       - name: Set up Python 3.12.3
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12.3'
 

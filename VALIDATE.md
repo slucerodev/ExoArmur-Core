@@ -35,7 +35,7 @@ Editable installs (`pip install -e .` and `pip install -e ".[v2]"`) are also sup
 exoarmur --version
 ```
 
-Expected result: `exoarmur, version 0.2.0`
+Expected result: `exoarmur, version 0.3.0`
 
 ## Step 4: Run Quickstart Replay Example
 
@@ -89,7 +89,7 @@ If all steps complete successfully:
 
 ```
 ✅ Installation: pip install . completed without errors
-✅ CLI Verification: exoarmur --version returns 0.2.0
+✅ CLI Verification: exoarmur --version returns 0.3.0
 ✅ Quickstart Replay: python examples/quickstart_replay.py succeeds
 ✅ Demo Execution: exoarmur demo --operator-decision deny produces required markers
 ✅ Deterministic Output: All markers present and reproducible

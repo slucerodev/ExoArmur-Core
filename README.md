@@ -253,4 +253,4 @@ This project has been validated through continuous integration and deterministic
 - Design Principles → docs/DESIGN_PRINCIPLES.md
 - Validation Guide → VALIDATE.md
 - Reviewer Checklist → docs/REVIEW_CHECKLIST.md
-- Technical Whitepaper → docs/EXOARMUR_WHITEPAPER.md
+- Technical Systems Paper → docs/EXOARMUR_SYSTEMS_PAPER.md

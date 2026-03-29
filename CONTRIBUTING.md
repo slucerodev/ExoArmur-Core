@@ -48,23 +48,18 @@ pip install ".[dev]"
 
 ### Editable Installs - Important Notice
 
-**Editable installs (`pip install -e .`) are currently unsupported due to upstream packaging issues.**
-
-**Why unsupported:**
-- Path resolution conflicts between development and installed environments
-- CLI demo script location differences in editable vs installed packages
-- Test environment inconsistencies
+**Editable installs (`pip install -e .`) are supported and are part of the current validation flow.**
 
 **Recommended development workflow:**
 1. Make changes to source code
-2. Reinstall package: `pip install .`
+2. Install in editable mode: `pip install -e .` or `pip install -e ".[dev]"`
 3. Run tests to verify changes
 4. Commit changes when tests pass
 
 **Testing changes:**
 ```bash
 # After making changes, reinstall and test
-pip install .
+pip install -e .
 python -m pytest -q
 exoarmur demo --operator-decision deny
 ```
@@ -79,17 +74,17 @@ python -m pytest -q
 ### Specific Test Categories
 ```bash
 # Core functionality tests
-python -m pytest tests/test_core/
+python -m pytest tests/test_replay_determinism.py tests/test_safety_gate.py tests/test_boundary_enforcement.py
 
 # V2 feature tests
 python -m pytest tests/test_v2_restrained_autonomy.py
 
-# Golden demo tests
-python -m pytest tests/test_golden_demo/
+# Golden demo tests (optional; requires Docker and NATS JetStream)
+EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
 ```
 
 ### Test Expectations
-- All tests should pass (669 passing in current release)
+- All tests should pass; use the live CI output as the source of truth for current totals
 - Some tests are intentionally skipped with documented justification
 - Expected failures (xfailed) are documented and acceptable
 
