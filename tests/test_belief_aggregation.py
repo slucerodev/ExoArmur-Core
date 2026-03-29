@@ -7,9 +7,6 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock
 
-# Set V2 federation flag before any imports
-os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
-
 from tests.factories import make_observation_v1
 from exoarmur.spec.contracts.models_v1 import (
     ObservationV1,
@@ -46,6 +43,15 @@ def belief_config():
         min_observations_for_belief=1,
         confidence_threshold=0.5
     )
+
+
+@pytest.fixture
+def v2_federation_enabled():
+    """Enable V2 federation for tests that require it"""
+    import os
+    os.environ['EXOARMUR_FLAG_V2_FEDERATION_ENABLED'] = 'true'
+    yield
+    # Cleanup not needed due to conftest isolation
 
 
 @pytest.fixture
@@ -105,7 +111,7 @@ def test_belief_aggregation_is_deterministic(belief_service, fixed_clock):
         assert belief1.source_observations == belief2.source_observations
 
 
-def test_belief_aggregation_with_different_types(belief_service, fixed_clock):
+def test_belief_aggregation_with_different_types(belief_service, fixed_clock, v2_federation_enabled):
     """Test belief aggregation with different observation types"""
     base_time = fixed_clock.now()
     
