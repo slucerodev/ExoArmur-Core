@@ -96,7 +96,7 @@ def create_sample_telemetry_event() -> TelemetryEventV1:
         attributes={
             "endpoint_id": "endpoint-demo-001",
             "process_name": "malware.exe",
-            "process_path": "/tmp/malware.exe",
+            "process_path": "/tmp/malware.exe",  # nosec B108 - demo mock data
             "command_line": "malware.exe --steal-data",
             "parent_process": "explorer.exe",
         },
