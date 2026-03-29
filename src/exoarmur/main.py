@@ -3,6 +3,8 @@ ExoArmur Core FastAPI service — deterministic governance and replayable audit 
 Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
 """
 
+from __future__ import annotations
+
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
