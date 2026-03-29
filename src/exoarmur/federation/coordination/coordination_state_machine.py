@@ -61,7 +61,7 @@ class CoordinationStateMachine:
         
         # Start cleanup task
         self._cleanup_task = None
-        self._shutdown_event = asyncio.Event()
+        self._shutdown_event = None  # Lazy initialization
     
     def add_event_handler(self, handler: Callable):
         """Add event handler for coordination events"""
@@ -464,13 +464,17 @@ class CoordinationStateMachine:
     
     async def stop_cleanup_task(self):
         """Stop cleanup task"""
-        self._shutdown_event.set()
+        if self._shutdown_event:
+            self._shutdown_event.set()
         if self._cleanup_task:
             await self._cleanup_task
         self._cleanup_task = None
     
     async def _cleanup_loop(self):
         """Background cleanup loop"""
+        # Initialize shutdown event if needed
+        if self._shutdown_event is None:
+            self._shutdown_event = asyncio.Event()
         while not self._shutdown_event.is_set():
             try:
                 await self._cleanup_expired_sessions()
