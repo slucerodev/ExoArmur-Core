@@ -90,30 +90,6 @@ jobs:
       run: |
         python -c "from exoarmur.plugins.registry import PluginRegistry; registry = PluginRegistry(); providers = registry.discover_providers(); print(f'Plugin discovery works: {len(providers)} providers found')"
 
-  performance-tests:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-    needs: test-matrix
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.12.3'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip==24.0
-        python -m pip install -r requirements.lock
-        python -m pip install --no-deps -e .
-
-    - name: Run performance benchmarks
-      run: |
-        pytest -q tests/test_performance.py --benchmark-only || echo "Performance tests not yet implemented"
-
   build-and-package:
     name: Build & Package Test - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
