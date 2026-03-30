@@ -22,21 +22,21 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
     
     - name: Cache dependencies
       uses: actions/cache@v5
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.lock') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
-        python -m pip install -r requirements.txt
-        pip install -e ".[v2]"
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e ".[v2]"
     
     - name: Run Boundary Gate
       run: |
@@ -62,21 +62,21 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
     
     - name: Cache dependencies
       uses: actions/cache@v5
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.lock') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
-        python -m pip install -r requirements.txt
-        pip install -e .
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
     
     - name: Run Protocol Enforcer Boundary Check
       run: |
@@ -100,26 +100,21 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
     
     - name: Cache dependencies
       uses: actions/cache@v5
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.lock') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
-        python -m pip install -r requirements.txt
-        pip install -e .
-
-    - name: Install test dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Check test collection count
       run: |
@@ -149,17 +144,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
-        pip install -e .
-
-    - name: Install test dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Provide docker-compose (shim to docker compose v2)
       run: |

@@ -20,17 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        exclude:
-          # Exclude some combinations to reduce CI load while maintaining coverage
-          - os: windows-latest
-            python-version: "3.8"
-          - os: macos-latest
-            python-version: "3.8"
-          - os: windows-latest
-            python-version: "3.9"
-          - os: macos-latest
-            python-version: "3.9"
+        python-version: ["3.12.3"]
 
     steps:
     - name: Checkout code
@@ -45,15 +35,15 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements.lock') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Run core tests
       run: |
@@ -84,13 +74,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-asyncio httpx
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Run API integration tests
       run: |
@@ -98,7 +88,7 @@ jobs:
 
     - name: Test plugin discovery
       run: |
-        python -c "import sys; sys.path.insert(0, 'src'); from exoarmur.plugins.registry import PluginRegistry; registry = PluginRegistry(); providers = registry.discover_providers(); print(f'Plugin discovery works: {len(providers)} providers found')"
+        python -c "from exoarmur.plugins.registry import PluginRegistry; registry = PluginRegistry(); providers = registry.discover_providers(); print(f'Plugin discovery works: {len(providers)} providers found')"
 
   performance-tests:
     name: Performance Tests
@@ -112,13 +102,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-benchmark
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Run performance benchmarks
       run: |
@@ -139,11 +129,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Build package
       run: |
-        python -m pip install --upgrade pip build
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
         python -m build
 
     - name: Test package installation
@@ -153,7 +145,7 @@ jobs:
 
     - name: Test editable installation
       run: |
-        python -m pip install -e .
+        python -m pip install --no-deps -e .
         exoarmur --help
 
     - name: Upload build artifacts

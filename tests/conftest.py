@@ -6,14 +6,19 @@ import pytest
 import os
 import sys
 import faulthandler
+import random
 from pathlib import Path
 from unittest.mock import patch
 
 from exoarmur.feature_flags import get_feature_flags  # type: ignore
+from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 
 def pytest_sessionstart(session):
     """Add watchdog for hanging tests when env flag is set"""
+    ensure_default_event_loop_policy()
+    random.seed(0)
+
     if os.environ.get("EXOARMUR_PYTEST_WATCHDOG") == "1":
         faulthandler.enable()
         faulthandler.dump_traceback_later(30, repeat=True)

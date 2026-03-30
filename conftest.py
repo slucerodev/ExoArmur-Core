@@ -3,11 +3,21 @@ Pytest configuration and boundary enforcement for ExoArmur
 Enforces fixture scope rules and deterministic behavior for sensitive tests
 """
 
+import sys
+from pathlib import Path
+
+SRC_DIR = Path(__file__).resolve().parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
 import pytest
 import warnings
 from typing import Set, Dict, Any
 import inspect
 import os
+import random
+
+from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 # Sensitive test modules that require strict fixture scoping
 SENSITIVE_MODULES = {
@@ -31,6 +41,9 @@ WHITELISTED_FIXTURES = {
 
 def pytest_configure(config):
     """Configure pytest with strict settings"""
+    ensure_default_event_loop_policy()
+    random.seed(0)
+
     # Treat warnings as errors in sensitive runs
     if config.getoption("-m") and "sensitive" in config.getoption("-m"):
         warnings.filterwarnings("error", category=DeprecationWarning)

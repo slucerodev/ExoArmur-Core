@@ -34,13 +34,19 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints myst-parser
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
+
+    - name: Verify locked environment
+      run: |
+        python scripts/verify_env_parity.py \
+          --expected-python-version 3.12.3 \
+          --expected-platform Linux
 
     - name: Generate API docs
       run: |
@@ -77,13 +83,19 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
+
+    - name: Verify locked environment
+      run: |
+        python scripts/verify_env_parity.py \
+          --expected-python-version 3.12.3 \
+          --expected-platform Linux
 
     - name: Test quickstart examples
       run: |
@@ -110,24 +122,11 @@ jobs:
 
     - name: Check README links
       run: |
-        # Install link checker
-        python -m pip install --upgrade pip
-        python -m pip install markdown-link-check
-
-        # Check README.md links
-        markdown-link-check README.md || echo "Some links may be placeholders"
+        python scripts/check_markdown_links.py README.md
 
     - name: Check documentation links
       run: |
-        # Check if docs exist and build
-        if [ -d "docs" ]; then
-          python -m pip install sphinx
-          cd docs
-          make html || echo "Documentation build failed"
-          
-          # Check for broken links in built docs
-          find _build/html -name "*.html" -exec grep -l "href=" {} \; | head -5
-        fi
+        python scripts/check_markdown_links.py docs
 
   deploy-docs:
     name: Deploy Documentation

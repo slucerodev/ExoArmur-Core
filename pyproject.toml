@@ -68,6 +68,9 @@ Discussions = "https://github.com/slucerodev/ExoArmur-Core/discussions"
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
 
+[project.entry-points.pytest11]
+exoarmur-stability = "exoarmur.stability.classifier"
+
 [project.optional-dependencies]
 v2 = []
 dev = [

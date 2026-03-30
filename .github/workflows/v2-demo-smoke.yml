@@ -21,13 +21,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
         
     - name: Run Standalone Demo Proof
       run: |
@@ -42,11 +42,6 @@ jobs:
 
         echo "✅ Standalone demo markers verified"
         
-    - name: Install test dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-asyncio
-
     - name: Run Standalone Demo Tests
       run: |
         python3 -m pytest tests/test_demo_standalone.py -v

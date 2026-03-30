@@ -20,6 +20,7 @@ import uuid
 
 # Import clock for deterministic time handling
 from exoarmur.clock import deterministic_timestamp
+from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 # Import contract models
 from spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
@@ -59,6 +60,8 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
+
+ensure_default_event_loop_policy()
 
 logger = logging.getLogger(__name__)
 

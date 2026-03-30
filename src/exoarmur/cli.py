@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Optional
 import click
 from exoarmur import __version__
+from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 # Handle Windows encoding issues
 if sys.platform == "win32":
@@ -80,6 +81,9 @@ def _ensure_windows_utf8_output() -> None:
                 reconfigure(encoding="utf-8", errors="replace")
             except (AttributeError, OSError, ValueError):
                 pass
+
+
+ensure_default_event_loop_policy()
 
 
 def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optional[str] = None, env: Optional[dict] = None):

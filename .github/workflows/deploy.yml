@@ -36,7 +36,7 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Extract version
       id: version
@@ -74,9 +74,9 @@ jobs:
 
     - name: Run full test suite
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pytest pytest-asyncio
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
         pytest -q tests/test_v2_restrained_autonomy.py
         EXOARMUR_LIVE_DEMO=1 EXOARMUR_PHASE=2 pytest -q tests/test_golden_demo_live.py
 
@@ -100,12 +100,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install build dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install build twine
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Build package
       run: |
@@ -143,17 +144,17 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -e .
-        python -m pip install pip-audit bandit
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Run dependency audit
       run: |
-        pip-audit --requirement requirements.txt --ignore-vuln CVE-2025-8869
+        pip-audit --requirement requirements.lock --ignore-vuln CVE-2025-8869
 
     - name: Run SAST scan
       run: |
@@ -183,12 +184,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install twine
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install twine
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Deploy to Test PyPI
       run: |
@@ -213,12 +215,13 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.12.3'
 
     - name: Install twine
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install twine
+        python -m pip install --upgrade pip==24.0
+        python -m pip install -r requirements.lock
+        python -m pip install --no-deps -e .
 
     - name: Deploy to PyPI
       run: |
@@ -270,6 +273,7 @@ jobs:
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Create Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
