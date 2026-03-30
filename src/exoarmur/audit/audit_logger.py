@@ -11,7 +11,7 @@ import ulid
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.nats_client import ExoArmurNATSClient
-from exoarmur.clock import deterministic_timestamp
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -181,14 +181,7 @@ class AuditLogger:
                 tenant_id=tenant_id,
                 cell_id=cell_id,
                 idempotency_key=idempotency_key,
-                recorded_at=deterministic_timestamp(
-                    tenant_id,
-                    correlation_id,
-                    event_kind,
-                    idempotency_key,
-                    payload_ref,
-                    existing_audit_id,
-                ),
+                recorded_at=utc_now(),
                 event_kind=event_kind,
                 payload_ref=payload_ref,
                 hashes={
@@ -206,14 +199,7 @@ class AuditLogger:
             tenant_id=tenant_id,
             cell_id=cell_id,
             idempotency_key=idempotency_key,
-            recorded_at=deterministic_timestamp(
-                tenant_id,
-                correlation_id,
-                event_kind,
-                idempotency_key,
-                payload_ref,
-                "new",
-            ),
+            recorded_at=utc_now(),
             event_kind=event_kind,
             payload_ref=payload_ref,
             hashes={

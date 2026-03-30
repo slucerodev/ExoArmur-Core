@@ -92,8 +92,8 @@ jobs:
 
     - name: Test demo scripts
       run: |
-        # Test V2 restrained autonomy demo
-        python scripts/demo_v2_restrained_autonomy.py --operator-decision deny || echo "Demo script needs environment setup"
+        # Test standalone governance demo
+        python examples/demo_standalone.py || echo "Demo script needs environment setup"
 
     - name: Validate example syntax
       run: |

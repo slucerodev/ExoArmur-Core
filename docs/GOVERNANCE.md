@@ -117,7 +117,7 @@ pytest -q -rxX
 ExoArmur governance exists to ensure:
 - **Reliability**: Binary green means system works
 - **Safety**: No masking means problems are visible
-- **Predictability**: Immutable core means behavior doesn't change
+- **Predictability**: Locked core means behavior is preserved by regression gates and release policy
 - **Accountability**: Strict policies mean clear ownership
 - **Authority Clarity**: Control plane coordinates but never executes V1 actions
 - **Policy Integrity**: Signed V1 policy bundles cannot be mutated by V2 layers

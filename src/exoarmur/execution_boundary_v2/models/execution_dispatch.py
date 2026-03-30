@@ -7,7 +7,7 @@ Execution dispatch tracking and status management.
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DispatchStatus(Enum):
@@ -24,13 +24,10 @@ class DispatchStatus(Enum):
 
 class ExecutionDispatch(BaseModel):
     """Execution dispatch tracking record."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     intent_id: str = Field(description="Associated intent identifier")
     status: DispatchStatus = Field(description="Current dispatch status")
     created_at: datetime = Field(description="Dispatch creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
     details: Optional[Dict[str, Any]] = Field(default=None, description="Additional dispatch details")
-    
-    class Config:
-        extra = "forbid"
-        str_strip_whitespace = True

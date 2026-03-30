@@ -79,6 +79,28 @@ The following are generally out of scope for security reports:
 - **Vulnerabilities in user deployments** not present in source code
 - **Theoretical vulnerabilities** without practical exploit
 
+## Threat Model Summary
+
+ExoArmur is designed to reduce the impact of four primary threat classes:
+
+- **Policy evasion**: direct executor invocation, post-evaluation intent mutation, race conditions, and privilege escalation attempts.
+- **Audit tampering**: deletion, modification, or injection of audit records, or compromise of the audit storage layer.
+- **Safety override**: attempts to bypass safety gate decisions or change safety constraint configurations.
+- **Executor compromise**: malicious or sandbox-escaping executor modules.
+
+Primary defenses include the single `ProxyPipeline` execution boundary, read-only `ActionIntent` handling within the governance path, deterministic policy and safety evaluation, the untrusted executor model, and tamper-evident audit records with JetStream-backed persistence when configured.
+
+This summary is intentionally high-level. The full threat and failure model is documented in `docs/EXOARMUR_SYSTEMS_PAPER.md`.
+
+## Executor Runtime Boundary
+
+Executors are treated as untrusted capability modules at runtime.
+
+- Executors receive only the governed action input and return an execution result; they do not participate in policy, safety, or approval decisions.
+- Executors cannot bypass the `ProxyPipeline` boundary, mutate audit records, or access governance internals directly.
+- Policy and safety checks run before dispatch, and approval is required when the governing policy demands it.
+- If an executor is compromised, the expected blast radius is limited to that capability module; governance state remains isolated.
+
 ## Security Best Practices
 
 ### For Users
@@ -98,7 +120,7 @@ The following are generally out of scope for security reports:
 ExoArmur's security model is based on:
 
 - **ProxyPipeline execution boundary** - All actions pass through governance controls
-- **Immutable contracts** - V1 contracts cannot be modified to bypass security
+- **Locked contracts** - V1 contracts are protected by repository policy and cannot be modified to bypass security
 - **Deterministic audit trails** - All actions are logged and replayable
 - **Feature flag isolation** - New capabilities are gated behind explicit controls
 

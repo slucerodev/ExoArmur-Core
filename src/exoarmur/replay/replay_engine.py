@@ -5,13 +5,14 @@ Reconstructs and verifies organism behavior from audit logs
 
 import logging
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
 from .event_envelope import AuditEventEnvelope, EnvelopeValidationError
 from .canonical_utils import canonical_json, stable_hash, verify_canonical_hash
+from exoarmur.clock import utc_now
 
 # Import system components for reconstruction
 import sys
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def _deterministic_replay_timestamp() -> datetime:
-    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return utc_now()
 
 
 class ReplayResult(Enum):
@@ -37,7 +38,7 @@ class ReplayReport:
     """Comprehensive replay execution report"""
     
     correlation_id: str
-    replay_timestamp: datetime = field(default_factory=_deterministic_replay_timestamp)
+    replay_timestamp: datetime = field(default_factory=utc_now)
     result: ReplayResult = ReplayResult.SUCCESS
     
     # Event processing metrics

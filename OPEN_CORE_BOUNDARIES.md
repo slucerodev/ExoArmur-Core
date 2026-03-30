@@ -3,7 +3,7 @@
 **Versioning**
 
 - Architecture / Contract: v1.0.0 (stable)
-- Package (pip): 0.2.0
+- Package (pip): 0.3.0
 
 ## 🚨 RUNTIME & ARTIFACTS POLICY
 
@@ -23,7 +23,7 @@
 ### Reproducibility Guarantee
 - All evidence bundles can be regenerated via `scripts/phase6_final_reality_run.py`
 - Runtime state is recreated automatically on fresh execution
-- Phase 6 verification is fully reproducible from source
+- Phase 6 reality run is fully reproducible from source
 - Repository remains lean while preserving complete audit trail
 
 ## 🟢 CORE COMPONENTS (Included in Open-Core Release)
@@ -49,7 +49,7 @@
 
 ### Truth Enforcement
 - ✅ **Tests**: All verification scripts and test suites
-- ✅ **Verification Scripts**: Phase 6 reality run and gate verification
+- ✅ **Reality Runs**: Phase 6 reality run and gate verification
 - ✅ **Golden Demo Enforcement**: Reference implementation validation
 - ✅ **Audit Trail**: Complete deterministic replay capability
 
@@ -75,7 +75,7 @@
 ### What Defines "Core"
 1. **Production-Ready**: Components required for production deployment
 2. **OSS Dependencies**: Uses open-source Python dependencies declared in requirements files
-3. **Runtime Requirements**: Requires NATS JetStream for Golden Demo and Phase 6 verification
+3. **Runtime Requirements**: Requires NATS JetStream for Golden Demo and Phase 6 reality run
 4. **No Proprietary Dependencies**: No paid or commercial dependencies in core
 5. **Numerical / data-science libraries (numpy, pandas, scipy) are prohibited in core to preserve deterministic minimal-runtime guarantees**
 6. **Well-Documented**: Complete documentation and examples
@@ -116,8 +116,13 @@ tests/
 ├── test_*.py            # ✅ All verification tests
 └── golden_demo/          # ✅ Reference implementation
 
+examples/
+├── demo_standalone.py           # ✅ Canonical standalone deny/proof demo
+├── demo_standalone_proof_bundle.json  # ✅ Deterministic proof artifact
+└── quickstart_replay.py         # ✅ Infra-free replay quickstart
+
 scripts/
-├── phase6_final_reality_run.py  # ✅ Verification script
+├── phase6_final_reality_run.py  # ✅ Phase 6 reality run
 ├── phase5_final.py             # ✅ Phase 5 verification
 └── *.py                       # ✅ All utility scripts
 
@@ -144,7 +149,7 @@ logs/                      # ❌ No runtime logs
 
 ### External Dependencies
 - **Core uses OSS Python dependencies** declared in requirements files
-- **Runtime requires NATS JetStream** to satisfy Golden Demo and Phase 6 verification
+- **Runtime requires NATS JetStream** to satisfy Golden Demo and Phase 6 reality run
 - **No proprietary or paid dependencies** exist in core
 - **All dependencies are open-source** with permissive licensing
 
@@ -172,9 +177,9 @@ logs/                      # ❌ No runtime logs
 ### Core Component Verification
 ```bash
 # Verify all core components are present and functional
-python3 scripts/phase6_final_reality_run.py
+python3 examples/demo_standalone.py
 
-# Expected: All gates GREEN, all tests PASS
+# Expected: Denial markers and proof bundle are produced deterministically
 ```
 
 ### Boundary Compliance Check

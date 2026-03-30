@@ -5,14 +5,14 @@ ExoArmur Autonomous Defense Mesh Organism (ADMO) is an enterprise-grade autonomo
 ## Current Status Snapshot
 
 **Phase 1.5 State:**
-- ✅ **V1 Accepted & Immutable**: Core cognition loop, Golden Demo, and all V1 contracts are locked and fully functional
+- ✅ **V1 Accepted & Locked**: Core cognition loop, Golden Demo, and all V1 contracts are locked and fully functional
 - 🚧 **V2 Scaffolding**: Federation and control plane contracts created with inert stub implementations
 - 🔒 **Strict Governance**: Zero pytest.skip, zero skipped tests, strict xfail for future gates only
 - ✅ **Live Golden Demo**: V1 Golden Demo passes with live NATS JetStream (mandatory regression gate)
 
 ## What Exists Today
 
-### V1 Core (Immutable)
+### V1 Core (Locked)
 - **Cognition Pipeline**: Telemetry → SignalFacts → Belief → CollectiveConfidence → SafetyGate → ExecutionIntent → Audit
 - **Golden Demo**: End-to-end live test proving V1 functional requirements
 - **Contracts**: 7 V1 contract files defining data models, messaging, policy, and safety
@@ -53,7 +53,7 @@ ExoArmur Autonomous Defense Mesh Organism (ADMO) is an enterprise-grade autonomo
 
 ExoArmur follows strict governance with binary outcomes:
 - **Green**: 0 failed, 0 errors, 0 skipped
-- **V1 Immutable**: Core cognition loop never changes
+- **V1 Locked**: Core cognition loop never changes
 - **V2 Additive**: New features are external layers only
 - **Feature Flags**: Default OFF, require explicit enablement
 

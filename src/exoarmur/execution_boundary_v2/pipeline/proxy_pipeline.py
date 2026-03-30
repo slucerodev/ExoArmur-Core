@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, Union, Tuple
 import ulid
 
@@ -19,18 +19,13 @@ from ..models.action_intent import ActionIntent
 from ..models.policy_decision import PolicyDecision, PolicyVerdict
 from ..models.execution_dispatch import ExecutionDispatch, DispatchStatus
 from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
+from exoarmur.clock import utc_now
 
 # Import V1 primitives for integration
 from spec.contracts.models_v1 import AuditRecordV1, LocalDecisionV1
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 
 logger = logging.getLogger(__name__)
-
-
-def _deterministic_timestamp() -> datetime:
-    return datetime(1970, 1, 1, tzinfo=timezone.utc)
-
-
 def _deterministic_audit_id(intent_id: str, event_type: str, outcome: str, details: Dict[str, Any]) -> str:
     canonical = json.dumps(
         {
@@ -102,7 +97,7 @@ class AuditEmitter:
             tenant_id=tenant_id,
             cell_id=cell_id,
             idempotency_key=f"audit-{intent_id}",
-            recorded_at=recorded_at or _deterministic_timestamp(),
+            recorded_at=recorded_at or utc_now(),
             event_kind=event_type,
             payload_ref={
                 "kind": "inline",

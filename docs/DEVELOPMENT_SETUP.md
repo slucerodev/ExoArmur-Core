@@ -44,10 +44,11 @@ This installs:
 # Test core imports
 python3 -c "from spec.contracts.models_v1 import TelemetryEventV1; print('✅ Imports work')"
 
-# Run verification
-python3 scripts/verify_all.py
+# Run verification from the installed console script
+exoarmur verify-all
 ```
 
+Note: in an installed-package environment, `exoarmur verify-all` automatically skips repo-local tests/examples that are not bundled with the wheel and runs installed-package sanity checks instead.
 Note: phase6_final_reality_run performs a boundary guard preflight to enforce repository hygiene.
 
 ## Test Suites
@@ -74,14 +75,11 @@ python3 -m pytest tests/ -m integration
 
 ## Running from Any Directory
 
-After `pip install -e .`, all scripts work from any working directory:
+After `pip install -e .` or installing the package into an environment, the console script works from any working directory:
 
 ```bash
 # From any directory
-python3 -m exoarmur.scripts.verify_all
-
-# Or directly if scripts/ is in PATH
-verify_all.py
+exoarmur verify-all
 
 # Run demos as modules
 python3 -m exoarmur.demos.handshake_demo
@@ -99,7 +97,7 @@ Edit code in the `src/` directory.
 python3 -m pytest tests/ -m "not integration and not slow"
 
 # Full validation  
-python3 scripts/verify_all.py
+exoarmur verify-all
 ```
 
 ### 3. Check Import Sanity
@@ -168,14 +166,13 @@ Never use PYTHONPATH hacks. All imports should work after editable install.
 The CI pipeline uses:
 ```bash
 pip install -e .
-python3 scripts/verify_all.py
+exoarmur verify-all
 ```
 
 This is equivalent to the `verify_all` test suite.
 
 ## Next Steps
-
-1. Run `python3 scripts/verify_all.py` to verify setup
+1. Run `exoarmur verify-all` to verify setup
 2. Check docs/TEST_SUITES.md for test suite details  
 3. Review the code in `src/` to understand the architecture
 4. Start with `verify_core` tests for quick feedback during development

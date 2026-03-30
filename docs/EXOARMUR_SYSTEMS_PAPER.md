@@ -38,11 +38,11 @@ Autonomous systems present several fundamental governance challenges:
 
 Based on these challenges, we identify the following requirements for an autonomous system governance runtime:
 
-1. **Deterministic Execution**: Same inputs must always produce identical outputs, enabling exact replay and verification.
+1. **Deterministic Execution**: Same governance inputs must produce the same policy, safety, and approval outcomes within a pinned implementation and recorded state.
 
 2. **Enforceable Boundaries**: All actions must pass through a single governance boundary where policy and safety checks are applied.
 
-3. **Complete Auditability**: Every decision must be accompanied by sufficient evidence to enable exact reconstruction of the decision process.
+3. **Complete Auditability**: Every decision must be accompanied by sufficient evidence to reconstruct the recorded decision process.
 
 4. **Capability Isolation**: Execution capabilities must be isolated from governance logic and treated as untrusted components.
 
@@ -66,7 +66,7 @@ ActionIntent = {
 }
 ```
 
-ActionIntent objects are immutable after creation and serve as the canonical representation of autonomous decisions.
+ActionIntent objects are treated as read-only after creation within the governance pipeline and serve as the canonical representation of autonomous decisions.
 
 #### Execution Boundary
 The single, enforced interface through which all autonomous actions must pass. The execution boundary is implemented by the ProxyPipeline component and cannot be bypassed or circumvented. Any attempt to execute actions outside this boundary constitutes a critical security violation.
@@ -179,7 +179,7 @@ Attackers may attempt to bypass policy controls by:
 - Exploiting race conditions in policy evaluation
 - Attempting privilege escalation through executor modules
 
-**Mitigation**: The execution boundary is enforced at the system level, making direct executor invocation impossible. ActionIntent objects are immutable after creation. Policy evaluation is deterministic and atomic.
+**Mitigation**: The execution boundary is enforced at the system level, making direct executor invocation impossible. ActionIntent objects are treated as read-only after creation. Policy evaluation is deterministic and atomic.
 
 #### Audit Trail Tampering
 Attackers may attempt to:
@@ -188,7 +188,7 @@ Attackers may attempt to:
 - Alter ExecutionProofBundle objects
 - Compromise audit storage systems
 
-**Mitigation**: ExecutionProofBundle objects include integrity hashes that make tampering detectable. Audit trails are replicated and protected through write-once storage patterns.
+**Mitigation**: ExecutionProofBundle objects include integrity hashes that make tampering detectable. Audit records are durably appended to NATS JetStream when a JetStream client is configured; the in-memory audit cache is for local retrieval and testing, not durable recovery. If persistence is unavailable, audit collection degrades instead of silently claiming durability.
 
 #### Safety Constraint Violation
 Systems may attempt to:
@@ -216,7 +216,7 @@ ExoArmur addresses several failure modes:
 - **Policy Engine Failure**: Fails closed, blocking all actions until recovery
 - **Safety Gate Failure**: Fails safe, blocking all actions until recovery
 - **Executor Failure**: Isolated to specific capability, does not affect governance
-- **Audit System Failure**: Continues operation with degraded audit capabilities
+- **Audit System Failure**: Continues operation with degraded local audit capture; durable persistence depends on JetStream availability
 
 #### Network Failures
 - **Gateway Connectivity**: Local queuing and retry mechanisms
@@ -282,7 +282,7 @@ The Gateway component serves as the entry point for all action requests. It vali
 The ProxyPipeline implements the core execution boundary and orchestrates the governance pipeline. This component is the sole interface through which actions can be executed and enforces all policy, safety, and audit requirements. The execute_with_trace() method ensures that every execution is accompanied by complete trace collection.
 
 #### PolicyDecisionPoint
-The PolicyDecisionPoint evaluates ActionIntent objects against configurable policy rules. Policy evaluation is deterministic based on the ActionIntent, current policy state, and environmental context. The PolicyDecisionPoint can approve actions, modify them with constraints, or deny them entirely.
+The PolicyDecisionPoint evaluates ActionIntent objects against configurable policy rules. Policy evaluation is deterministic based on the ActionIntent and the ordered rule set: the first rule whose tenant, domain, and method constraints match determines the result. The current simple implementation returns allow, deny, or require_approval and does not rewrite actions or merge rules. When approval has already been recorded, the pipeline may use the approval bypass path before execution.
 
 #### SafetyGate
 The SafetyGate implements deterministic safety enforcement with precedence over policy decisions. Safety gates evaluate actions against critical safety constraints that must never be violated. Safety gates can block actions regardless of policy approval and implement resource limits, environmental constraints, and other safety requirements.
@@ -294,7 +294,7 @@ The Approval Workflow provides human-in-the-loop capabilities for critical actio
 ExecutorPlugin modules implement specific execution capabilities and are treated as untrusted components. Executors receive ActionIntent objects and return ExecutorResult objects without access to governance internals. The ExecutorPlugin interface enables safe integration of third-party execution capabilities.
 
 #### ExecutionTrace
-The ExecutionTrace component collects and sequences all events from the governance pipeline. Execution traces include all policy evaluations, safety decisions, approval responses, and execution outcomes. Traces are stored in a structured format that enables exact replay.
+The ExecutionTrace component collects and sequences all events from the governance pipeline. Execution traces include all policy evaluations, safety decisions, approval responses, and execution outcomes. Traces are stored in a structured format that supports deterministic replay of the recorded decision path.
 
 #### ExecutionProofBundle
 The ExecutionProofBundle component creates cryptographic proof bundles containing ExecutionTrace objects, policy state snapshots, and digital signatures. Proof bundles enable independent verification of decision processes and support regulatory compliance requirements.
@@ -315,11 +315,11 @@ The ExoArmur components interact through well-defined interfaces with strict ord
 
 ExoArmur implements several data flow patterns to ensure deterministic behavior:
 
-#### Immutable Data Structures
-All data structures flowing through the pipeline are immutable after creation, preventing accidental modification and ensuring deterministic behavior.
+#### Read-Only Data Structures
+All data structures flowing through the pipeline are treated as read-only after creation, preventing accidental modification and ensuring deterministic behavior.
 
 #### Deterministic Ordering
-All events are processed in a deterministic order based on logical timestamps and sequence numbers, enabling exact replay.
+All events are processed in a deterministic order based on logical timestamps and sequence numbers, supporting replayable verification of the recorded trail.
 
 #### Atomic Operations
 Critical operations are atomic to prevent partial states and ensure consistency across the pipeline.
@@ -334,29 +334,29 @@ All queues are bounded to prevent resource exhaustion and ensure predictable beh
 ExoArmur ensures deterministic execution through several key principles:
 
 #### Input Determinism
-The same ActionIntent object with identical environmental context will always produce the same execution outcome. This requires that all policy rules, safety constraints, and approval workflows be deterministic functions of their inputs.
+The same ActionIntent object with identical governance inputs will always produce the same execution outcome. In the current implementation, the relevant inputs are the ordered policy rules, safety constraints, and approval state consulted by the pipeline.
 
 #### Temporal Determinism
-Time-based decisions use logical timestamps rather than wall-clock time to ensure reproducibility. Timeouts and delays are based on logical time progression rather than real-time intervals.
+Time-based decisions use logical timestamps rather than wall-clock time to support reproducibility in replay. Timeouts and delays are based on logical time progression rather than real-time intervals.
 
 #### State Determinism
-All state modifications are recorded and replayable. The system can be reconstructed to any previous state and replayed from that point with identical results.
+All state modifications are recorded and replayable within the supported audit-replay path. The system can reconstruct recorded state transitions and verify them against the stored evidence.
 
 #### External Interface Determinism
-Interactions with external systems are abstracted through deterministic interfaces that can be replayed. External failures are handled through deterministic retry and fallback mechanisms.
+Interactions with external systems are abstracted behind deterministic interfaces where possible, but the replay model only reconstructs recorded outcomes from stored evidence. External failures are handled through deterministic retry and fallback mechanisms in the live pipeline.
 
 ### 6.2 Replay Mechanisms
 
-ExoArmur supports several replay mechanisms:
+ExoArmur currently supports a recorded audit-replay mode:
 
-#### Complete Replay
-The entire execution pipeline can be replayed from an ExecutionProofBundle, producing identical results to the original execution.
+#### Recorded Audit Replay
+The replay engine replays the audit trail for a `correlation_id` and reconstructs the recorded decision path from stored evidence.
 
 #### Partial Replay
-Specific segments of the execution pipeline can be replayed for debugging or analysis purposes.
+Partial replay is not currently implemented in the replay engine.
 
 #### What-If Replay
-Alternative decisions can be evaluated by modifying specific inputs while maintaining deterministic behavior for the remaining pipeline.
+What-if replay is not currently implemented in the replay engine.
 
 #### Audit Replay
 Audit trails can be replayed to verify compliance and investigate incidents without affecting the running system.
@@ -437,10 +437,16 @@ All policy evaluations, safety checks, and approval decisions are recorded with 
 All execution attempts, outcomes, and side effects are recorded with sufficient detail for reconstruction.
 
 #### Environmental Evidence
-System state, configuration, and environmental context are captured to enable complete replay.
+System state, configuration, and environmental context are captured to support reconstruction of recorded behavior.
 
 #### Temporal Evidence
-Logical timestamps and sequencing information enable exact reconstruction of decision ordering.
+Logical timestamps and sequencing information support deterministic reconstruction of decision ordering.
+
+#### Audit Persistence
+Audit records are durably appended to NATS JetStream when a JetStream client is configured. The in-memory `audit_records` cache is a local convenience for tests and interactive use; it is not a durable recovery store.
+
+#### Recovery Semantics
+Recovery is read-based: local state can be repopulated by consuming persisted audit records from JetStream. Missing or corrupted records surface as replay failures or partial reports, and the system does not automatically heal or synthesize absent audit events.
 
 ### 8.2 Proof Bundle Structure
 
@@ -561,7 +567,7 @@ A comprehensive demo demonstrates the complete governance pipeline with determin
 - `AUDIT_STREAM_ID=det-...` - Verifies audit trail generation
 
 #### Replay Validation
-The replay functionality validates that execution traces can be exactly reproduced:
+The replay functionality validates that execution traces can be deterministically reconstructed from stored evidence:
 
 ```bash
 python examples/quickstart_replay.py  # Demonstrates deterministic replay
@@ -616,7 +622,7 @@ Service meshes like Istio provide policy enforcement for microservices through s
 
 Comprehensive audit systems such as the Linux Audit System and SIEM platforms provide extensive logging capabilities but typically capture events after they occur. These systems excel at monitoring and incident response but lack the ability to prevent unsafe actions or provide complete replayable evidence bundles.
 
-Blockchain-based audit systems provide immutable audit trails but focus on financial transactions and smart contracts rather than general autonomous system governance. ExoArmur's approach combines the immutability benefits of blockchain-like systems with deterministic execution boundaries specifically designed for autonomous decision governance.
+Blockchain-based audit systems provide tamper-evident audit trails but focus on financial transactions and smart contracts rather than general autonomous system governance. ExoArmur's approach combines tamper-evident evidence with deterministic execution boundaries specifically designed for autonomous decision governance.
 
 ### 11.3 Deterministic Systems and Reproducibility
 
@@ -729,7 +735,7 @@ Development of multi-system coordination capabilities will enable governance of 
 
 ExoArmur presents a novel approach to autonomous system governance through deterministic execution boundaries and comprehensive evidence collection. The system addresses critical challenges in accountability, reproducibility, and enforceable governance while maintaining flexibility and extensibility through modular architecture.
 
-The separation of governance logic from execution capabilities provides a robust foundation for safe and compliant autonomous systems. The deterministic execution model enables exact replay and verification of decision processes, supporting regulatory compliance and operational requirements.
+The separation of governance logic from execution capabilities provides a robust foundation for safe and compliant autonomous systems. The deterministic execution model supports audit replay and verification of recorded decision processes, supporting regulatory compliance and operational requirements.
 
 While the system is in early stages of development, the architectural principles and implementation approach demonstrate the feasibility of comprehensive governance for autonomous systems. The ongoing development and validation efforts will continue to refine the system and expand its applicability.
 

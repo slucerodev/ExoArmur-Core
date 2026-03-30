@@ -7,7 +7,7 @@ artifacts that can be deterministically replayed and verified.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExecutionProofBundle(BaseModel):
@@ -16,7 +16,8 @@ class ExecutionProofBundle(BaseModel):
     Contains all execution artifacts needed to replay and verify an execution
     with full determinism and cryptographic integrity guarantees.
     """
-    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     bundle_version: str = Field(default="v1", description="Bundle format version")
     intent: Dict[str, Any] = Field(description="Original intent (canonicalized)")
     policy_decision: Dict[str, Any] = Field(description="Policy decision (canonicalized)")
@@ -25,11 +26,3 @@ class ExecutionProofBundle(BaseModel):
     executor_result: Dict[str, Any] = Field(description="Executor result (canonicalized)")
     replay_hash: str = Field(description="SHA-256 hash of canonical bundle data")
     bundle_created_at: Optional[datetime] = Field(default=None, description="Bundle creation timestamp (optional for determinism)")
-    
-    class Config:
-        """Pydantic configuration."""
-        extra = "forbid"
-        str_strip_whitespace = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }

@@ -6,7 +6,7 @@ Policy evaluation results and verdicts for intent authorization.
 
 from enum import Enum
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PolicyVerdict(Enum):
@@ -19,18 +19,12 @@ class PolicyVerdict(Enum):
 
 class PolicyDecision(BaseModel):
     """Policy decision result for intent evaluation."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     verdict: PolicyVerdict = Field(description="Policy verdict")
     rationale: Optional[str] = Field(default=None, description="Decision rationale")
     evidence: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Decision evidence")
-    
-    class Config:
-        extra = "allow"  # Allow extra fields like 'fake'
     confidence: Optional[float] = Field(default=None, description="Decision confidence (0.0-1.0)")
     approval_required: bool = Field(default=False, description="Human approval required")
     policy_version: Optional[str] = Field(default=None, description="Policy version used")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional decision metadata")
-    
-    class Config:
-        extra = "forbid"
-        str_strip_whitespace = True

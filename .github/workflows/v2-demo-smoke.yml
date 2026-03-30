@@ -1,4 +1,4 @@
-name: V2 Demo Smoke Test
+name: Standalone Demo Smoke Test
 
 on:
   push:
@@ -10,9 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  v2-demo-smoke:
+  standalone-demo-smoke:
     runs-on: ubuntu-latest
-    name: V2 Restrained Autonomy Demo Smoke
+    name: Standalone Governance Demo Smoke
     
     steps:
     - name: Checkout code
@@ -25,62 +25,38 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip -c constraints.txt
-        python -m pip install pytest
-        python -m pip install pytest-asyncio
-        pip install -e ".[v2]"
+        python -m pip install --upgrade pip
+        python -m pip install -e .
+        python -m pip install pytest pytest-asyncio
         
-    - name: Run V2 Demo with DENY (Safe)
-      env:
-        EXOARMUR_FLAG_V2_FEDERATION_ENABLED: "true"
-        EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED: "true"
-        EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED: "true"
+    - name: Run Standalone Demo Proof
       run: |
-        # Run demo with deny decision
-        python3 scripts/demo_v2_restrained_autonomy.py --operator-decision deny > demo_output.txt 2>&1
+        python3 examples/demo_standalone.py > demo_output.txt 2>&1
         cat demo_output.txt
-        
-        # Extract audit stream ID for replay
-        AUDIT_ID=$(grep "AUDIT_STREAM_ID=" demo_output.txt | cut -d'=' -f2)
-        echo "AUDIT_ID=$AUDIT_ID" >> $GITHUB_ENV
-        
-        # Verify required markers are present
+
+        grep -q "Execution boundary result: policy denied before any filesystem side effect" demo_output.txt || { echo "❌ Missing execution boundary marker"; exit 1; }
+        grep -q "Proof bundle written: examples/demo_standalone_proof_bundle.json" demo_output.txt || { echo "❌ Missing proof bundle marker"; exit 1; }
         grep -q "DEMO_RESULT=DENIED" demo_output.txt || { echo "❌ Missing DEMO_RESULT=DENIED"; exit 1; }
         grep -q "ACTION_EXECUTED=false" demo_output.txt || { echo "❌ Missing ACTION_EXECUTED=false"; exit 1; }
-        grep -q "AUDIT_STREAM_ID=" demo_output.txt || { echo "❌ Missing AUDIT_STREAM_ID"; exit 1; }
-        
-        echo "✅ Demo markers verified"
-        
-    - name: Run Replay Verification
-      env:
-        EXOARMUR_FLAG_V2_FEDERATION_ENABLED: "true"
-        EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED: "true"
-        EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED: "true"
-      run: |
-        # Run replay using the audit ID from previous step
-        python3 scripts/demo_v2_restrained_autonomy.py --replay "$AUDIT_ID" > replay_output.txt 2>&1
-        cat replay_output.txt
-        
-        # Verify replay marker is present
-        grep -q "REPLAY_VERIFIED=true" replay_output.txt || { echo "❌ Replay verification failed"; exit 1; }
-        
-        echo "✅ Replay verification successful"
+        grep -q "AUDIT_STREAM_ID=demo-standalone-delete-outside-authorized-path" demo_output.txt || { echo "❌ Missing AUDIT_STREAM_ID"; exit 1; }
+
+        echo "✅ Standalone demo markers verified"
         
     - name: Install test dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-asyncio
 
-    - name: Run V2 Demo Tests
+    - name: Run Standalone Demo Tests
       run: |
-        python3 -m pytest tests/test_v2_restrained_autonomy.py -v
+        python3 -m pytest tests/test_demo_standalone.py -v
         
     - name: Upload demo artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: v2-demo-output
+        name: standalone-demo-output
         path: |
           demo_output.txt
-          replay_output.txt
+          examples/demo_standalone_proof_bundle.json
         retention-days: 7

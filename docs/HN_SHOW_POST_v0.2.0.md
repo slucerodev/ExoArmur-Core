@@ -3,11 +3,11 @@ Show HN: ExoArmur — Deterministic Governance Runtime for AI Agents (v0.2.0)
 
 ## Problem
 
-AI agents and autonomous workflows execute decisions that must be accountable after the fact. Most stacks lack deterministic replay and audit guarantees, so execution truth is hard to prove. Without immutable boundaries, enterprises cannot easily demonstrate what happened or enforce the limits they intended.
+AI agents and autonomous workflows execute decisions that must be accountable after the fact. Most stacks lack deterministic replay and audit guarantees, so execution truth is hard to prove. Without enforced governance boundaries, enterprises cannot easily demonstrate what happened or enforce the limits they intended.
 
 ## What ExoArmur Does
 
-ExoArmur executes decisions under immutable governance contracts and emits verifiable audit artifacts. It keeps decision paths replayable and enforces phase-gated capability boundaries, so expansions stay controlled. The Core remains stable while advanced capabilities are explicitly gated.
+ExoArmur executes decisions under locked governance contracts and emits verifiable audit artifacts. It keeps decision paths replayable and enforces phase-gated capability boundaries, so expansions stay controlled. The Core remains stable while advanced capabilities are explicitly gated.
 
 ## 5-Minute Install Proof
 

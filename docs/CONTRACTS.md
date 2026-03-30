@@ -2,19 +2,19 @@
 
 ## Contract Index
 
-### V1 Contracts (Immutable)
+### V1 Contracts (Locked)
 
-V1 contracts are locked and must never change. They define the core autonomous defense mesh functionality.
+V1 contracts are locked in this repository and protected by contract tests and the Golden Demo regression gate. They define the core autonomous defense mesh functionality.
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `models_v1.py` | Pydantic v2 data models for all ADMO data types | ✅ Immutable |
-| `nats_jetstream_v1.yaml` | NATS JetStream configuration for mesh communication | ✅ Immutable |
-| `policy_bundle_v1.yaml` | Signed tenant policy bundle format and enforcement | ✅ Immutable |
-| `safety_gate_v1.yaml` | Deterministic safety gate rules and verdict contract | ✅ Immutable |
-| `arbitration_precedence_v1.yaml` | Deterministic precedence rules for conflict resolution | ✅ Immutable |
-| `golden_demo_flow_v1.yaml` | End-to-end demo scenario proving V1 functional requirements | ✅ Immutable |
-| `operational_defaults_v1.yaml` | V1 operational defaults for bootstrap and parameters | ✅ Immutable |
+| `models_v1.py` | Pydantic v2 data models for all ADMO data types | ✅ Locked |
+| `nats_jetstream_v1.yaml` | NATS JetStream configuration for mesh communication | ✅ Locked |
+| `policy_bundle_v1.yaml` | Signed tenant policy bundle format and enforcement | ✅ Locked |
+| `safety_gate_v1.yaml` | Deterministic safety gate rules and verdict contract | ✅ Locked |
+| `arbitration_precedence_v1.yaml` | Deterministic precedence rules for conflict resolution | ✅ Locked |
+| `golden_demo_flow_v1.yaml` | End-to-end demo scenario proving V1 functional requirements | ✅ Locked |
+| `operational_defaults_v1.yaml` | V1 operational defaults for bootstrap and parameters | ✅ Locked |
 
 ### V2 Contracts (Additive)
 
@@ -113,7 +113,7 @@ V2 contracts are additive-only and define external layers that coordinate but ne
 
 ### V1 Contracts
 - **LOCKED**: No changes permitted
-- **Purpose**: Define immutable core behavior
+- **Purpose**: Define locked core behavior
 - **Validation**: Must pass all existing tests
 - **Backward Compatibility**: Not applicable (locked)
 
@@ -134,7 +134,7 @@ All V2 contracts are controlled by feature flags:
 
 ### V1 Contract Usage
 ```python
-# Import V1 models (immutable)
+# Import V1 models (locked)
 from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 
 # Use V1 contracts in core cognition
@@ -188,7 +188,7 @@ pytest tests/test_operator_approval_v2_acceptance.py -v
 ## Contract Evolution
 
 ### V1 Evolution
-**PROHIBITED**: V1 contracts are locked for all time.
+**PROHIBITED**: V1 contracts remain locked by repository policy.
 
 ### V2 Evolution
 **ALLOWED**: Additive changes only
@@ -223,4 +223,4 @@ All contracts must pass:
 - Integration validation
 - Governance compliance
 
-This contract system ensures ExoArmur maintains core immutability while enabling controlled evolution through external layers.
+This contract system ensures ExoArmur maintains protected core contract guarantees while enabling controlled evolution through external layers.

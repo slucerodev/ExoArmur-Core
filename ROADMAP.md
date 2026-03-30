@@ -6,10 +6,10 @@ ExoArmur Core v0.3.0 provides deterministic governance and replayable audit capa
 
 **Currently Verified Repository Scope:**
 - Deterministic execution pipeline with ProxyPipeline boundary
-- V1 core cognition loop with immutable contracts
+- V1 core cognition loop with locked contracts
 - Source installation via `pip install .`
 - Editable installation support for `pip install -e .` and `pip install -e ".[v2]"`
-- V2 restrained autonomy deny/replay demonstration path
+- Standalone governed deny/proof demonstration path
 - Feature-flagged V2 capabilities (disabled by default)
 
 Current validation details should be taken from live CI and the current `README.md` / `VALIDATE.md` guidance rather than from hardcoded test counts in this roadmap.
@@ -82,7 +82,7 @@ All development must respect:
 - Executor isolation and untrusted model
 - Deterministic execution requirements
 - Invariant enforcement through CI gates
-- Immutable V1 contracts
+- Locked V1 contracts
 
 ### Quality Standards
 - Comprehensive test coverage for new features
@@ -112,7 +112,7 @@ All development must respect:
 - Database systems for audit trail management
 
 ### Resource Requirements
-- Development team expansion for parallel workstreams
+- Clear ownership for parallel workstreams
 - Security review bandwidth for new features
 - Documentation maintenance and updates
 

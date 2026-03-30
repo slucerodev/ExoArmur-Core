@@ -4,8 +4,8 @@ These are the invariant axioms that govern ExoArmur ADMO's behavior, evolution, 
 
 ## Core Principles
 
-### 1. V1 Cognition Immutability
-The V1 cognition pipeline (TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1) is immutable. No modification to V1 core behavior, data models, or decision logic is permitted.
+### 1. V1 Cognition Locking
+The V1 cognition pipeline (TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1) is locked by repository policy and regression gates. No modification to V1 core behavior, data models, or decision logic is permitted.
 
 ### 2. External Epistemic Authority
 Epistemic authority remains external to the system. ExoArmur processes evidence and forms beliefs but does not define truth. Truth claims originate from external sources, sensors, and human operators.
@@ -55,13 +55,13 @@ Transparency outranks autonomy. All decisions must be explainable through audit 
 
 ### Human Operator Authority
 - **Controls**: Policy bundle signing, emergency approvals, governance exceptions
-- **Cannot**: Bypass safety gates, modify audit trails, violate immutable principles
+- **Cannot**: Bypass safety gates, modify audit trails, violate locked principles
 
 ## Enforcement Mechanisms
 
 ### Technical Enforcement
 - Feature flags prevent V2 activation
-- Immutable V1 contracts prevent core changes
+- Locked V1 contracts prevent core changes
 - Safety gate precedence prevents action bypass
 - Audit trails provide verification
 

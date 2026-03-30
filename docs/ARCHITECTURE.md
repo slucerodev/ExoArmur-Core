@@ -2,8 +2,8 @@
 
 ## Boundary Definition
 
-### V1 Core (Immutable Cognition Loop)
-The V1 core is the autonomous decision-making pipeline that must never change:
+### V1 Core (Locked Cognition Loop)
+The V1 core is the autonomous decision-making pipeline that is protected by repository policy and regression gates:
 
 ```
 TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1
@@ -33,7 +33,7 @@ V2 provides external capabilities that coordinate but never modify V1 core behav
 └─────────────────────┴───────────────────────────────────────┘
                             ↕
 ┌─────────────────────────────────────────────────────────────┐
-│                    V1 Core (Immutable)                     │
+│                    V1 Core (Locked)                         │
 │                                                             │
 │  Telemetry → SignalFacts → Belief → CollectiveConfidence   │
 │                ↓                                           │
@@ -140,7 +140,7 @@ class V2Module:
                     └─────────────────────────────────────┘
                                 ↕ (NATS JetStream)
                     ┌─────────────────────────────────────┐
-                    │           V1 Core (Immutable)       │
+                    │           V1 Core (Locked)          │
                     │                                     │
                     │  ┌─────────────────────────────────┐ │
                     │  │      Cognition Pipeline         │ │

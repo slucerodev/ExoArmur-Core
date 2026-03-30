@@ -12,9 +12,11 @@ pip install -e .
 # Run all tests
 python -m pytest tests/
 
-# Run verification script
-python scripts/verify_all.py
+# Run verification from the installed console script
+exoarmur verify-all
 ```
+
+If you install the package into an environment without the repository checkout, `exoarmur verify-all` will skip repo-local tests and example proofs that are not bundled with the wheel and will run installed-package sanity checks instead.
 
 ## Phase 0E Complete: Protocol Enforcer Green
 

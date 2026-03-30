@@ -12,8 +12,8 @@
 
 ### Evidence Bundle Reproduction
 - Full evidence bundles are **reproducible**, not committed to Git
-- Use `scripts/phase6_final_reality_run.py` to regenerate complete evidence locally
-- Phase 6 verification creates all necessary artifacts on-demand
+- Use `scripts/phase6_final_reality_run.py` as the Phase 6 reality run to regenerate complete evidence locally
+- The Phase 6 reality run creates all necessary artifacts on-demand
 - This keeps repository size minimal while preserving reproducibility
 
 ## QUICK START
@@ -30,7 +30,7 @@ python3 --version
 pip install -r requirements.txt
 ```
 
-### 2. Execute Phase 6 Verification
+### 2. Execute Phase 6 Reality Run
 ```bash
 # Run complete Phase 6 test suite
 python3 scripts/phase6_final_reality_run.py

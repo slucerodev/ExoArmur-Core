@@ -1,10 +1,13 @@
-# V2 Restrained Autonomy Demo - Developer Runbook
+# Legacy V2 Restrained Autonomy Demo - Developer Runbook
+
+> Canonical public demo: `examples/demo_standalone.py` / `exoarmur demo`.
+> This runbook is retained for legacy V2 compatibility notes.
 
 ## Quick Troubleshooting
 
 ### PYTHONPATH Issues
 
-The demo requires proper Python path setup to import modules without package installation:
+The legacy V2 demo requires proper Python path setup to import modules without package installation:
 
 ```bash
 # Set PYTHONPATH to include src and spec/contracts
@@ -19,7 +22,7 @@ PYTHONPATH=/path/to/ExoArmur/src:/path/to/ExoArmur/spec/contracts python3 script
 
 ### Feature Flag Issues
 
-All V2 features are disabled by default. Enable required flags:
+All legacy V2 features are disabled by default. Enable required flags:
 
 ```bash
 # Required flags for V2 demo
@@ -233,7 +236,7 @@ grep -q "AUDIT_STREAM_ID=" demo_output.txt && echo "✅ Audit ID marker OK"
 
 - **No Real Actions**: All actions are mocked for safety
 - **Operator Approval**: Human-in-the-loop required for A2/A3 actions
-- **Audit Trail**: Complete immutable record of all decisions
+- **Audit Trail**: Complete tamper-evident record of all decisions
 - **Feature Flags**: V2 capabilities disabled by default
 - **Idempotency**: Prevents duplicate executions
 

@@ -45,19 +45,18 @@ python examples/quickstart_replay.py
 
 Expected result: `Replay result: success`
 
-## Step 5: Run Demo Execution Path
+## Step 5: Run Standalone Governance Proof
 
 ```bash
-EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
-EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
-EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
-python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+python examples/demo_standalone.py
 ```
 
 Expected output markers:
+- `Execution boundary result: policy denied before any filesystem side effect`
+- `Proof bundle written: examples/demo_standalone_proof_bundle.json`
 - `DEMO_RESULT=DENIED`
 - `ACTION_EXECUTED=false`
-- `AUDIT_STREAM_ID=<stream-id>`
+- `AUDIT_STREAM_ID=demo-standalone-delete-outside-authorized-path`
 
 ## What Constitutes Success
 
@@ -73,13 +72,13 @@ Expected output markers:
 - Demo execution path produces the expected output markers
 
 ### Demo Execution Success
-- V2 demo produces required deterministic markers
-- Audit stream ID is generated and unique
-- Human approval workflow functions correctly
+- Standalone demo produces required deterministic denial markers
+- Proof bundle is generated deterministically
+- Audit stream ID is fixed for the canonical proof path
 
 ### Deterministic Behavior
 - Same inputs produce identical outputs
-- Replay verification succeeds for the emitted audit stream
+- Replayable proof data is captured in the emitted proof bundle
 - No hidden state or non-deterministic behavior
 
 ## Reporting Validation Results
@@ -91,7 +90,7 @@ If all steps complete successfully:
 ✅ Installation: pip install . completed without errors
 ✅ CLI Verification: exoarmur --version returns 0.3.0
 ✅ Quickstart Replay: python examples/quickstart_replay.py succeeds
-✅ Demo Execution: exoarmur demo --operator-decision deny produces required markers
+✅ Demo Execution: python examples/demo_standalone.py produces required markers and proof bundle
 ✅ Deterministic Output: All markers present and reproducible
 ```
 
@@ -131,10 +130,7 @@ python -c "from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import Pr
 ### Audit Trail Verification
 ```bash
 # Verify audit trail generation
-EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
-EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
-EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
-python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+python examples/demo_standalone.py
 ```
 
 This validation guide ensures that ExoArmur Core can be independently verified for functionality, deterministic behavior, and architectural compliance.

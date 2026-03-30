@@ -15,7 +15,7 @@ ExoArmur Core is built on three fundamental principles:
 - All decisions must produce verifiable audit trails
 
 ### Invariant Protection
-- V1 contracts and Golden Demo behavior are immutable
+- V1 contracts and Golden Demo behavior are locked by repository policy and regression gates
 - CI invariant gates enforce architectural guarantees
 - No weakening of assertions or bypassing of safety checks
 

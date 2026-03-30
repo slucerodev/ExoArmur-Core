@@ -65,12 +65,12 @@ The following capabilities are explicitly **NOT** implemented in this snapshot:
 | Flag | Default | Purpose | Status |
 |------|---------|---------|--------|
 | `EXOARMUR_FLAG_V2_THREAT_CLASSIFICATION_ENABLED` | `false` | Enables Phase 2A threat classification | IMPLEMENTED |
-| `EXOARMUR_FLAG_V2_RESTRAINED_AUTONOMY_ENABLED` | `false` | Enables V2 restrained autonomy demo | IMPLEMENTED |
+| `EXOARMUR_FLAG_V2_RESTRAINED_AUTONOMY_ENABLED` | `false` | Legacy compatibility flag for the restrained-autonomy path | IMPLEMENTED |
 
 ## Architecture Boundaries
 
-### V1 Core (Immutable)
-The V1 cognition pipeline remains completely unchanged:
+### V1 Core (Locked)
+The V1 cognition pipeline remains locked by repository policy and regression gates:
 ```
 TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1
 ```
@@ -94,7 +94,7 @@ V2 provides only threat classification decision capability:
 
 ## Safety Guarantees
 
-- **V1 Immutability**: Zero changes to V1 runtime behavior
+- **V1 Contract Locking**: Zero changes to V1 runtime behavior
 - **Test Integrity**: No weakening or removal of existing tests
 - **Boundary Enforcement**: Strict isolation between V1 and V2 components
 - **Deterministic Behavior**: All decisions reproducible with complete audit trails
@@ -103,7 +103,7 @@ V2 provides only threat classification decision capability:
 ## What ExoArmur Is (Current Snapshot)
 
 ExoArmur is a constitutional autonomous defense system with:
-- Immutable V1 cognition pipeline
+- Locked V1 cognition pipeline
 - Decision-only threat classification (Phase 2A)
 - Strict feature flag controls
 - Complete audit trails

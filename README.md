@@ -1,6 +1,6 @@
 # ExoArmur - AI Agent Governance Framework
 
-ExoArmur is an AI agent governance framework that provides deterministic governance runtime for autonomous and AI-driven systems. It makes decisions replayable, auditable, and enforceable under an immutable contract layer with comprehensive audit trails and safety checks.
+ExoArmur is an AI agent governance framework that provides deterministic governance runtime for autonomous and AI-driven systems. It makes decisions replayable, auditable, and enforceable under a locked V1 contract layer with comprehensive audit trails and safety checks.
 
 It is designed for teams building AI agents or autonomous workflows that require strict accountability, reproducibility, and policy enforcement.
 
@@ -15,7 +15,7 @@ AI agents are making autonomous decisions in production environments without pro
 
 ## What It Does
 
-- Executes decisions under immutable governance contracts
+- Executes decisions under locked governance contracts
 - Produces verifiable audit records
 - Enables deterministic replay of decision paths
 - Enforces phase-gated and feature-flag boundaries
@@ -106,16 +106,25 @@ Editable installs (`pip install -e .` and `pip install -e ".[v2]"`) are supporte
 - Runtime and CLI imports should use the installed `exoarmur.*` namespace.
 - V1 contracts are available via `exoarmur.spec.contracts.models_v1`.
 - `spec.contracts.models_v1` remains available as an installed compatibility surface for existing V1 consumers.
-- Repo-root compatibility shims such as `main.py` and `models_v1.py` are not installed package entry points and should not be treated as canonical imports.
 
-## 5-Minute Proof
+## Standalone Governance Proof
+
+The canonical public demo is the standalone denied-action proof. It requires no Docker, no NATS JetStream, and no browser clicks.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install .
-exoarmur --help
-python examples/quickstart_replay.py
+python examples/demo_standalone.py
+# or, via the CLI wrapper
+exoarmur demo
+```
+
+Expected output markers:
+
+```text
+Execution boundary result: policy denied before any filesystem side effect
+Proof bundle written: examples/demo_standalone_proof_bundle.json
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=demo-standalone-delete-outside-authorized-path
 ```
 
 ## CLI
@@ -135,41 +144,13 @@ python -m pytest -q
 
 ExoArmur integrates with existing AI agent frameworks as a governance layer, adding audit trails and safety checks to autonomous decision making without requiring changes to your existing agent architecture.
 
-## V2 Restrained Autonomy Demo
+The standalone proof above is the concrete example first-time visitors should use: a governed action is denied, and the proof bundle captures the replayable evidence.
 
-The V2 demo shows ExoArmur's governance pipeline with operator approval:
+## Proof Artifact
 
-```bash
-# Enable V2 capabilities and run demo with deny decision
-EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
-EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
-EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
-python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
-```
-
-**Expected Output Markers:**
-```
-DEMO_RESULT=DENIED
-ACTION_EXECUTED=false
-AUDIT_STREAM_ID=<stream-id>
-```
-
-**Replay the audit stream:**
-```bash
-python scripts/demo_v2_restrained_autonomy.py --replay <AUDIT_STREAM_ID>
-```
-
-## Live Golden Demo (Requires NATS JetStream)
-
-Requirements:
-- Docker
-- Docker Compose
-- Running NATS JetStream server
-
-```bash
-docker compose up -d
-EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
-```
+- Proof bundle: `examples/demo_standalone_proof_bundle.json`
+- Re-run the proof: `python examples/demo_standalone.py`
+- Canonical CLI wrapper: `exoarmur demo`
 
 ## OpenAPI Snapshot Governance
 
@@ -210,20 +191,15 @@ pip install .  # Clean package installation from source
 exoarmur --version  # Returns consistent version across all components
 ```
 
-### Quickstart Replay Example
-```bash
-python examples/quickstart_replay.py  # Demonstrates deterministic replay functionality
-```
-
 ### Demo Execution Path
 ```bash
-exoarmur demo --operator-decision deny  # V2 restrained autonomy with human approval
+python examples/demo_standalone.py  # Canonical governed deny/proof path
 ```
 
 ### Deterministic Demo Markers
-The V2 demo produces verifiable output markers:
-- `DEMO_RESULT=DENIED` - Action approval decision
-- `ACTION_EXECUTED=false` - Execution status  
+The standalone demo produces verifiable output markers:
+- `DEMO_RESULT=DENIED` - Denied action outcome
+- `ACTION_EXECUTED=false` - Execution status
 - `AUDIT_STREAM_ID=<stream-id>` - Replayable audit stream identifier
 
 ### CI Invariant Gate Enforcement
@@ -235,8 +211,8 @@ The V2 demo produces verifiable output markers:
 ### Current Verified Lanes
 - `pip install .` in a fresh isolated environment
 - `pip install -e .` in a fresh isolated environment
-- `pip install -e ".[v2]"` with the V2 deny demo
-- `tests/test_v2_restrained_autonomy.py` with 18 passing tests
+- `python examples/demo_standalone.py` with deterministic denial markers
+- `tests/test_demo_standalone.py` with proof-bundle validation
 
 ### Reproducible Release Notes
 - `RELEASE_NOTES_v0.2.0.md` provides complete release documentation

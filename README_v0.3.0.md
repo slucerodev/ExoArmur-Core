@@ -9,7 +9,7 @@
 
 > **🎯 Production-Ready Deterministic Governance Runtime**
 > 
-> ExoArmur Core provides deterministic enforcement for autonomous and AI-driven systems with 100% replayable audit trails and immutable contract governance.
+> ExoArmur Core provides deterministic enforcement for autonomous and AI-driven systems with replayable audit trails and locked contract governance.
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### 🔒 **Deterministic Enforcement Guaranteed**
 - **100% deterministic execution** - Every decision is replayable with mathematical certainty
-- **Immutable audit trails** - All governance actions are cryptographically verifiable
+- **Locked audit trails** - All governance actions are cryptographically verifiable
 - **Phase-gated capabilities** - Safe, incremental feature activation
 - **Security patched** - Latest cryptography package (46.0.6) and vulnerability fixes
 
@@ -45,7 +45,7 @@ ExoArmur solves the **accountability problem** in autonomous systems:
 - **Policy enforcement** - Ensure your agents never violate governance rules
 
 ### **For DevOps & SRE Teams**
-- **Immutable infrastructure governance** - Prevent unauthorized system changes
+- **Locked infrastructure governance** - Prevent unauthorized system changes
 - **Replayable incident analysis** - Understand exactly what happened during outages
 - **Safety-first automation** - Human approval gates for critical actions
 
@@ -108,10 +108,10 @@ Gateway → ActionIntent → ProxyPipeline.execute_with_trace() → PolicyDecisi
 
 ### **Core Guarantees**
 - **🔒 Deterministic Enforcement** - Same inputs → identical outputs, always
-- **📋 Immutable Audit Trail** - Every action creates verifiable evidence
+- **📋 Locked Audit Trail** - Every action creates verifiable evidence
 - **⚡ Single Execution Boundary** - No bypasses, no exceptions
 - **🎛️ Phase-Gated Features** - Safe, incremental capability activation
-- **🔍 Complete Replayability** - Reconstruct any execution exactly
+- **🔍 Complete Replayability** - Reconstruct recorded executions deterministically
 
 ### **Modular Design**
 ```

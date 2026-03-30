@@ -38,8 +38,8 @@ Enforces policy rules, safety checks, and creates audit trails.
 Coordinates with approval workflows when required.
 
 ### PolicyDecisionPoint
-Evaluates actions against configurable policy rules.
-Determines if action should proceed, be modified, or be blocked.
+Evaluates actions against ordered policy rules.
+The first matching rule determines whether the action is allowed, denied, or requires approval.
 
 ### SafetyGate
 Deterministic safety enforcement with arbitration precedence.
@@ -60,14 +60,14 @@ Contains all events, decisions, and outcomes in deterministic order.
 
 ### ExecutionProofBundle
 Cryptographic proof bundle containing the complete execution evidence.
-Enables deterministic replay and verification of decision chains.
+Supports deterministic replay and verification of recorded decision chains.
 
 ## Key Architectural Principles
 
 1. **ProxyPipeline is the sole execution boundary** - All actions must pass through this governance boundary
 2. **Executors are untrusted capability modules** - Treated as external, sandboxed components
 3. **Execution must remain deterministic** - Same inputs always produce identical outputs
-4. **Evidence artifacts must be replayable** - Audit trails enable exact reconstruction of decisions
+4. **Evidence artifacts must be replayable** - Audit trails support reconstruction of recorded decisions
 5. **CI invariant gates enforce integrity** - Automated checks preserve architectural guarantees
 
 This architecture ensures that autonomous systems remain accountable, auditable, and enforceable while maintaining clear separation between intelligence and governance.

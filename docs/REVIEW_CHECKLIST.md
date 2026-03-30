@@ -11,21 +11,22 @@ This checklist helps external reviewers efficiently evaluate ExoArmur Core for a
 - [ ] Import test passes: `python -c "import exoarmur"`
 
 ### CLI Functionality
-- [ ] `exoarmur --version` returns consistent version (0.2.0)
+- [ ] `exoarmur --version` returns consistent version (0.3.0)
 - [ ] `exoarmur --help` shows all expected commands
 - [ ] Demo command executes without errors
 - [ ] Health check completes successfully
 
 ## Demo Execution Behavior
 
-### V2 Restrained Autonomy Demo
+### Standalone Governance Proof
 - [ ] Demo produces required output markers:
+  - [ ] `Execution boundary result: policy denied before any filesystem side effect`
+  - [ ] `Proof bundle written: examples/demo_standalone_proof_bundle.json`
   - [ ] `DEMO_RESULT=DENIED`
   - [ ] `ACTION_EXECUTED=false`
-  - [ ] `AUDIT_STREAM_ID=det-...` (unique identifier)
-- [ ] Human approval workflow functions correctly
-- [ ] Audit trail is complete and replayable
-- [ ] Feature flags enable V2 capabilities properly
+  - [ ] `AUDIT_STREAM_ID=demo-standalone-delete-outside-authorized-path`
+- [ ] Proof bundle is complete and replayable
+- [ ] Demo runs without Docker or NATS JetStream
 
 ### Deterministic Behavior
 - [ ] Same inputs produce identical outputs across runs

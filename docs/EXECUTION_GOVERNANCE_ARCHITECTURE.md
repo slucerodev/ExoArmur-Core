@@ -168,48 +168,42 @@ class PolicyDecision(BaseModel):
 ### PolicyDecisionPoint Interface
 
 ```python
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from enum import Enum
+from typing import Protocol
 
-class PolicyDecisionPoint(ABC):
-    """Interface for policy decision evaluation"""
-    
-    @abstractmethod
-    async def evaluate_intent(
-        self,
-        intent: ActionIntent,
-        context: Optional[Dict[str, Any]] = None
-    ) -> PolicyDecision:
-        """
-        Evaluate an intent against policy rules
-        
-        Args:
-            intent: The action intent to evaluate
-            context: Additional evaluation context
-            
-        Returns:
-            Policy decision with verdict and rationale
-        """
-        pass
-    
-    @abstractmethod
-    async def check_approval_status(
-        self,
-        intent_id: str,
-        decision_id: str
-    ) -> Dict[str, Any]:
-        """
-        Check approval status for a pending decision
-        
-        Args:
-            intent_id: Intent identifier
-            decision_id: Decision identifier
-            
-        Returns:
-            Approval status information
-        """
-        pass
+from ..models.action_intent import ActionIntent
+from ..models.policy_decision import PolicyDecision
+
+class ApprovalStatus(Enum):
+    """Approval status enumeration."""
+    NOT_REQUIRED = "not_required"
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+    EXPIRED = "expired"
+
+class PolicyDecisionPoint(Protocol):
+    """Interface for policy decision evaluation."""
+
+    def evaluate(self, intent: ActionIntent) -> PolicyDecision:
+        """Evaluate an intent against the configured policy rules."""
+        ...
+
+    def approval_status(self, intent_id: str) -> ApprovalStatus:
+        """Return the current approval status for an intent."""
+        ...
 ```
+
+The current `SimplePolicyDecisionPoint` implementation is intentionally small and order-sensitive:
+
+- Rules are checked in list order.
+- The first rule whose tenant, domain, and method constraints all match is selected.
+- If no rule matches, the decision is `deny`.
+- If the selected rule sets `require_approval=True`, the decision is `require_approval`.
+- When approval has already been recorded, `evaluate_with_approval_bypass()` may convert that approved rule into `allow`.
+- The implementation does not merge rules, rewrite actions, or perform weighted conflict resolution.
+
+In the simple implementation, `approval_status()` is backed by the optional approval store and returns the approval state that store recognizes; it does not perform independent arbitration.
 
 ### ExecutorPlugin Interface
 
@@ -337,7 +331,7 @@ class ExecutionDispatch(ABC):
    Actor → ActionIntent (V2 canonicalization)
    ↓
 2. Policy Evaluation
-   PolicyDecisionPoint.evaluate_intent() → PolicyDecision
+   PolicyDecisionPoint.evaluate() → PolicyDecision
    ↓
 3. Safety Gate Enforcement
    SafetyGate.evaluate_safety() using V1 SafetyGate

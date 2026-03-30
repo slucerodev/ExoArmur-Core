@@ -20,6 +20,10 @@ ExoArmur/
 │   │   ├── BeliefV1.json
 │   │   └── [additional schemas]
 │   └── openapi_v1.json           # OpenAPI specification
+├── examples/                     # Canonical standalone examples
+│   ├── demo_standalone.py
+│   ├── demo_standalone_proof_bundle.json
+│   └── quickstart_replay.py
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── CONSTITUTION.md
@@ -35,7 +39,7 @@ ExoArmur/
 │   ├── boundary_gate.py
 │   ├── demo_handshake.py
 │   ├── demo_identity_containment.py
-│   ├── demo_v2_restrained_autonomy.py
+│   ├── demo_v2_restrained_autonomy.py  # Legacy V2 compatibility demo
 │   └── [additional scripts]
 ├── tools/                        # Export + boundary enforcement tooling
 │   ├── boundary_check.py
@@ -90,7 +94,8 @@ ExoArmur/
 │   ├── test_replay_determinism.py
 │   ├── test_threat_classification_v2.py
 │   ├── test_v2_feature_flag_isolation.py
-│   ├── test_v2_restrained_autonomy.py
+│   ├── test_demo_standalone.py
+│   ├── test_v2_restrained_autonomy.py  # Legacy V2 compatibility coverage
 │   └── [additional tests]
 ├── .gitignore                   # Git ignore patterns
 ├── conftest.py                  # Root test configuration
@@ -104,7 +109,7 @@ ExoArmur/
 
 ### Source Code (`src/`)
 
-**Core V1 Components (Immutable)**:
+**Core V1 Components (Locked)**:
 - `analysis/`: Signal facts derivation from telemetry
 - `audit/`: Audit trail generation and storage
 - `beliefs/`: Belief generation from signal facts
@@ -124,7 +129,7 @@ ExoArmur/
 
 ### Contracts (`spec/contracts/`)
 
-**V1 Contracts (Immutable)**:
+**V1 Contracts (Locked)**:
 - `models_v1.py`: Core ADMO data models
 - `arbitration_precedence_v1.yaml`: Safety gate precedence rules
 
@@ -134,14 +139,15 @@ ExoArmur/
 ### Tests (`tests/`)
 
 **Constitutional Tests**:
-- `test_constitutional_invariants.py`: V1 immutability verification
+- `test_constitutional_invariants.py`: V1 contract-lock verification
 - `test_boundary_enforcement.py`: V1/V2 boundary validation
 - `test_replay_determinism.py`: Deterministic replay verification
 
 **Phase 2A Tests**:
 - `test_threat_classification_v2.py`: Threat classification decision engine
 - `test_v2_feature_flag_isolation.py`: Feature flag isolation
-- `test_v2_restrained_autonomy.py`: V2 autonomy demo tests
+- `test_demo_standalone.py`: Standalone deny/proof demo coverage
+- `test_v2_restrained_autonomy.py`: Legacy V2 autonomy compatibility tests
 
 **Integration Tests**:
 - `test_integration.py`: End-to-end integration scenarios
@@ -150,7 +156,8 @@ ExoArmur/
 ### Scripts (`scripts/`)
 
 **Demonstration Scripts**:
-- `demo_v2_restrained_autonomy.py`: V2 restrained autonomy demo
+- `demo_standalone.py`: Canonical standalone deny/proof demo
+- `demo_v2_restrained_autonomy.py`: Legacy V2 restrained autonomy demo
 - `demo_identity_containment.py`: Identity session containment demo
 - `boundary_gate.py`: Boundary enforcement demonstration
 

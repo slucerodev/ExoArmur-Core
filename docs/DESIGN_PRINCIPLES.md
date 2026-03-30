@@ -7,7 +7,7 @@ ExoArmur is built on the principle that **autonomous systems require determinist
 ## Deterministic Execution
 
 ### Principle
-Same inputs must always produce identical outputs, enabling exact replay and verification of decisions.
+Same inputs must always produce identical outputs within the supported governance inputs, enabling deterministic replay and verification of decisions.
 
 ### Implementation
 - All execution flows through a single, auditable boundary
@@ -41,12 +41,12 @@ All autonomous actions must pass through a single governance boundary that enfor
 ## Replayable Evidence Chains
 
 ### Principle
-Every decision must be accompanied by complete, replayable audit evidence that enables exact reconstruction of the decision process.
+Every decision must be accompanied by complete, replayable audit evidence that supports reconstruction of the recorded decision process.
 
 ### Implementation
 - Structured audit events capture all decision context
 - ExecutionProofBundle provides cryptographic proof
-- Deterministic audit stream IDs enable replay
+- Deterministic audit stream IDs support replay lookup
 - Evidence artifacts are never committed to repository but are reproducible
 
 ### Benefits

@@ -5,11 +5,12 @@ Defines policy rule structures and related data models.
 """
 
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PolicyRule(BaseModel):
     """Policy rule definition for ActionIntent evaluation."""
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
     rule_id: str = Field(description="Unique identifier for the policy rule")
     description: str = Field(description="Human-readable description of the rule")
@@ -29,8 +30,3 @@ class PolicyRule(BaseModel):
         default=None,
         description="Tenant identifier for multi-tenant policy isolation."
     )
-    
-    class Config:
-        """Pydantic configuration."""
-        extra = "forbid"
-        str_strip_whitespace = True

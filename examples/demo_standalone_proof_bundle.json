@@ -1,0 +1,106 @@
+{
+  "action_executed": false,
+  "audit_records": [
+    {
+      "audit_id": "6QNY14GQ0R8FZGGXT8ZAZB58D4",
+      "cell_id": "demo-cell",
+      "correlation_id": "demo-standalone-delete-outside-authorized-path",
+      "event_kind": "policy_denial",
+      "hashes": {
+        "sha256": "d7af82485c1843ff087748fabeb2a1a43e61989359f11e76568678413c8998e8"
+      },
+      "idempotency_key": "audit-demo-standalone-delete-outside-authorized-path",
+      "payload_ref": {
+        "details": {
+          "policy_version": "demo-standalone-v1",
+          "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized"
+        },
+        "kind": "inline",
+        "outcome": "denied",
+        "ref": "demo-standalone-delete-outside-authorized-path"
+      },
+      "recorded_at": "2026-03-30T10:16:11.297510+00:00",
+      "schema_version": "1.0.0",
+      "tenant_id": "demo-tenant",
+      "trace_id": "demo-standalone-delete-outside-authorized-path"
+    }
+  ],
+  "audit_stream_id": "demo-standalone-delete-outside-authorized-path",
+  "proof_bundle": {
+    "approval_records": [],
+    "bundle_created_at": null,
+    "bundle_version": "v1",
+    "execution_trace": {
+      "events": [
+        {
+          "code": "RECEIVED",
+          "details": {
+            "action_type": "filesystem_delete",
+            "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv"
+          },
+          "ok": true,
+          "stage": "intent_received"
+        },
+        {
+          "code": "deny",
+          "details": {
+            "approval_required": false,
+            "policy_version": "demo-standalone-v1",
+            "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized"
+          },
+          "ok": false,
+          "stage": "policy_evaluated"
+        }
+      ],
+      "evidence": {
+        "policy_decision": "deny",
+        "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized"
+      },
+      "final_status": "DENIED",
+      "intent_id": "demo-standalone-delete-outside-authorized-path",
+      "trace_version": "v1"
+    },
+    "executor_result": {
+      "error": "DENIED",
+      "evidence": {
+        "policy_decision": "deny"
+      },
+      "output": {},
+      "success": false
+    },
+    "intent": {
+      "action_type": "filesystem_delete",
+      "actor_id": "demo-agent-001",
+      "actor_type": "agent",
+      "cell_id": "demo-cell",
+      "intent_id": "demo-standalone-delete-outside-authorized-path",
+      "parameters": {
+        "authorized_root": "/tmp/exoarmur-demo-authorized",
+        "operation": "delete",
+        "path": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv"
+      },
+      "safety_context": {
+        "reason": "attempted deletion outside authorized root",
+        "scenario": "unauthorized_filesystem_delete"
+      },
+      "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv",
+      "tenant_id": "demo-tenant",
+      "timestamp": "2024-01-01T12:00:00Z"
+    },
+    "policy_decision": {
+      "approval_required": false,
+      "confidence": 1.0,
+      "evidence": {
+        "action_type": "filesystem_delete",
+        "authorized_root": "/tmp/exoarmur-demo-authorized",
+        "requested_operation": "delete",
+        "requested_path": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv"
+      },
+      "metadata": {},
+      "policy_version": "demo-standalone-v1",
+      "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized",
+      "verdict": "deny"
+    },
+    "replay_hash": "854bcac0688515227d560022eedae4d0abd0a2c268694a4a4f89a9bd8b69d3c0"
+  }
+}

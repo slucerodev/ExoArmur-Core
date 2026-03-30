@@ -44,6 +44,18 @@ def _script_env(base_env: Optional[dict] = None) -> dict:
     return env
 
 
+def _discover_repo_root() -> Optional[Path]:
+    """Locate the source checkout root when running from a repository."""
+    for candidate in Path(__file__).resolve().parents:
+        if (
+            (candidate / "pyproject.toml").is_file()
+            and (candidate / "tests").is_dir()
+            and (candidate / "examples" / "demo_standalone.py").is_file()
+        ):
+            return candidate
+    return None
+
+
 def _load_demo_module():
     repo_root = Path(__file__).resolve().parents[2]
     module_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
@@ -112,24 +124,67 @@ def verify_all(verbose: bool, fast: bool):
     click.echo("=" * 50)
     
     exit_code = 0
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = _discover_repo_root()
+    package_root = Path(__file__).resolve().parent
+    repo_tests_available = repo_root is not None and (repo_root / "tests").is_dir()
+    standalone_demo_path = (
+        repo_root / "examples" / "demo_standalone.py" if repo_root is not None else None
+    )
+    proof_bundle_path = (
+        repo_root / "examples" / "demo_standalone_proof_bundle.json"
+        if repo_root is not None
+        else None
+    )
+    standalone_demo_available = (
+        standalone_demo_path is not None
+        and standalone_demo_path.is_file()
+        and proof_bundle_path is not None
+        and proof_bundle_path.is_file()
+    )
+    skipped_checks = []
     
     try:
         # 1. Full test suite (excluding integration tests that require Docker)
-        click.echo("1️⃣ Running full test suite...")
-        test_cmd = [sys.executable, "-m", "pytest", "tests/", "--ignore=tests/integration/", "-x", "--tb=short"]
-        if verbose:
-            test_cmd.append("-v")
-        
-        result = subprocess.run(test_cmd, cwd=repo_root)
-        if result.returncode != 0:
-            click.echo("❌ Test suite failed")
-            exit_code = 1
+        if repo_tests_available:
+            click.echo("1️⃣ Running full test suite...")
+            test_cmd = [sys.executable, "-m", "pytest", "tests/", "--ignore=tests/integration/", "-x", "--tb=short"]
+            if verbose:
+                test_cmd.append("-v")
+            
+            result = subprocess.run(test_cmd, cwd=repo_root)
+            if result.returncode != 0:
+                click.echo("❌ Test suite failed")
+                exit_code = 1
+            else:
+                click.echo("✅ Test suite passed")
         else:
-            click.echo("✅ Test suite passed")
+            click.echo("1️⃣ Running installed-package import sanity check...")
+            import_cmd = [
+                sys.executable,
+                "-c",
+                "import exoarmur; from exoarmur.demo_v2_restrained_autonomy import run_demo_scenario; print('✅ Installed package imports successful')",
+            ]
+            result = subprocess.run(
+                import_cmd,
+                cwd=package_root,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                click.echo("❌ Installed-package import sanity failed")
+                if verbose:
+                    output = (result.stdout or "") + (result.stderr or "")
+                    if output:
+                        click.echo(output)
+                exit_code = 1
+            else:
+                click.echo("✅ Installed-package import sanity passed")
+                if verbose and result.stdout:
+                    click.echo(result.stdout)
+            skipped_checks.append("repo-local pytest suite")
         
         # 2. Boundary gate (if not fast)
-        if not fast:
+        if repo_tests_available and not fast:
             click.echo("\n2️⃣ Running boundary gate...")
             boundary_cmd = [sys.executable, "-m", "pytest", "tests/", "-m", "sensitive", "--tb=short"]
             if verbose:
@@ -141,80 +196,90 @@ def verify_all(verbose: bool, fast: bool):
                 exit_code = 1
             else:
                 click.echo("✅ Boundary gate passed")
+        elif not repo_tests_available:
+            click.echo("\n2️⃣ Skipping boundary gate (repo-local tests are unavailable in installed package mode)")
+            skipped_checks.append("boundary gate")
         else:
             click.echo("\n2️⃣ Skipping boundary gate (fast mode)")
         
-        # 3. Demo smoke test
-        click.echo("\n3️⃣ Running demo smoke test (deny mode)...")
-        demo_cmd = [
-            sys.executable, str(repo_root / "scripts" / "demo_v2_restrained_autonomy.py"),
-            "--operator-decision", "deny"
-        ]
-        
-        env = _script_env(os.environ.copy())
-        env.update({
-            'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
-            'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
-            'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
-        })
-        
-        demo_exit_code, output = _run_demo_inline(operator_decision="deny", env=env)
-        
-        if demo_exit_code != 0:
-            click.echo("❌ Demo smoke test failed")
-            if verbose:
-                click.echo(output)
-            exit_code = 1
-        else:
-            # Check for required markers
-            required_markers = [
-                "DEMO_RESULT=DENIED",
-                "ACTION_EXECUTED=false", 
-                "AUDIT_STREAM_ID="
-            ]
+        # 3. Standalone demo proof
+        if standalone_demo_available:
+            click.echo("\n3️⃣ Running standalone demo proof...")
+            demo_result = subprocess.run(
+                [sys.executable, str(standalone_demo_path)],
+                cwd=repo_root,
+                env=_script_env(os.environ.copy()),
+                capture_output=True,
+                text=True,
+            )
+            output = (demo_result.stdout or "") + (demo_result.stderr or "")
             
-            missing_markers = [marker for marker in required_markers if marker not in output]
-            if missing_markers:
-                click.echo(f"❌ Demo missing required markers: {missing_markers}")
+            if demo_result.returncode != 0:
+                click.echo("❌ Standalone demo proof failed")
                 if verbose:
-                    click.echo("Demo output:")
                     click.echo(output)
                 exit_code = 1
             else:
-                click.echo("✅ Demo smoke test passed")
-                
-                # 4. Replay verification
-                click.echo("\n4️⃣ Running replay verification...")
-                audit_id = None
-                for line in output.split('\n'):
-                    if line.startswith('AUDIT_STREAM_ID='):
-                        audit_id = line.split('=', 1)[1]
-                        break
-                
-                if audit_id:
-                    replay_exit_code, replay_output = _run_demo_inline(replay=audit_id, env=env)
-                    
-                    if replay_exit_code != 0:
-                        click.echo("❌ Replay verification failed")
-                        if verbose:
-                            click.echo(replay_output)
+                required_markers = [
+                    "DEMO_RESULT=DENIED",
+                    "ACTION_EXECUTED=false",
+                    "AUDIT_STREAM_ID=",
+                ]
+
+                missing_markers = [marker for marker in required_markers if marker not in output]
+                if missing_markers:
+                    click.echo(f"❌ Standalone demo missing required markers: {missing_markers}")
+                    if verbose:
+                        click.echo("Demo output:")
+                        click.echo(output)
+                    exit_code = 1
+                else:
+                    audit_id = None
+                    for line in output.split('\n'):
+                        if line.startswith('AUDIT_STREAM_ID='):
+                            audit_id = line.split('=', 1)[1]
+                            break
+
+                    if proof_bundle_path is None:
+                        click.echo("❌ Standalone proof bundle unavailable")
                         exit_code = 1
                     else:
-                        if "REPLAY_VERIFIED=true" in replay_output:
-                            click.echo("✅ Replay verification passed")
+                        try:
+                            proof_bundle = json.loads(proof_bundle_path.read_text())
+                        except json.JSONDecodeError as exc:
+                            click.echo(f"❌ Standalone proof bundle invalid JSON: {exc}")
+                            exit_code = 1
                         else:
-                            click.echo("⚠️ Replay verification incomplete (known limitation)")
-                else:
-                    click.echo("❌ Could not extract audit ID for replay")
-                    exit_code = 1
+                            proof_bundle_payload = proof_bundle.get("proof_bundle", {})
+                            if (
+                                audit_id
+                                and proof_bundle.get("audit_stream_id") == audit_id
+                                and proof_bundle.get("action_executed") is False
+                                and proof_bundle_payload.get("replay_hash")
+                                and proof_bundle.get("audit_records")
+                            ):
+                                click.echo("✅ Standalone demo proof passed")
+                            else:
+                                click.echo("❌ Standalone proof bundle contents invalid")
+                                if verbose:
+                                    click.echo(output)
+                                    click.echo(json.dumps(proof_bundle, indent=2, sort_keys=True))
+                                exit_code = 1
+        else:
+            click.echo("\n3️⃣ Skipping standalone demo proof (examples/ are not bundled in the installed package)")
+            skipped_checks.append("standalone demo proof")
         
         # Final result
         click.echo("\n" + "=" * 50)
         if exit_code == 0:
             # Use Windows-safe output
             success_symbol = "🎯" if sys.platform != "win32" else "[SUCCESS]"
-            click.echo(f"{success_symbol} VERIFY_ALL: PASSED")
-            click.echo("All systems green and ready for production")
+            if skipped_checks:
+                click.echo(f"{success_symbol} VERIFY_ALL: PASSED (repo-only checks skipped: {', '.join(skipped_checks)})")
+                click.echo("Installed package verified; repo-local tests/examples are unavailable in this environment")
+            else:
+                click.echo(f"{success_symbol} VERIFY_ALL: PASSED")
+                click.echo("All systems green and ready for production")
         else:
             # Use Windows-safe output
             fail_symbol = "❌" if sys.platform != "win32" else "[FAILED]"
@@ -228,37 +293,42 @@ def verify_all(verbose: bool, fast: bool):
         sys.exit(1)
 
 @main.command()
-@click.option('--scenario', default='v2_restrained_autonomy', 
-              help='Demo scenario to run')
+@click.option('--scenario', default='standalone', type=click.Choice(['standalone', 'v2_restrained_autonomy']),
+              help='Demo scenario to run (standalone is the canonical proof path)')
 @click.option('--operator-decision', type=click.Choice(['approve', 'deny']), 
-              default='deny', help='Operator decision for approval scenarios')
-@click.option('--replay', help='Audit stream ID to replay')
+              default='deny', help='Operator decision for the legacy V2 demo scenario')
+@click.option('--replay', help='Audit stream ID to replay for the legacy V2 demo scenario')
 def demo(scenario: str, operator_decision: str, replay: Optional[str]):
     """Run demonstration scenarios"""
     click.echo(f"🚀 ExoArmur Demo: {scenario}")
-    
-    if scenario == 'v2_restrained_autonomy':
-        repo_root = Path(__file__).resolve().parents[2]
-        script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
-        env = _script_env(os.environ.copy())
-        if not replay:
-            env.update({
-                'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
-                'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
-                'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
-            })
+    repo_root = Path(__file__).resolve().parents[2]
 
-        cmd = [sys.executable, str(script_path)]
-        if replay:
-            cmd.extend(["--replay", replay])
-        else:
-            cmd.extend(["--operator-decision", operator_decision])
-
-        result = subprocess.run(cmd, cwd=repo_root, env=env)
+    if scenario == 'standalone' and replay is None:
+        script_path = repo_root / "examples" / "demo_standalone.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            cwd=repo_root,
+            env=_script_env(os.environ.copy()),
+        )
         sys.exit(result.returncode)
+
+    script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
+    env = _script_env(os.environ.copy())
+    if not replay:
+        env.update({
+            'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
+            'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
+            'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
+        })
+
+    cmd = [sys.executable, str(script_path)]
+    if replay:
+        cmd.extend(["--replay", replay])
     else:
-        click.echo(f"Unknown demo scenario: {scenario}")
-        sys.exit(1)
+        cmd.extend(["--operator-decision", operator_decision])
+
+    result = subprocess.run(cmd, cwd=repo_root, env=env)
+    sys.exit(result.returncode)
 
 @main.command()
 @click.option('--export', help='Export evidence for intent ID')

@@ -12,7 +12,7 @@ ExoArmur Core and proprietary modules.
 - **Core**: `src/exoarmur/`, `tests/`, `spec/`, `docs/`, `scripts/`, `tools/`
 - **Modules**: `modules/<module_name>/` (self-contained)
 
-> `spec/` remains at the repo root and is **immutable**.
+> `spec/` remains at the repo root and is reserved for locked contract definitions.
 
 ## Boundary Rules (Hard)
 - Core MUST NOT import from `modules/` or any module prefixes.

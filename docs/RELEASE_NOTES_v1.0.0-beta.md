@@ -79,7 +79,7 @@ See `RELEASE_REPRODUCIBILITY.md` for detailed instructions.
 
 ## Phase 6 Certification Statement
 
-ExoArmur v1.0.0-beta has successfully completed Phase 6 verification:
+ExoArmur v1.0.0-beta has successfully completed the Phase 6 reality run:
 
 - **All 8 gates**: PASS
 - **Reliability substrate**: Fully operational

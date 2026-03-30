@@ -1,10 +1,10 @@
 # ExoArmur ADMO - Deterministic Audit Replay Protocol
 
-**Purpose**: Ensure complete reproducibility and verification of organism behavior through deterministic audit replay.
+**Purpose**: Ensure deterministic reconstruction and verification of recorded governance behavior from audit logs and supporting stores.
 
 ## **Overview**
 
-The ExoArmur replay system provides deterministic reconstruction of organism behavior from audit logs. This enables:
+The ExoArmur replay system provides deterministic reconstruction of the recorded governance path from audit logs. When intent and approval stores are available, they are used to verify bindings and reconstruct referenced state. This enables:
 
 - **Verification**: Prove that executed actions match approved intents
 - **Compliance**: Demonstrate adherence to safety and authority rules  
@@ -14,14 +14,14 @@ The ExoArmur replay system provides deterministic reconstruction of organism beh
 ## **Core Principles**
 
 ### **Determinism First**
-- Same audit logs → same replay results every time
-- Canonical serialization eliminates ordering ambiguities
-- Stable hashing provides immutable intent verification
+- Same audit logs and the same replay code → the same replay report
+- Canonical serialization eliminates ordering ambiguities in recorded evidence
+- Stable hashing provides intent binding and payload integrity verification
 
 ### **Authority Preservation**
-- All replay respects original authority boundaries
-- Intent binding verification prevents tampering
-- Safety gate re-evaluation confirms consistent decisions
+- All replay respects recorded authority boundaries
+- Intent binding verification prevents tampering in the recorded trail
+- Safety gate verification confirms the recorded decision still matches the reconstructed inputs
 
 ### **Complete Evidence Chain**
 - Every meaningful state transition emits audit events
@@ -95,6 +95,17 @@ class ReplayEngine:
         # 5. Verify state integrity
         # 6. Generate comprehensive report
 ```
+
+**Scope**:
+- The current replay engine replays the full recorded audit trail for a `correlation_id`.
+- It reconstructs and verifies recorded intents, decisions, and payload integrity when the supporting stores are available.
+- It does not re-execute external side effects or simulate alternative branches.
+
+### **Persistence and Recovery**
+- Audit records are expected to come from JetStream-backed storage when JetStream is configured.
+- The in-memory audit cache is useful for tests and interactive use, but it is not durable recovery storage.
+- Recovery is read-based: replay repopulates local state only from records that were successfully persisted.
+- Missing or corrupted audit records surface as failures or partial replay results; replay does not auto-heal the storage layer.
 
 ## **Event Processing Pipeline**
 
@@ -220,13 +231,13 @@ python -m src.replay.cli hash data.json
 - Replay engine individual components
 
 ### **Integration Tests**
-- End-to-end replay verification
+- Replay produces consistent reports for the same recorded inputs within a pinned replay implementation
 - Intent hash reconstruction
 - Safety gate consistency checking
 - Payload integrity verification
 
 ### **Regression Tests**
-- Replay produces same results across versions
+- Replay produces consistent reports for the same recorded inputs within a pinned replay implementation
 - Hash stability for known intents
 - Event ordering determinism
 
@@ -247,7 +258,9 @@ python -m src.replay.cli hash data.json
 ### **Handling Strategies**
 - **Fail Fast**: Critical integrity violations → FAILURE
 - **Graceful Degradation**: Non-critical issues → WARNINGS
-- **Complete Verification**: All checks pass → SUCCESS
+
+#### **Audit Replay**
+Audit trails can be replayed to verify compliance and investigate incidents without affecting the running system. This is the supported mode today.
 
 ## **Security Considerations**
 
@@ -264,7 +277,6 @@ python -m src.replay.cli hash data.json
 ### **Integrity Guarantees**
 - Cryptographic hash verification (SHA-256)
 - End-to-end traceability maintained
-- No silent state transitions possible
 
 ## **Performance Considerations**
 

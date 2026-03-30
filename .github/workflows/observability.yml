@@ -98,7 +98,7 @@ jobs:
 
     - name: Profile memory usage
       run: |
-        python -m memory_profiler scripts/demo_v2_restrained_autonomy.py --operator-decision deny || echo "Memory profiling needs setup"
+        python -m memory_profiler examples/demo_standalone.py || echo "Memory profiling needs setup"
 
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4

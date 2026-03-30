@@ -25,11 +25,11 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     
     repo_root = Path(cli.__file__).resolve().parents[2]
     src_dir = repo_root / "src"
-    script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
+    script_path = repo_root / "examples" / "demo_standalone.py"
 
     calls = []
 
-    def fake_run(cmd, cwd=None, _capture_output=False, _text=False, env=None):
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, env=None):
         calls.append({"cmd": cmd, "cwd": cwd, "env": env})
         assert cmd[0] == sys.executable
         assert cmd[1] == str(script_path)
@@ -40,7 +40,13 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
         # Return success with required markers so CLI passes
         return SimpleNamespace(
             returncode=0,
-            stdout="DEMO_RESULT=DENIED\nACTION_EXECUTED=false\nAUDIT_STREAM_ID=demo123\nREPLAY_VERIFIED=true",
+            stdout=(
+                "Execution boundary result: policy denied before any filesystem side effect\n"
+                "Proof bundle written: examples/demo_standalone_proof_bundle.json\n"
+                "DEMO_RESULT=DENIED\n"
+                "ACTION_EXECUTED=false\n"
+                "AUDIT_STREAM_ID=demo123\n"
+            ),
             stderr="",
         )
 
@@ -49,7 +55,7 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli.main,
-        ["demo", "--scenario", "v2_restrained_autonomy", "--operator-decision", "deny"],
+        ["demo"],
         env={"PYTHONPATH": "priorpath"},
     )
 
@@ -58,3 +64,34 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     assert len(calls) == 1
     call = calls[0]
     assert call["cwd"] == repo_root
+
+
+def test_verify_all_skips_repo_only_checks_when_installed(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, env=None):
+        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
+        assert cmd[0] == sys.executable
+        assert cmd[1] == "-c"
+        assert "Installed package imports successful" in cmd[2]
+        assert cwd == Path(cli.__file__).resolve().parent
+        assert capture_output is True
+        assert text is True
+        return SimpleNamespace(
+            returncode=0,
+            stdout="✅ Installed package imports successful\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(cli, "_discover_repo_root", lambda: None)
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    runner = CliRunner()
+    result = runner.invoke(cli.main, ["verify-all"])
+
+    assert result.exit_code == 0, result.output
+    assert "Running installed-package import sanity check" in result.output
+    assert "Skipping boundary gate" in result.output
+    assert "Skipping standalone demo proof" in result.output
+    assert "repo-only checks skipped" in result.output
+    assert len(calls) == 1

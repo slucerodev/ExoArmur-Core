@@ -2,10 +2,10 @@
 
 ## GLOBAL GOVERNANCE (APPLIES TO ALL PHASES)
 
-### G0 — V1 IMMUTABILITY
-- V1 contracts, models, schemas, and Golden Demo behavior are immutable
+### G0 — V1 CONTRACT LOCKING
+- V1 contracts, models, schemas, and Golden Demo behavior are locked by repository policy and regression gates
 - Any modification altering V1 behavior is forbidden
-- V1 functionality must remain exactly as originally delivered
+- V1 functionality must continue to satisfy the recorded contract set and Golden Demo
 
 **Enforcing Tests:**
 - `tests/test_api_models.py` - API model contract compliance
@@ -31,7 +31,7 @@
 **Enforcing Tests:**
 - `src/feature_flags/feature_flags.py` - All flags default to False
 - `tests/test_v2_restrained_autonomy.py` - V2 functionality behind flags
-- `python3 scripts/demo_v2_restrained_autonomy.py` - Refuses when flags OFF
+- `python3 examples/demo_standalone.py` - Canonical denied-action proof
 
 ### G3 — DETERMINISM
 - No wall-clock dependence in core logic
@@ -42,7 +42,7 @@
 **Enforcing Tests:**
 - `src/v2_restrained_autonomy/pipeline_impl.py` - Deterministic ID generation
 - `tests/test_v2_restrained_autonomy.py::TestDeterministicAuditAndReplay` - Replay verification
-- `scripts/demo_v2_restrained_autonomy.py --replay` - Audit stream replay
+- `examples/demo_standalone_proof_bundle.json` - Replayable proof artifact
 
 ### G4 — NO BACKWARDS MOVEMENT
 - No removal of gates, tests, or enforcement mechanisms
@@ -60,9 +60,9 @@
 - Real effectors must be simulated first
 
 **Enforcing Tests:**
-- `scripts/demo_v2_restrained_autonomy.py` - Defaults to deny mode
+- `examples/demo_standalone.py` - Defaults to denied execution boundary
 - `src/v2_restrained_autonomy/mock_executor.py` - All actions are simulated
-- Demo smoke test requires `DEMO_RESULT=DENIED` and `ACTION_EXECUTED=false`
+- `tests/test_demo_standalone.py` - Requires `DEMO_RESULT=DENIED` and `ACTION_EXECUTED=false`
 
 ## FORBIDDEN CHANGES (EXPLICITLY PROHIBITED)
 
@@ -185,10 +185,10 @@ python3 src/cli.py verify-all
 # Check specific invariants
 python3 -m pytest tests/ -k "v2_disabled"     # V1 immutability
 python3 -m pytest tests/ -m "sensitive"       # Boundary gate
-python3 src/cli.py demo --operator-decision deny  # Safe defaults
+python3 src/cli.py demo  # Safe defaults
 
 # Verify deterministic behavior
-python3 scripts/demo_v2_restrained_autonomy.py --replay <audit_id>
+python3 examples/demo_standalone.py
 ```
 
 ---

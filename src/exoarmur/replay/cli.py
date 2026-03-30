@@ -129,7 +129,9 @@ def _convert_to_audit_records(records_data: List[Dict[str, Any]]) -> List['Audit
             class SimpleAuditRecord:
                 def __init__(self, data):
                     self.event_id = data.get('event_id', '')
-                    self.timestamp = datetime.fromisoformat(data.get('timestamp', '').replace('Z', '+00:00'))
+                    raw_timestamp = data.get('recorded_at') or data.get('timestamp', '')
+                    self.recorded_at = datetime.fromisoformat(raw_timestamp.replace('Z', '+00:00'))
+                    self.timestamp = self.recorded_at
                     self.event_kind = data.get('event_kind', '')
                     self.actor = data.get('actor', '')
                     self.correlation_id = data.get('correlation_id', '')
