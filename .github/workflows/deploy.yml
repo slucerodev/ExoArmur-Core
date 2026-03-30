@@ -18,7 +18,6 @@ on:
 
 permissions:
   contents: write
-  releases: write
   packages: write
   id-token: write
 
