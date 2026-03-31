@@ -5,7 +5,7 @@ useDefault = true
 
 # Exclude only generated/local artifacts that are never committed
 [allowlist]
-description = "Exclude generated artifacts and runtime state"
+description = "Exclude generated artifacts, runtime state, and validation scripts with placeholder text"
 paths = [
     # Generated evidence bundles (never committed)
     "artifacts/reality_run_",
@@ -23,4 +23,17 @@ paths = [
     ".venv/",
     "venv/",
     ".venv_clean_install/",
+    
+    # Validation scripts with placeholder text (false positives)
+    "scripts/validation/",
+]
+
+# Allow specific false positive patterns
+[[allowlist]]
+description = "Allow placeholder text patterns"
+regexes = [
+    "REDACTED",
+    "key='REDACTED'",
+    "fake_api_key",
+    "test_key",
 ]
