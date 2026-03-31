@@ -33,7 +33,7 @@ jobs:
 
       - name: Gate 1a — Verify locked runtime parity
         run: |
-          python scripts/verify_env_parity.py \
+          python scripts/infra/verify_env_parity.py \
             --expected-python-version 3.12.3 \
             --expected-platform Linux \
             --report-file "${RUNNER_TEMP}/env-parity.json"

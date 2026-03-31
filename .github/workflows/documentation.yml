@@ -44,7 +44,7 @@ jobs:
 
     - name: Verify locked environment
       run: |
-        python scripts/verify_env_parity.py \
+        python scripts/infra/verify_env_parity.py \
           --expected-python-version 3.12.3 \
           --expected-platform Linux
 
@@ -93,7 +93,7 @@ jobs:
 
     - name: Verify locked environment
       run: |
-        python scripts/verify_env_parity.py \
+        python scripts/infra/verify_env_parity.py \
           --expected-python-version 3.12.3 \
           --expected-platform Linux
 
@@ -122,11 +122,11 @@ jobs:
 
     - name: Check README links
       run: |
-        python scripts/check_markdown_links.py README.md
+        python scripts/infra/check_markdown_links.py README.md
 
     - name: Check documentation links
       run: |
-        python scripts/check_markdown_links.py docs
+        python scripts/infra/check_markdown_links.py docs
 
   deploy-docs:
     name: Deploy Documentation
