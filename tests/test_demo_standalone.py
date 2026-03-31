@@ -28,7 +28,7 @@ def test_demo_standalone_emits_markers_and_writes_proof_bundle():
         output = (result.stdout or "") + (result.stderr or "")
         assert result.returncode == 0, output
         assert "Execution boundary result: policy denied before any filesystem side effect" in output
-        assert f"Proof bundle written: {proof_bundle_path}" in output
+        assert "Proof bundle written: examples/demo_standalone_proof_bundle.json" in output
         assert "DEMO_RESULT=DENIED" in output
         assert "ACTION_EXECUTED=false" in output
         assert "AUDIT_STREAM_ID=demo-standalone-delete-outside-authorized-path" in output
