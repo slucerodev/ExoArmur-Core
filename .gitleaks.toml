@@ -24,8 +24,8 @@ paths = [
     "venv/",
     ".venv_clean_install/",
     
-    # Validation scripts with placeholder text (false positives)
-    "scripts/validation/",
+    # All scripts with placeholder text (false positives)
+    "scripts/",
 ]
 regexes = [
     "REDACTED",

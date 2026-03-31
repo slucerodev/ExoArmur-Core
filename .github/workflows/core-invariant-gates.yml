@@ -32,6 +32,8 @@ jobs:
           python3 -m pip install --no-deps -e .
 
       - name: Gate 1a — Verify locked runtime parity
+        env:
+          PYTHONHASHSEED: 0
         run: |
           python scripts/infra/verify_env_parity.py \
             --expected-python-version 3.12.3 \
