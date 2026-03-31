@@ -75,7 +75,7 @@ packageurl-python==0.17.6
 pip-api==0.0.34
 pip-audit==2.10.0
 pip-requirements-parser==32.0.1
-pygments==2.19.4
+pygments==2.20.0
 pyparsing==3.3.2
 py-serializable==2.1.0
 requests==2.33.0
