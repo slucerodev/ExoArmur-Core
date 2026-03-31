@@ -62,7 +62,7 @@ jobs:
         run: |
           echo "=== BEFORE PYTEST ==="
           git status --porcelain || true
-          python scripts/stability_ci.py \
+          python scripts/infra/stability_ci.py \
             --report-file "${RUNNER_TEMP}/stability-report.json" \
             --run-report-dir "${RUNNER_TEMP}/stability-runs"
           echo "=== AFTER PYTEST ==="
