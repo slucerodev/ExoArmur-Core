@@ -50,6 +50,7 @@ nats_data/
 # Local Artifacts and Runtime Files
 artifacts/*
 !artifacts/openapi_v1.json
+!artifacts/schemas/
 *.log
 *.tmp
 *.temp

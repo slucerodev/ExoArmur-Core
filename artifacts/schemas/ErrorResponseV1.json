@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "description": "Pydantic v2 schema for ErrorResponseV1 API response model",
+  "properties": {
+    "correlation_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Correlation ID if available",
+      "title": "Correlation Id"
+    },
+    "error": {
+      "description": "Error type",
+      "title": "Error",
+      "type": "string"
+    },
+    "message": {
+      "description": "Error message",
+      "title": "Message",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "When the error occurred",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "required": [
+    "error",
+    "message",
+    "timestamp"
+  ],
+  "title": "ExoArmur ADMO v1 API - ErrorResponseV1",
+  "type": "object"
+}
