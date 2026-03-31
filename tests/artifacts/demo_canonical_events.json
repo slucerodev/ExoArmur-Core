@@ -1,0 +1,62 @@
+[
+  {
+    "actor": "system",
+    "cell_id": "demo-cell-01",
+    "correlation_id": "demo-correlation-001",
+    "event_id": "01J4NR5X9Z8GABCDEF12345671",
+    "event_type": "telemetry_ingested",
+    "parent_event_id": null,
+    "payload": {
+      "kind": {
+        "ref": {
+          "event_id": "demo-event-001",
+          "source": "test"
+        }
+      }
+    },
+    "payload_hash": "525e7dea8f309f1da97452474043d7e2c1900bc9f9c3846f8db3f3dea2bd39c1",
+    "sequence_number": 0,
+    "tenant_id": "demo-tenant",
+    "trace_id": "demo-trace-001"
+  },
+  {
+    "actor": "system",
+    "cell_id": "demo-cell-01",
+    "correlation_id": "demo-correlation-001",
+    "event_id": "01J4NR5X9Z8GABCDEF12345672",
+    "event_type": "safety_gate_evaluated",
+    "parent_event_id": null,
+    "payload": {
+      "kind": {
+        "ref": {
+          "risk_score": "medium",
+          "verdict": "require_human"
+        }
+      }
+    },
+    "payload_hash": "d42de5f334717acdabc3abdaf2622ecbd971f40ee35214997e604e95a093c1cb",
+    "sequence_number": 1,
+    "tenant_id": "demo-tenant",
+    "trace_id": "demo-trace-001"
+  },
+  {
+    "actor": "system",
+    "cell_id": "demo-cell-01",
+    "correlation_id": "demo-correlation-001",
+    "event_id": "01J4NR5X9Z8GABCDEF12345673",
+    "event_type": "approval_requested",
+    "parent_event_id": null,
+    "payload": {
+      "kind": {
+        "ref": {
+          "approval_id": "demo-approval-001",
+          "operator": "demo-operator"
+        }
+      }
+    },
+    "payload_hash": "505b7d1ebf00f0d6a72fbcbd7453f30d504c8d514a4300a2816ccc478bb0a2c4",
+    "sequence_number": 2,
+    "tenant_id": "demo-tenant",
+    "trace_id": "demo-trace-001"
+  }
+]

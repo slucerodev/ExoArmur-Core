@@ -12,7 +12,8 @@ import click
 from tabulate import tabulate
 
 from .replay_engine import ReplayEngine, ReplayReport, ReplayResult
-from .canonical_utils import canonical_json, stable_hash
+from .canonical_utils import canonical_json, stable_hash, to_canonical_event
+from .event_envelope import CanonicalEvent
 
 
 @click.group()
@@ -42,9 +43,10 @@ def run(correlation_id: str, audit_store: str, output: str, verbose: bool):
     
     # Convert to AuditRecordV1 objects (simplified for CLI)
     audit_records = _convert_to_audit_records(audit_data.get(correlation_id, []))
+    canonical_events = _convert_to_canonical_events(audit_records)
     
     # Initialize replay engine
-    engine = ReplayEngine({correlation_id: audit_records})
+    engine = ReplayEngine({correlation_id: canonical_events})
     
     # Run replay
     click.echo(f"Running replay for correlation_id: {correlation_id}")
@@ -91,10 +93,10 @@ def envelope(audit_file: str, output: str):
     
     if output:
         with open(output, 'w') as f:
-            json.dump(envelopes, f, indent=2)
+            json.dump(envelopes, f, indent=2, sort_keys=True)
         click.echo(f"Envelopes saved to: {output}")
     else:
-        click.echo(json.dumps(envelopes, indent=2))
+        click.echo(json.dumps(envelopes, indent=2, sort_keys=True))
 
 
 @replay.command()
@@ -146,6 +148,16 @@ def _convert_to_audit_records(records_data: List[Dict[str, Any]]) -> List['Audit
             click.echo(f"Warning: Failed to convert audit record: {e}")
     
     return records
+
+
+def _convert_to_canonical_events(audit_records: List['AuditRecordV1']) -> List[CanonicalEvent]:
+    """Convert simplified audit records to canonical replay events."""
+    canonical_events = []
+
+    for sequence_number, record in enumerate(audit_records):
+        canonical_events.append(CanonicalEvent(**to_canonical_event(record, sequence_number=sequence_number)))
+
+    return canonical_events
 
 
 def _display_report(report: ReplayReport, verbose: bool):

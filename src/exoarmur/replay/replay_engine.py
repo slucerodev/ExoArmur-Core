@@ -5,25 +5,23 @@ Reconstructs and verifies organism behavior from audit logs
 
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-from .event_envelope import AuditEventEnvelope, EnvelopeValidationError
-from .canonical_utils import canonical_json, stable_hash, verify_canonical_hash
-from exoarmur.clock import utc_now
+from .event_envelope import CanonicalEvent, EnvelopeValidationError
 
 # Import system components for reconstruction
 import sys
 import os
-from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
+from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1, BeliefV1, ExecutionIntentV1
 
 logger = logging.getLogger(__name__)
 
 
-def _deterministic_replay_timestamp() -> datetime:
-    return utc_now()
+def _canonical_replay_timestamp() -> datetime:
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class ReplayResult(Enum):
@@ -38,7 +36,7 @@ class ReplayReport:
     """Comprehensive replay execution report"""
     
     correlation_id: str
-    replay_timestamp: datetime = field(default_factory=utc_now)
+    replay_timestamp: datetime = field(default_factory=_canonical_replay_timestamp)
     result: ReplayResult = ReplayResult.SUCCESS
     
     # Event processing metrics
@@ -72,19 +70,52 @@ class ReplayReport:
         if self.result == ReplayResult.SUCCESS:
             self.result = ReplayResult.PARTIAL
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize report deterministically for replay comparisons."""
+
+        def _serialize_value(value: Any) -> Any:
+            if hasattr(value, "model_dump"):
+                return value.model_dump(mode="json")
+            if hasattr(value, "dict"):
+                return value.dict()
+            return value
+
+        return {
+            "correlation_id": self.correlation_id,
+            "replay_timestamp": self.replay_timestamp.isoformat().replace("+00:00", "Z"),
+            "result": self.result.value,
+            "total_events": self.total_events,
+            "processed_events": self.processed_events,
+            "failed_events": self.failed_events,
+            "intent_hash_verified": self.intent_hash_verified,
+            "safety_gate_verified": self.safety_gate_verified,
+            "audit_integrity_verified": self.audit_integrity_verified,
+            "reconstructed_intents": {
+                key: _serialize_value(value)
+                for key, value in self.reconstructed_intents.items()
+            },
+            "reconstructed_decisions": {
+                key: _serialize_value(value)
+                for key, value in self.reconstructed_decisions.items()
+            },
+            "safety_gate_verdicts": dict(self.safety_gate_verdicts),
+            "failures": list(self.failures),
+            "warnings": list(self.warnings),
+        }
+
 
 class ReplayEngine:
     """Deterministic audit replay engine"""
     
     def __init__(self, 
-                 audit_store: Dict[str, List[AuditRecordV1]],
+                 audit_store: Dict[str, List[CanonicalEvent]],
                  intent_store: Optional['IntentStore'] = None,
                  approval_service: Optional['ApprovalService'] = None):
         """
         Initialize replay engine
         
         Args:
-            audit_store: Audit record storage by correlation_id
+            audit_store: Canonical replay event storage by correlation_id
             intent_store: Intent store for verification
             approval_service: Approval service for verification
         """
@@ -105,14 +136,16 @@ class ReplayEngine:
         """
         report = ReplayReport(correlation_id=correlation_id)
         
+        # Step 1: Retrieve and validate canonical replay events
+        audit_records = self.audit_store.get(correlation_id, [])
+        if not audit_records:
+            report.add_failure(f"No audit records found for correlation_id: {correlation_id}")
+            return report
+
+        self._validate_canonical_inputs(audit_records, correlation_id)
+
         try:
-            # Step 1: Retrieve and validate audit events
-            audit_records = self.audit_store.get(correlation_id, [])
-            if not audit_records:
-                report.add_failure(f"No audit records found for correlation_id: {correlation_id}")
-                return report
-            
-            # Step 2: Convert to envelopes and sort deterministically
+            # Step 2: Validate canonical events and sort deterministically
             envelopes = self._create_envelopes(audit_records, report)
             if not envelopes:
                 report.add_failure("No valid envelopes created from audit records")
@@ -140,26 +173,29 @@ class ReplayEngine:
         return report
     
     def _create_envelopes(self, 
-                         audit_records: List[AuditRecordV1], 
-                         report: ReplayReport) -> List[AuditEventEnvelope]:
-        """Convert audit records to envelopes with validation"""
+                         audit_records: List[CanonicalEvent], 
+                         report: ReplayReport) -> List[CanonicalEvent]:
+        """Validate canonical replay events and preserve deterministic ordering."""
         envelopes = []
         
-        for i, record in enumerate(audit_records):
-            try:
-                envelope = AuditEventEnvelope.from_audit_record(record, sequence_number=i)
-                
-                # Verify payload integrity
-                if not envelope.verify_payload_integrity():
-                    report.add_failure(f"Payload integrity check failed for event {record.event_id}")
-                    continue
-                
-                envelopes.append(envelope)
-                
-            except Exception as e:
-                report.add_failure(f"Failed to create envelope for record {record.event_id}: {e}")
+        for record in audit_records:
+            # Verify payload integrity
+            if not record.verify_payload_integrity():
+                report.add_failure(f"Payload integrity check failed for event {record.event_id}")
+                continue
+
+            envelopes.append(record)
         
         return envelopes
+
+    def _validate_canonical_inputs(self, audit_records: List[Any], correlation_id: str) -> None:
+        """Reject raw audit/event objects before replay begins."""
+        for index, record in enumerate(audit_records):
+            if not isinstance(record, CanonicalEvent):
+                raise EnvelopeValidationError(
+                    "ReplayEngine requires CanonicalEvent inputs only; "
+                    f"got {type(record).__name__} at index {index} for correlation_id {correlation_id}"
+                )
 
     def _extract_payload_ref(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(payload, dict):
@@ -185,8 +221,8 @@ class ReplayEngine:
 
         ref = payload.get("ref", {})
         return ref if isinstance(ref, dict) else {}
-    
-    def _process_envelope(self, envelope: AuditEventEnvelope, report: ReplayReport):
+
+    def _process_envelope(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process individual envelope based on event type"""
         event_type = envelope.event_type
         
@@ -213,7 +249,7 @@ class ReplayEngine:
         else:
             report.add_warning(f"Unknown event type: {event_type}")
 
-    def _process_telemetry_ingested(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_telemetry_ingested(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process telemetry ingestion event"""
         # Reconstruct telemetry event from payload
         try:
@@ -234,7 +270,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process telemetry ingestion: {e}")
 
-    def _process_belief_creation_started(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_belief_creation_started(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process belief creation start event"""
         try:
             belief_data = self._extract_payload_ref(envelope.payload)
@@ -251,7 +287,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process belief creation start: {e}")
 
-    def _process_belief_created(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_belief_created(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process belief creation event"""
         try:
             belief_data = self._extract_payload_ref(envelope.payload)
@@ -269,7 +305,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process belief creation: {e}")
 
-    def _process_intent_created(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_intent_created(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process intent creation event"""
         try:
             intent_data = self._extract_payload_ref(envelope.payload)
@@ -287,7 +323,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process intent creation: {e}")
 
-    def _process_safety_gate_evaluated(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_safety_gate_evaluated(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process safety gate evaluation event"""
         try:
             verdict_data = self._extract_payload_ref(envelope.payload)
@@ -310,7 +346,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process safety gate evaluation: {e}")
 
-    def _process_approval_requested(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_approval_requested(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process approval request event"""
         try:
             approval_data = self._extract_payload_ref(envelope.payload)
@@ -328,7 +364,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process approval request: {e}")
 
-    def _process_approval_denied(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_approval_denied(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process approval denial event"""
         try:
             approval_data = self._extract_payload_ref(envelope.payload)
@@ -346,7 +382,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process approval denial: {e}")
 
-    def _process_approval_bound_to_intent(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_approval_bound_to_intent(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process approval-intent binding event"""
         try:
             binding_data = self._extract_payload_ref(envelope.payload)
@@ -381,7 +417,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process intent binding: {e}")
     
-    def _process_intent_executed(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_intent_executed(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process intent execution event"""
         try:
             execution_data = self._extract_payload_ref(envelope.payload)
@@ -419,7 +455,7 @@ class ReplayEngine:
         except Exception as e:
             report.add_failure(f"Failed to process intent execution: {e}")
     
-    def _process_intent_denied(self, envelope: AuditEventEnvelope, report: ReplayReport):
+    def _process_intent_denied(self, envelope: CanonicalEvent, report: ReplayReport):
         """Process intent denial event"""
         try:
             denial_data = self._extract_payload_ref(envelope.payload)

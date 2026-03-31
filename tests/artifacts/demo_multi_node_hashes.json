@@ -1,0 +1,16 @@
+{
+  "consensus_nodes": [
+    "node-1",
+    "node-2",
+    "node-3"
+  ],
+  "consensus_result": "consensus",
+  "divergent_nodes": [],
+  "has_divergence": false,
+  "node_count": 3,
+  "node_hashes": {
+    "node-1": "bbac0438e53b9e25c45e57853be99c4381eff1cd4ac10db904ba8f06440623c4",
+    "node-2": "bbac0438e53b9e25c45e57853be99c4381eff1cd4ac10db904ba8f06440623c4",
+    "node-3": "bbac0438e53b9e25c45e57853be99c4381eff1cd4ac10db904ba8f06440623c4"
+  }
+}

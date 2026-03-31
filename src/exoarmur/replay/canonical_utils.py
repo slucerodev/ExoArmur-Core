@@ -6,7 +6,7 @@ Ensures deterministic representation for replay verification
 import json
 import hashlib
 import logging
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,47 @@ def stable_hash(data: str) -> str:
         raise ValueError(f"Data must be string, got {type(data)}")
     
     return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+
+def _extract_record_value(record: Any, key: str, default: Any = None) -> Any:
+    if isinstance(record, dict):
+        return record.get(key, default)
+    return getattr(record, key, default)
+
+
+def to_canonical_event(audit_record: Any, sequence_number: Optional[int] = None) -> Dict[str, Any]:
+    """Project an audit record into a canonical replay event.
+
+    The projection intentionally excludes wall-clock metadata such as
+    ``recorded_at`` so replay output stays byte-for-byte stable across runs.
+    """
+
+    payload = _extract_record_value(audit_record, "payload_ref", _extract_record_value(audit_record, "payload", {}))
+    if payload is None:
+        payload = {}
+
+    if isinstance(payload, (dict, list)):
+        canonical_payload = json.loads(canonical_json(payload))
+    else:
+        canonical_payload = payload
+
+    event_id = _extract_record_value(audit_record, "audit_id", _extract_record_value(audit_record, "event_id", ""))
+    event_type = _extract_record_value(audit_record, "event_kind", _extract_record_value(audit_record, "event_type", ""))
+    actor = _extract_record_value(audit_record, "actor", "system") or "system"
+
+    return {
+        "event_id": event_id,
+        "event_type": event_type,
+        "actor": actor,
+        "correlation_id": _extract_record_value(audit_record, "correlation_id", ""),
+        "payload": canonical_payload,
+        "payload_hash": stable_hash(canonical_json(canonical_payload)),
+        "sequence_number": sequence_number,
+        "parent_event_id": _extract_record_value(audit_record, "parent_event_id", None),
+        "cell_id": _extract_record_value(audit_record, "cell_id", ""),
+        "tenant_id": _extract_record_value(audit_record, "tenant_id", ""),
+        "trace_id": _extract_record_value(audit_record, "trace_id", ""),
+    }
 
 
 def verify_canonical_hash(original_data: Any, expected_hash: str) -> bool:

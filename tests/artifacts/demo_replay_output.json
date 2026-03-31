@@ -1,0 +1,18 @@
+{
+  "audit_integrity_verified": false,
+  "correlation_id": "demo-correlation-001",
+  "failed_events": 1,
+  "failures": [
+    "Telemetry missing required field: correlation_id"
+  ],
+  "intent_hash_verified": true,
+  "processed_events": 3,
+  "reconstructed_decisions": 0,
+  "reconstructed_intents": 0,
+  "replay_timestamp": "1970-01-01T00:00:00+00:00",
+  "result": "failure",
+  "safety_gate_verdicts": 1,
+  "safety_gate_verified": true,
+  "total_events": 3,
+  "warnings": []
+}

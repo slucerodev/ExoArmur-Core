@@ -1,0 +1,18 @@
+{
+  "clean": {
+    "baseline_hash": "b1159db30f51dfd69a03ec3a17677fb96c0977af0a9f72edeb5259993a196d8c",
+    "consensus_result": "consensus",
+    "divergent_nodes": 0,
+    "has_divergence": false,
+    "node_count": 3,
+    "scenario": "clean"
+  },
+  "single_node": {
+    "baseline_hash": "b1159db30f51dfd69a03ec3a17677fb96c0977af0a9f72edeb5259993a196d8c",
+    "consensus_result": "divergence",
+    "divergent_nodes": 1,
+    "has_divergence": true,
+    "node_count": 3,
+    "scenario": "single_node"
+  }
+}

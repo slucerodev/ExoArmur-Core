@@ -1,0 +1,27 @@
+{
+  "artifacts": {
+    "demo_byzantine_results.json": {
+      "file_path": "tests/artifacts/demo_byzantine_results.json",
+      "sha256": "77026a249b14d4f5e835b761955819081aff4f438e3d34d0bff59c77136449ad",
+      "size": 502
+    },
+    "demo_canonical_events.json": {
+      "file_path": "tests/artifacts/demo_canonical_events.json",
+      "sha256": "2abd85dcdec648f1a328094abcad7aeec9d23677c2194f75b7fac15313c77499",
+      "size": 1661
+    },
+    "demo_multi_node_hashes.json": {
+      "file_path": "tests/artifacts/demo_multi_node_hashes.json",
+      "sha256": "41041f49ff80496c5a745d2e81e471ee8864b9513e67234bce57392d1c86cdfd",
+      "size": 446
+    },
+    "demo_replay_output.json": {
+      "file_path": "tests/artifacts/demo_replay_output.json",
+      "sha256": "bcc6406a2ac6fd6b6eb4dc00e64e23e9847c1535873b11a59a0d0b7087a55a19",
+      "size": 474
+    }
+  },
+  "generated_at": "2026-03-30T21:29:19.904144+00:00",
+  "python_hash_seed": "0",
+  "version": "1.0.0"
+}

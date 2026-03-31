@@ -14,6 +14,10 @@ from .canonical_utils import canonical_json, stable_hash
 logger = logging.getLogger(__name__)
 
 
+def _canonical_replay_timestamp() -> datetime:
+    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
 class EventTypePriority(Enum):
     """Event type priority for deterministic ordering"""
     TELEMETRY_INGESTED = 1
@@ -33,6 +37,77 @@ class EventTypePriority(Enum):
         except KeyError:
             logger.warning(f"Unknown event type: {event_type}, using default priority")
             return 999
+
+
+@dataclass(frozen=True)
+class CanonicalEvent:
+    """Canonical replay event with no wall-clock fields."""
+
+    event_id: str
+    event_type: str
+    actor: str
+    correlation_id: str
+
+    payload: Dict[str, Any]
+    payload_hash: str
+
+    sequence_number: Optional[int] = None
+    parent_event_id: Optional[str] = None
+
+    cell_id: str = ""
+    tenant_id: str = ""
+    trace_id: str = ""
+
+    def __post_init__(self):
+        if not self.payload_hash:
+            canonical_payload = canonical_json(self.payload)
+            computed_hash = stable_hash(canonical_payload)
+            object.__setattr__(self, 'payload_hash', computed_hash)
+
+    @property
+    def priority(self) -> int:
+        """Get event type priority for ordering"""
+        return EventTypePriority.get_priority(self.event_type)
+
+    @property
+    def ordering_key(self) -> tuple:
+        """
+        Deterministic ordering key for canonical replay events
+
+        Ordering: (priority, event_id, sequence_number)
+        Ensures stable ordering without wall-clock timestamps.
+        """
+        return (
+            self.priority,
+            self.event_id,
+            self.sequence_number or 0,
+        )
+
+    def verify_payload_integrity(self) -> bool:
+        """Verify that payload matches stored hash"""
+        try:
+            canonical_payload = canonical_json(self.payload)
+            computed_hash = stable_hash(canonical_payload)
+            return computed_hash == self.payload_hash
+        except Exception as e:
+            logger.error(f"Payload integrity verification failed: {e}")
+            return False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert canonical event to dictionary for serialization"""
+        return {
+            'event_id': self.event_id,
+            'event_type': self.event_type,
+            'actor': self.actor,
+            'correlation_id': self.correlation_id,
+            'payload': self.payload,
+            'payload_hash': self.payload_hash,
+            'sequence_number': self.sequence_number,
+            'parent_event_id': self.parent_event_id,
+            'cell_id': self.cell_id,
+            'tenant_id': self.tenant_id,
+            'trace_id': self.trace_id,
+        }
 
 
 @dataclass(frozen=True)
@@ -125,7 +200,7 @@ class AuditEventEnvelope:
         """Create envelope from existing audit record"""
         return cls(
             event_id=audit_record.audit_id,
-            timestamp=audit_record.recorded_at,
+            timestamp=_canonical_replay_timestamp(),
             event_type=audit_record.event_kind,
             actor="system",  # Default actor since AuditRecordV1 doesn't have actor field
             correlation_id=audit_record.correlation_id,

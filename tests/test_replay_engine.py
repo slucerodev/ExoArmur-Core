@@ -5,10 +5,11 @@ Tests for deterministic audit replay system
 import json
 import pytest
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Dict, List, Any
 
-from exoarmur.replay.canonical_utils import canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError
-from exoarmur.replay.event_envelope import AuditEventEnvelope, EventTypePriority, EnvelopeValidationError
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError, to_canonical_event
+from exoarmur.replay.event_envelope import AuditEventEnvelope, CanonicalEvent, EventTypePriority, EnvelopeValidationError
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport, ReplayResult, ReplayEngineError
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.control_plane.approval_service import ApprovalService
@@ -100,6 +101,49 @@ class TestCanonicalUtils:
             canonical_json(data)
 
 
+class TestReplayGuardrails:
+    """Test replay-module hardening invariants"""
+
+    def test_replay_modules_do_not_use_wall_clock_apis(self):
+        """Replay modules must not use wall-clock APIs."""
+        replay_root = Path(__file__).resolve().parents[1] / "src" / "exoarmur" / "replay"
+        forbidden_terms = ("datetime.utcnow", "datetime.now", "time.time")
+        violations = []
+
+        for path in sorted(replay_root.rglob("*.py")):
+            text = path.read_text()
+            for term in forbidden_terms:
+                if term in text:
+                    violations.append(f"{path}:{term}")
+
+        assert not violations, "Replay modules must not use wall-clock APIs:\n" + "\n".join(violations)
+
+    def test_to_canonical_event_strips_recorded_at(self):
+        """Test canonical replay projection removes wall-clock fields."""
+        record = AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id="01J4NR5X9Z8GABCDEF12345670",
+            tenant_id="tenant-1",
+            cell_id="cell-1",
+            idempotency_key="key-1",
+            recorded_at=datetime.now(timezone.utc),
+            event_kind="approval_requested",
+            payload_ref={"kind": {"ref": {"approval_id": "approval-123"}}},
+            hashes={"sha256": "hash0", "upstream_hashes": []},
+            correlation_id="test-corr",
+            trace_id="trace-1"
+        )
+
+        canonical_event = to_canonical_event(record, sequence_number=2)
+
+        assert "recorded_at" not in canonical_event
+        assert "timestamp" not in canonical_event
+        assert canonical_event["event_id"] == "01J4NR5X9Z8GABCDEF12345670"
+        assert canonical_event["event_type"] == "approval_requested"
+        assert canonical_event["payload"]["kind"]["ref"]["approval_id"] == "approval-123"
+        assert canonical_event["sequence_number"] == 2
+
+
 class TestAuditEventEnvelope:
     """Test audit event envelope functionality"""
     
@@ -139,6 +183,23 @@ class TestAuditEventEnvelope:
         assert ordering_key[1] == EventTypePriority.SAFETY_GATE_EVALUATED.value
         assert ordering_key[2] == "test-event-1"
         assert ordering_key[3] == 0  # default sequence number
+
+    def test_canonical_event_ordering_key(self):
+        """Test canonical replay ordering key omits wall-clock timestamps"""
+        event = CanonicalEvent(
+            event_id="test-event-1",
+            event_type="safety_gate_evaluated",
+            actor="system",
+            correlation_id="corr-123",
+            payload={"test": "data"},
+            payload_hash=""
+        )
+
+        ordering_key = event.ordering_key
+        assert len(ordering_key) == 3
+        assert ordering_key[0] == EventTypePriority.SAFETY_GATE_EVALUATED.value
+        assert ordering_key[1] == "test-event-1"
+        assert ordering_key[2] == 0
     
     def test_event_type_priority_unknown(self):
         """Test priority for unknown event type"""
@@ -246,6 +307,14 @@ class TestReplayEngine:
         ]
         
         return records
+
+    @pytest.fixture
+    def sample_canonical_events(self, sample_audit_records):
+        """Create sample canonical replay events for testing"""
+        return [
+            CanonicalEvent(**to_canonical_event(record, sequence_number=index))
+            for index, record in enumerate(sample_audit_records)
+        ]
     
     @pytest.fixture
     def replay_engine(self):
@@ -256,10 +325,10 @@ class TestReplayEngine:
         
         return ReplayEngine(audit_store, intent_store, approval_service)
     
-    def test_replay_success(self, replay_engine, sample_audit_records):
+    def test_replay_success(self, replay_engine, sample_canonical_events):
         """Test successful replay"""
         correlation_id = "test-corr"
-        replay_engine.audit_store[correlation_id] = sample_audit_records
+        replay_engine.audit_store[correlation_id] = sample_canonical_events
         
         report = replay_engine.replay_correlation(correlation_id)
         
@@ -269,6 +338,30 @@ class TestReplayEngine:
         assert report.failed_events == 0
         assert report.audit_integrity_verified is True
         assert len(report.failures) == 0
+
+    def test_replay_report_serialization_is_byte_stable(self, replay_engine, sample_canonical_events):
+        """Test replay output hashes are byte-stable across runs"""
+        correlation_id = "test-corr"
+        replay_engine.audit_store[correlation_id] = sample_canonical_events
+
+        first_report = replay_engine.replay_correlation(correlation_id)
+        second_report = replay_engine.replay_correlation(correlation_id)
+
+        first_serialized = canonical_json(first_report.to_dict())
+        second_serialized = canonical_json(second_report.to_dict())
+        first_hash = stable_hash(first_serialized)
+        second_hash = stable_hash(second_serialized)
+
+        assert first_serialized == second_serialized
+        assert first_hash == second_hash
+
+    def test_replay_rejects_raw_audit_records(self, replay_engine, sample_audit_records):
+        """Test replay engine rejects raw audit records."""
+        correlation_id = "test-corr"
+        replay_engine.audit_store[correlation_id] = sample_audit_records
+
+        with pytest.raises(EnvelopeValidationError, match="CanonicalEvent inputs only"):
+            replay_engine.replay_correlation(correlation_id)
     
     def test_replay_no_audit_records(self, replay_engine):
         """Test replay with no audit records"""
@@ -296,8 +389,8 @@ class TestReplayEngine:
             correlation_id="test-corr",
             trace_id="trace-1"
         )
-        
-        replay_engine.audit_store["test-corr"] = [corrupted_record]
+
+        replay_engine.audit_store["test-corr"] = [CanonicalEvent(**to_canonical_event(corrupted_record))]
         
         report = replay_engine.replay_correlation("test-corr")
         
@@ -309,7 +402,7 @@ class TestReplayEngine:
         base_time = datetime.now(timezone.utc)
         
         # Create events with same timestamp but different priorities
-        records = [
+        raw_records = [
             AuditRecordV1(
                 schema_version="1.0.0",
                 audit_id="01J4NR5X9Z8GABCDEF12345675",
@@ -337,16 +430,23 @@ class TestReplayEngine:
                 trace_id="trace-1"
             )
         ]
+
+        records = [
+            CanonicalEvent(**to_canonical_event(record, sequence_number=index))
+            for index, record in enumerate(raw_records)
+        ]
         
         replay_engine.audit_store["test-corr"] = records
         
         report = replay_engine.replay_correlation("test-corr")
         
         assert report.result == ReplayResult.SUCCESS
-        # High priority event should be processed first
-        # (this would be verified by checking processing order in actual implementation)
+        assert [event.event_type for event in sorted(records, key=lambda event: event.ordering_key)] == [
+            "telemetry_ingested",
+            "intent_denied",
+        ]
     
-    def test_reconstruct_intent_hash_from_audit(self, replay_engine, sample_audit_records):
+    def test_reconstruct_intent_hash_from_audit(self, replay_engine, sample_canonical_events):
         """Test reconstructing intent hash from audit events"""
         # Add intent binding event
         binding_record = AuditRecordV1(
@@ -362,8 +462,9 @@ class TestReplayEngine:
             correlation_id="test-corr",
             trace_id="trace-1"
         )
-        
-        records = sample_audit_records + [binding_record]
+
+        binding_event = CanonicalEvent(**to_canonical_event(binding_record))
+        records = sample_canonical_events + [binding_event]
         replay_engine.audit_store["test-corr"] = records
         
         # Mock intent store to return intent
@@ -391,7 +492,7 @@ class TestReplayEngine:
         assert report.result == ReplayResult.SUCCESS
         assert "approval-123" in report.reconstructed_intents
     
-    def test_replay_fails_if_intent_store_missing_referenced_intent(self, replay_engine, sample_audit_records):
+    def test_replay_fails_if_intent_store_missing_referenced_intent(self, replay_engine, sample_canonical_events):
         """Test replay failure when intent store missing referenced intent"""
         # Add intent binding event without corresponding intent in store
         binding_record = AuditRecordV1(
@@ -408,7 +509,8 @@ class TestReplayEngine:
             trace_id="trace-1"
         )
         
-        records = sample_audit_records + [binding_record]
+        binding_event = CanonicalEvent(**to_canonical_event(binding_record))
+        records = sample_canonical_events + [binding_event]
         replay_engine.audit_store["test-corr"] = records
         
         # Intent store is empty, should still succeed but without intent reconstruction
