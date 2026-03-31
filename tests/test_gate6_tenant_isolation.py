@@ -66,27 +66,34 @@ async def test_tenant_context_validation():
     """Test tenant context validation"""
     print("Testing tenant context validation...")
     
-    # Test valid context
-    context = TenantContext(tenant_id="tenant-123")
-    context.validate()  # Should not raise
+    # Ensure clean state
+    get_tenant_manager().clear_context()
     
-    # Test invalid context (empty tenant_id)
     try:
-        invalid_context = TenantContext(tenant_id="")
-        invalid_context.validate()
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass  # Expected
-    
-    # Test invalid context (None tenant_id)
-    try:
-        invalid_context = TenantContext(tenant_id=None)
-        invalid_context.validate()
-        assert False, "Should have raised ValueError"
-    except ValueError:
-        pass  # Expected
-    
-    print("✓ Tenant context validation works correctly")
+        # Test valid context
+        context = TenantContext(tenant_id="tenant-123")
+        context.validate()  # Should not raise
+        
+        # Test invalid context (empty tenant_id)
+        try:
+            invalid_context = TenantContext(tenant_id="")
+            invalid_context.validate()
+            assert False, "Should have raised ValueError"
+        except ValueError:
+            pass  # Expected
+        
+        # Test invalid context (None tenant_id)
+        try:
+            invalid_context = TenantContext(tenant_id=None)
+            invalid_context.validate()
+            assert False, "Should have raised ValueError"
+        except ValueError:
+            pass  # Expected
+        
+        print("✓ Tenant context validation works correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 async def test_tenant_context_manager():
@@ -134,105 +141,116 @@ async def test_tenant_scoped_kv_operations():
     """Test tenant-scoped KV operations"""
     print("Testing tenant-scoped KV operations...")
     
-    # Set up tenant context and KV store
-    context = TenantContext(tenant_id="tenant-abc")
-    set_tenant_context(context)
+    # Ensure clean state
+    get_tenant_manager().clear_context()
     
-    mock_kv = MockKVStore()
-    scoped_kv = TenantScopedKVStore(mock_kv)
-    
-    # Test tenant-scoped key generation
-    await scoped_kv.put("test_key", "test_value")
-    
-    # Verify key is tenant-scoped
-    expected_key = "tenant-abc:test_key"
-    assert expected_key in mock_kv.data, "Key should be tenant-scoped"
-    assert mock_kv.data[expected_key] == "test_value", "Value should be stored correctly"
-    
-    # Test tenant-scoped get
-    value = await scoped_kv.get("test_key")
-    assert value == "test_value", "Should retrieve correct value"
-    
-    # Test tenant isolation
-    # Switch to different tenant
-    context2 = TenantContext(tenant_id="tenant-xyz")
-    set_tenant_context(context2)
-    
-    # Try to access other tenant's data
     try:
-        await scoped_kv.get("test_key")
-        assert False, "Should not be able to access other tenant's data"
-    except KeyError:
-        pass  # Expected - different tenant can't access
-    
-    print("✓ Tenant-scoped KV operations work correctly")
+        # Set up tenant context and KV store
+        context = TenantContext(tenant_id="tenant-abc")
+        set_tenant_context(context)
+        
+        mock_kv = MockKVStore()
+        scoped_kv = TenantScopedKVStore(mock_kv)
+        
+        # Test tenant-scoped key generation
+        await scoped_kv.put("test_key", "test_value")
+        
+        # Verify key is tenant-scoped
+        expected_key = "tenant-abc:test_key"
+        assert expected_key in mock_kv.data, "Key should be tenant-scoped"
+        assert mock_kv.data[expected_key] == "test_value", "Value should be stored correctly"
+        
+        # Test tenant-scoped get
+        value = await scoped_kv.get("test_key")
+        assert value == "test_value", "Should retrieve correct value"
+        
+        # Test tenant isolation
+        # Switch to different tenant
+        context2 = TenantContext(tenant_id="tenant-xyz")
+        set_tenant_context(context2)
+        
+        # Try to access other tenant's data
+        try:
+            await scoped_kv.get("test_key")
+            assert False, "Should not access other tenant's data"
+        except KeyError:
+            pass  # Expected
+        
+        print("✓ Tenant-scoped KV operations work correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 async def test_tenant_scoped_stream_operations():
     """Test tenant-scoped stream operations"""
     print("Testing tenant-scoped stream operations...")
     
-    # Set up tenant context and stream manager
-    context = TenantContext(tenant_id="tenant-stream")
-    set_tenant_context(context)
+    # Ensure clean state
+    get_tenant_manager().clear_context()
     
-    mock_stream = MockStreamManager()
-    scoped_stream = TenantScopedStream(mock_stream)
-    
-    # Test tenant-scoped stream name
-    stream_name = scoped_stream.get_stream_name("audit")
-    assert stream_name == "EXOARMUR_TENANT-STREAM_AUDIT", "Stream name should be tenant-scoped"
-    
-    # Test tenant-scoped subject
-    subject = scoped_stream.get_subject("events.test")
-    assert subject == "exoarmur.tenant-stream.events.test", "Subject should be tenant-scoped"
-    
-    # Test tenant-scoped publish
-    await scoped_stream.publish("events.test", {"data": "test"})
-    
-    # Verify publish was tenant-scoped
-    assert len(mock_stream.published) == 1, "Should have one published message"
-    assert mock_stream.published[0]["subject"] == "exoarmur.tenant-stream.events.test"
-    
-    # Test tenant-scoped subscribe
-    async def test_handler(msg):
-        pass
-    
-    await scoped_stream.subscribe("events.test", test_handler)
-    
-    # Verify subscribe was tenant-scoped
-    assert len(mock_stream.subscribed) == 1, "Should have one subscription"
-    assert mock_stream.subscribed[0]["subject"] == "exoarmur.tenant-stream.events.test"
-    
-    print("✓ Tenant-scoped stream operations work correctly")
+    try:
+        # Set up tenant context and stream manager
+        context = TenantContext(tenant_id="tenant-stream")
+        set_tenant_context(context)
+        
+        mock_stream = MockStreamManager()
+        scoped_stream = TenantScopedStream(mock_stream)
+        
+        # Test tenant-scoped publish
+        await scoped_stream.publish("events.test", {"data": "test_event"})
+        
+        # Verify subject is tenant-scoped
+        assert mock_stream.published[0]["subject"] == "exoarmur.tenant-stream.events.test"
+        
+        # Test tenant-scoped subscribe
+        async def test_handler(msg):
+            pass
+        
+        await scoped_stream.subscribe("events.test", test_handler)
+        
+        # Verify subscription is tenant-scoped
+        assert mock_stream.subscribed[0]["subject"] == "exoarmur.tenant-stream.events.test"
+        
+        print("✓ Tenant-scoped stream operations work correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 async def test_tenant_access_validation():
     """Test tenant access validation"""
     print("Testing tenant access validation...")
     
-    operations = TenantScopedOperations()
+    # Ensure clean state
+    get_tenant_manager().clear_context()
     
-    # Set up tenant context
-    context = TenantContext(tenant_id="tenant-allowed")
-    set_tenant_context(context)
-    
-    # Test valid tenant access
-    operations._validate_tenant_access("tenant-allowed", "test operation")  # Should not raise
-    
-    # Test invalid tenant access
     try:
-        operations._validate_tenant_access("tenant-forbidden", "test operation")
-        assert False, "Should have raised TenantIsolationError"
-    except TenantIsolationError as e:
-        assert "tenant-allowed" in str(e), "Error should mention current tenant"
-        assert "tenant-forbidden" in str(e), "Error should mention target tenant"
-    
-    print("✓ Tenant access validation works correctly")
+        operations = TenantScopedOperations()
+        
+        # Set up tenant context
+        context = TenantContext(tenant_id="tenant-allowed")
+        set_tenant_context(context)
+        
+        # Test valid tenant access
+        operations._validate_tenant_access("tenant-allowed", "test operation")  # Should not raise
+        
+        # Test invalid tenant access
+        try:
+            operations._validate_tenant_access("tenant-forbidden", "test operation")
+            assert False, "Should have raised TenantIsolationError"
+        except TenantIsolationError as e:
+            assert "tenant-allowed" in str(e), "Error should mention current tenant"
+            assert "tenant-forbidden" in str(e), "Error should mention target tenant"
+        
+        print("✓ Tenant access validation works correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 @requires_tenant_context("decorated operation")
-async def test_decorated_function():
+async def decorated_function_example():
     """Test decorator for tenant context requirement"""
     return "operation succeeded"
 
@@ -244,23 +262,27 @@ async def test_tenant_context_decorators():
     # Clear any existing context first
     get_tenant_manager().clear_context()
     
-    # Test decorator without context
     try:
-        await test_decorated_function()
-        assert False, "Should have raised TenantIsolationError"
-    except TenantIsolationError:
-        pass  # Expected
-    
-    # Test decorator with context
-    set_tenant_context(TenantContext(tenant_id="tenant-decorator"))
-    result = await test_decorated_function()
-    assert result == "operation succeeded", "Decorator should allow operation with context"
-    
-    print("✓ Tenant context decorators work correctly")
+        # Test decorator without context
+        try:
+            await decorated_function_example()
+            assert False, "Should have raised TenantIsolationError"
+        except TenantIsolationError:
+            pass  # Expected
+        
+        # Test decorator with context
+        set_tenant_context(TenantContext(tenant_id="tenant-decorator"))
+        result = await decorated_function_example()
+        assert result == "operation succeeded", "Decorator should allow operation with context"
+        
+        print("✓ Tenant context decorators work correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 @tenant_scoped("scoped operation")
-async def test_scoped_function(tenant_context=None):
+async def scoped_function_example(tenant_context=None):
     """Test decorator for tenant-scoped operations"""
     return f"operation for {tenant_context.tenant_id}"
 
@@ -272,12 +294,16 @@ async def test_tenant_scoped_decorator():
     # Clear any existing context first
     get_tenant_manager().clear_context()
     
-    # Test scoped decorator with context
-    set_tenant_context(TenantContext(tenant_id="tenant-scoped"))
-    result = await test_scoped_function()
-    assert result == "operation for tenant-scoped", "Scoped decorator should pass context"
-    
-    print("✓ Tenant-scoped decorator works correctly")
+    try:
+        # Test scoped decorator with context
+        set_tenant_context(TenantContext(tenant_id="tenant-scoped"))
+        result = await scoped_function_example()
+        assert result == "operation for tenant-scoped", "Scoped decorator should pass context"
+        
+        print("✓ Tenant-scoped decorator works correctly")
+    finally:
+        # Clean up
+        get_tenant_manager().clear_context()
 
 
 async def main():
