@@ -3,9 +3,9 @@ title = "ExoArmur Gitleaks Configuration"
 [extend]
 useDefault = true
 
-# Exclude only generated/local artifacts that are never committed
-[[allowlist]]
-description = "Exclude generated artifacts, runtime state, and validation scripts with placeholder text"
+# Exclude generated artifacts, runtime state, validation scripts, and placeholder patterns
+[allowlist]
+description = "Exclude false positives and generated artifacts"
 paths = [
     # Generated evidence bundles (never committed)
     "artifacts/reality_run_",
@@ -27,10 +27,6 @@ paths = [
     # Validation scripts with placeholder text (false positives)
     "scripts/validation/",
 ]
-
-# Allow specific false positive patterns
-[[allowlist]]
-description = "Allow placeholder text patterns"
 regexes = [
     "REDACTED",
     "key='REDACTED'",
