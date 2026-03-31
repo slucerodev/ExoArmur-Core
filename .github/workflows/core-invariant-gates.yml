@@ -59,6 +59,8 @@ jobs:
           docker-compose --version
 
       - name: Gate 2 — Test Execution (three-run stability gate)
+        env:
+          EXOARMUR_STABILITY_REPORT: "${RUNNER_TEMP}/stability-report.json"
         run: |
           echo "=== BEFORE PYTEST ==="
           git status --porcelain || true
