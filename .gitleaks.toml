@@ -4,7 +4,7 @@ title = "ExoArmur Gitleaks Configuration"
 useDefault = true
 
 # Exclude only generated/local artifacts that are never committed
-[allowlist]
+[[allowlist]]
 description = "Exclude generated artifacts, runtime state, and validation scripts with placeholder text"
 paths = [
     # Generated evidence bundles (never committed)
