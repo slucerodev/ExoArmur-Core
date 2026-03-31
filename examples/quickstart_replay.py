@@ -13,6 +13,8 @@ except ImportError:  # pragma: no cover - convenience for local example run
     from exoarmur import ReplayEngine  # type: ignore
 
 from spec.contracts.models_v1 import AuditRecordV1
+from exoarmur.replay.canonical_utils import to_canonical_event
+from exoarmur.replay.event_envelope import CanonicalEvent
 
 
 def build_minimal_record() -> AuditRecordV1:
@@ -42,7 +44,8 @@ def build_minimal_record() -> AuditRecordV1:
 
 def main() -> None:
     record = build_minimal_record()
-    engine = ReplayEngine(audit_store={"corr-1": [record]})
+    canonical_event = CanonicalEvent(**to_canonical_event(record))
+    engine = ReplayEngine(audit_store={"corr-1": [canonical_event]})
     report = engine.replay_correlation("corr-1")
 
     result_value = getattr(report.result, "value", report.result)

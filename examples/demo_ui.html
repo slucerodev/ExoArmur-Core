@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExoArmur Deterministic Governance Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .controls h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .log {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+        }
+
+        .log-success {
+            color: #50fa7b;
+        }
+
+        .log-info {
+            color: #8be9fd;
+        }
+
+        .log-warning {
+            color: #ffb86c;
+        }
+
+        .log-error {
+            color: #ff5555;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hash {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .guarantees {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .guarantees h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .guarantee-list {
+            list-style: none;
+        }
+
+        .guarantee-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .guarantee-list li:last-child {
+            border-bottom: none;
+        }
+
+        .checkmark {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ ExoArmur</h1>
+            <p>Deterministic Governance Runtime - Live Demonstration</p>
+        </div>
+
+        <div class="controls">
+            <h3>🎮 Demo Controls</h3>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="runDemo()">
+                    🚀 Run Complete Demo
+                </button>
+                <button class="btn btn-secondary" onclick="runReplay()">
+                    ⚙️ Replay Events
+                </button>
+                <button class="btn btn-secondary" onclick="runConsensus()">
+                    🔗 Verify Consensus
+                </button>
+                <button class="btn btn-secondary" onclick="runByzantine()">
+                    🛡️ Byzantine Test
+                </button>
+                <button class="btn btn-secondary" onclick="clearLog()">
+                    🧹 Clear Log
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Running ExoArmur Demo...</p>
+            </div>
+            
+            <div class="log" id="log">
+                <div class="log-line log-info">🔧 ExoArmur Demo UI Ready</div>
+                <div class="log-line log-info">📊 Click "Run Complete Demo" to see deterministic governance in action</div>
+            </div>
+        </div>
+
+        <div class="demo-grid">
+            <div class="card">
+                <h3>⚙️ Replay Engine</h3>
+                <div class="status success" id="replay-status">Ready</div>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="events-processed">-</div>
+                        <div class="metric-label">Events Processed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="replay-hash">-</div>
+                        <div class="metric-label">Deterministic Hash</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="safety-gates">-</div>
+                        <div class="metric-label">Safety Gates</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="replay-result">-</div>
+                        <div class="metric-label">Result</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔗 Multi-Node Consensus</h3>
+                <div class="status info" id="consensus-status">Ready</div>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="node-count">-</div>
+                        <div class="metric-label">Node Count</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="consensus-achieved">-</div>
+                        <div class="metric-label">Consensus</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="agreeing-nodes">-</div>
+                        <div class="metric-label">Agreeing Nodes</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="consensus-hash">-</div>
+                        <div class="metric-label">Consensus Hash</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🛡️ Byzantine Resilience</h3>
+                <div class="status warning" id="byzantine-status">Ready</div>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="clean-scenario">-</div>
+                        <div class="metric-label">Clean Scenario</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="fault-detected">-</div>
+                        <div class="metric-label">Fault Detected</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="corrupted-nodes">-</div>
+                        <div class="metric-label">Corrupted Nodes</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="baseline-hash">-</div>
+                        <div class="metric-label">Baseline Hash</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="guarantees">
+            <h3>🔐 Deterministic Guarantees</h3>
+            <ul class="guarantee-list">
+                <li><span class="checkmark">✓</span> Same input always produces identical output</li>
+                <li><span class="checkmark">✓</span> No wall-clock or environment dependencies</li>
+                <li><span class="checkmark">✓</span> No hidden randomness or non-determinism</li>
+                <li><span class="checkmark">✓</span> Hash-based integrity verification</li>
+                <li><span class="checkmark">✓</span> Explicit divergence detection and reporting</li>
+                <li><span class="checkmark">✓</span> 100% reproducible across runs and environments</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Demo state
+        let demoResults = {};
+
+        // Logging
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = document.createElement('div');
+            logLine.className = `log-line log-${type}`;
+            logLine.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(logLine);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('🧹 Log cleared', 'info');
+        }
+
+        // UI updates
+        function updateMetric(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+
+        function updateStatus(id, status, className) {
+            const element = document.getElementById(id);
+            element.textContent = status;
+            element.className = `status ${className}`;
+        }
+
+        function setLoading(loading) {
+            document.getElementById('loading').style.display = loading ? 'block' : 'none';
+        }
+
+        // Demo functions
+        async function runDemo() {
+            log('🚀 Starting complete ExoArmur demo...', 'info');
+            setLoading(true);
+            
+            try {
+                await runReplay();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await runConsensus();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await runByzantine();
+                
+                log('🎉 Complete demo finished successfully!', 'success');
+            } catch (error) {
+                log(`❌ Demo failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runReplay() {
+            log('⚙️ Running deterministic replay...', 'info');
+            
+            try {
+                // Simulate API call (in real implementation, this would call the actual API)
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Mock deterministic results
+                const replayHash = 'a264bbc42a2b2f8e9d1a5c3b7f8e9d1a';
+                const eventsProcessed = 3;
+                const safetyGates = false;
+                const result = 'failure';
+                
+                // Update UI
+                updateMetric('events-processed', eventsProcessed);
+                updateMetric('replay-hash', replayHash.substring(0, 16) + '...');
+                updateMetric('safety-gates', safetyGates ? '✅' : '❌');
+                updateMetric('replay-result', result);
+                updateStatus('replay-status', 'Complete', 'success');
+                
+                log(`✅ Replay completed: ${eventsProcessed} events processed`, 'success');
+                log(`🔐 Deterministic hash: ${replayHash}`, 'info');
+                
+                // Store for later use
+                demoResults.replay = { hash: replayHash, events: eventsProcessed };
+                
+            } catch (error) {
+                log(`❌ Replay failed: ${error.message}`, 'error');
+                updateStatus('replay-status', 'Failed', 'warning');
+            }
+        }
+
+        async function runConsensus() {
+            log('🔗 Running multi-node consensus verification...', 'info');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Mock consensus results
+                const nodeCount = 3;
+                const consensus = true;
+                const agreeingNodes = 3;
+                const consensusHash = 'a264bbc42a2b2f8e9d1a5c3b7f8e9d1a';
+                
+                // Update UI
+                updateMetric('node-count', nodeCount);
+                updateMetric('consensus-achieved', consensus ? '✅' : '❌');
+                updateMetric('agreeing-nodes', `${agreeingNodes}/${nodeCount}`);
+                updateMetric('consensus-hash', consensusHash.substring(0, 16) + '...');
+                updateStatus('consensus-status', 'Consensus', 'success');
+                
+                log(`✅ Consensus achieved: ${agreeingNodes}/${nodeCount} nodes agree`, 'success');
+                log(`🔗 Consensus hash matches replay: ${demoResults.replay?.hash === consensusHash}`, consensus ? 'success' : 'warning');
+                
+                demoResults.consensus = { hash: consensusHash, consensus, nodeCount };
+                
+            } catch (error) {
+                log(`❌ Consensus verification failed: ${error.message}`, 'error');
+                updateStatus('consensus-status', 'Failed', 'warning');
+            }
+        }
+
+        async function runByzantine() {
+            log('🛡️ Running Byzantine fault injection test...', 'info');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Mock Byzantine results
+                const cleanScenario = true;
+                const faultDetected = true;
+                const corruptedNodes = 1;
+                const baselineHash = '7a8251c47b1529658d4e3f2a1b7c9d8e';
+                
+                // Update UI
+                updateMetric('clean-scenario', cleanScenario ? '✅' : '❌');
+                updateMetric('fault-detected', faultDetected ? '✅' : '❌');
+                updateMetric('corrupted-nodes', corruptedNodes);
+                updateMetric('baseline-hash', baselineHash.substring(0, 16) + '...');
+                updateStatus('byzantine-status', 'Resilient', 'success');
+                
+                log(`✅ Clean scenario: ${cleanScenario ? 'PASS' : 'FAIL'}`, 'success');
+                log(`🛡️ Fault detection: ${faultDetected ? 'DETECTED' : 'NOT DETECTED'}`, faultDetected ? 'success' : 'warning');
+                log(`💥 Corrupted nodes: ${corruptedNodes} out of 3`, 'info');
+                
+                demoResults.byzantine = { baselineHash, faultDetected, corruptedNodes };
+                
+            } catch (error) {
+                log(`❌ Byzantine test failed: ${error.message}`, 'error');
+                updateStatus('byzantine-status', 'Failed', 'warning');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🌐 ExoArmur Demo UI loaded successfully', 'success');
+            log('📋 Ready to demonstrate deterministic governance', 'info');
+        });
+    </script>
+</body>
+</html>

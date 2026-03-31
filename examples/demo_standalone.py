@@ -22,6 +22,7 @@ from exoarmur.execution_boundary_v2.models.policy_decision import (
 from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import AuditEmitter, ProxyPipeline
 from exoarmur.execution_boundary_v2.utils.bundle_builder import build_execution_proof_bundle
 from exoarmur.safety.safety_gate import SafetyGate
+from exoarmur.replay.canonical_utils import to_canonical_event
 
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
@@ -127,7 +128,7 @@ def write_proof_bundle(
         "audit_stream_id": audit_stream_id,
         "action_executed": action_executed,
         "proof_bundle": proof_bundle.model_dump(mode="json"),
-        "audit_records": [record.model_dump(mode="json") for record in audit_records],
+        "audit_records": [to_canonical_event(record, sequence_number=index) for index, record in enumerate(audit_records)],
     }
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
     return output_path

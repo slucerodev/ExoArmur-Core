@@ -2,15 +2,13 @@
   "action_executed": false,
   "audit_records": [
     {
-      "audit_id": "6QNY14GQ0R8FZGGXT8ZAZB58D4",
+      "actor": "system",
       "cell_id": "demo-cell",
       "correlation_id": "demo-standalone-delete-outside-authorized-path",
-      "event_kind": "policy_denial",
-      "hashes": {
-        "sha256": "d7af82485c1843ff087748fabeb2a1a43e61989359f11e76568678413c8998e8"
-      },
-      "idempotency_key": "audit-demo-standalone-delete-outside-authorized-path",
-      "payload_ref": {
+      "event_id": "6QNY14GQ0R8FZGGXT8ZAZB58D4",
+      "event_type": "policy_denial",
+      "parent_event_id": null,
+      "payload": {
         "details": {
           "policy_version": "demo-standalone-v1",
           "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized"
@@ -19,8 +17,8 @@
         "outcome": "denied",
         "ref": "demo-standalone-delete-outside-authorized-path"
       },
-      "recorded_at": "2026-03-30T10:16:11.297510+00:00",
-      "schema_version": "1.0.0",
+      "payload_hash": "f74f6082d72722492bf42eab25f5e7d6ef9fd1c748b01990bd731915dde56acc",
+      "sequence_number": 0,
       "tenant_id": "demo-tenant",
       "trace_id": "demo-standalone-delete-outside-authorized-path"
     }

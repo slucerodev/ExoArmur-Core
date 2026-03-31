@@ -20,6 +20,8 @@ from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffe
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.replay.canonical_utils import to_canonical_event
+from exoarmur.replay.event_envelope import CanonicalEvent
 
 # Import models
 from exoarmur.spec.contracts.models_v1 import (
@@ -245,8 +247,15 @@ class ICWDemo:
         """Run replay and verify identical outcome"""
         logger.info("🔄 Running replay verification...")
         
+        canonical_audit_store: Dict[str, list[CanonicalEvent]] = {}
+        for stream_id, events in self.audit_store.items():
+            canonical_audit_store[stream_id] = [
+                CanonicalEvent(**to_canonical_event(event, sequence_number=index))
+                for index, event in enumerate(events)
+            ]
+
         # Create replay engine
-        replay_engine = ReplayEngine(audit_store=self.audit_store)
+        replay_engine = ReplayEngine(audit_store=canonical_audit_store)
         
         # Run replay
         report = replay_engine.replay_correlation(correlation_id)

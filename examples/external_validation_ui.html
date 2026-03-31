@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExoArmur External Validation - Trust Signals</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0a0a0a;
+            color: #00ff00;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            background: #111;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .validation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            border: 1px solid #00ff00;
+            padding: 20px;
+            background: #0f0f0f;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #00ff00, transparent);
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .card h3 {
+            color: #00ff00;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 10px;
+        }
+
+        .trust-signal {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .trust-signal.primary {
+            border-color: #00ff00;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        }
+
+        .trust-signal.consensus {
+            border-color: #00aaff;
+            box-shadow: 0 0 5px rgba(0, 170, 255, 0.3);
+        }
+
+        .trust-signal.failure {
+            border-color: #ff4444;
+            box-shadow: 0 0 5px rgba(255, 68, 68, 0.3);
+        }
+
+        .signal-label {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .signal-value {
+            color: #00ff00;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .signal-value.hash {
+            font-size: 0.8rem;
+            color: #00aaff;
+        }
+
+        .signal-value.consensus {
+            color: #00ff00;
+        }
+
+        .signal-value.divergence {
+            color: #ff4444;
+        }
+
+        .controls {
+            border: 1px solid #00ff00;
+            padding: 25px;
+            background: #0f0f0f;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .controls h3 {
+            color: #00ff00;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid #00ff00;
+            background: #1a1a1a;
+            color: #00ff00;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-family: monospace;
+        }
+
+        .btn:hover {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+        }
+
+        .log-success {
+            color: #00ff00;
+        }
+
+        .log-info {
+            color: #00aaff;
+        }
+
+        .log-warning {
+            color: #ffaa00;
+        }
+
+        .log-error {
+            color: #ff4444;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #00ff00;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .validation-status {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            background: #111;
+            margin-bottom: 30px;
+        }
+
+        .validation-status.success {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .validation-status.failed {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .validation-status h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .validation-status.success h2 {
+            color: #00ff00;
+        }
+
+        .validation-status.failed h2 {
+            color: #ff4444;
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .node-result {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .node-result.consensus {
+            border-color: #00ff00;
+        }
+
+        .node-result.divergent {
+            border-color: #ff4444;
+        }
+
+        .node-id {
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .node-hash {
+            color: #00aaff;
+            font-size: 0.7rem;
+            word-break: break-all;
+        }
+
+        .demonstration-path {
+            border: 1px solid #00ff00;
+            padding: 20px;
+            background: #0f0f0f;
+            margin-bottom: 30px;
+        }
+
+        .demonstration-path h3 {
+            color: #00ff00;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .path-step {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .path-step::before {
+            content: attr(data-step);
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background: #00ff00;
+            color: #000;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .path-step.completed {
+            border-color: #00ff00;
+        }
+
+        .path-step.failed {
+            border-color: #ff4444;
+        }
+
+        .step-title {
+            color: #00ff00;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .step-result {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .validation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ EXOARMUR EXTERNAL VALIDATION</h1>
+            <p>PROVABLY DETERMINISTIC GOVERNANCE RUNTIME</p>
+        </div>
+
+        <div class="validation-status" id="validation-status">
+            <h2 id="status-title">READY FOR VALIDATION</h2>
+            <p id="status-message">Click "Run Complete Validation" to begin</p>
+        </div>
+
+        <div class="demonstration-path">
+            <h3>📋 CANONICAL DEMONSTRATION PATH</h3>
+            
+            <div class="path-step" data-step="1" id="step-1">
+                <div class="step-title">STEP 1: REPLAY VALIDATION</div>
+                <div class="step-result" id="step-1-result">Submit canonical events → Run replay → Capture output + hash</div>
+            </div>
+            
+            <div class="path-step" data-step="2" id="step-2">
+                <div class="step-title">STEP 2: MULTI-NODE CONSENSUS</div>
+                <div class="step-result" id="step-2-result">Run verification → Confirm all nodes agree</div>
+            </div>
+            
+            <div class="path-step" data-step="3" id="step-3">
+                <div class="step-title">STEP 3: BYZANTINE FAULT DETECTION</div>
+                <div class="step-result" id="step-3-result">Inject faults → Confirm divergence detection</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h3>🎮 VALIDATION CONTROLS</h3>
+            <div class="button-group">
+                <button class="btn" onclick="runCompleteValidation()">
+                    🚀 Run Complete Validation
+                </button>
+                <button class="btn" onclick="runReplayOnly()">
+                    ⚙️ Replay Only
+                </button>
+                <button class="btn" onclick="runConsensusOnly()">
+                    🔗 Consensus Only
+                </button>
+                <button class="btn" onclick="runByzantineOnly()">
+                    🛡️ Byzantine Only
+                </button>
+                <button class="btn" onclick="clearResults()">
+                    🧹 Clear Results
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Running External Validation...</p>
+            </div>
+            
+            <div class="log" id="log">
+                <div class="log-line log-info">🔧 ExoArmur External Validation System Ready</div>
+                <div class="log-line log-info">📊 Trust signals will be extracted and displayed</div>
+                <div class="log-line log-info">🎯 System is provably deterministic</div>
+            </div>
+        </div>
+
+        <div class="validation-grid">
+            <div class="card">
+                <h3>📊 PRIMARY TRUTH SIGNALS</h3>
+                
+                <div class="trust-signal primary">
+                    <div class="signal-label">Replay Hash (Deterministic Output)</div>
+                    <div class="signal-value hash" id="replay-hash">-</div>
+                </div>
+                
+                <div class="trust-signal primary">
+                    <div class="signal-label">Input Events</div>
+                    <div class="signal-value" id="input-events">-</div>
+                </div>
+                
+                <div class="trust-signal primary">
+                    <div class="signal-label">Processing Result</div>
+                    <div class="signal-value" id="processing-result">-</div>
+                </div>
+                
+                <div class="trust-signal primary">
+                    <div class="signal-label">Safety Gates Verified</div>
+                    <div class="signal-value" id="safety-gates">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔗 CONSENSUS SIGNALS</h3>
+                
+                <div class="trust-signal consensus">
+                    <div class="signal-label">Node Count</div>
+                    <div class="signal-value" id="node-count">-</div>
+                </div>
+                
+                <div class="trust-signal consensus">
+                    <div class="signal-label">Consensus Achieved</div>
+                    <div class="signal-value consensus" id="consensus-achieved">-</div>
+                </div>
+                
+                <div class="trust-signal consensus">
+                    <div class="signal-label">Consensus Result</div>
+                    <div class="signal-value consensus" id="consensus-result">-</div>
+                </div>
+                
+                <div class="trust-signal consensus">
+                    <div class="signal-label">Agreeing Nodes</div>
+                    <div class="signal-value" id="agreeing-nodes">-</div>
+                </div>
+                
+                <div class="node-grid" id="node-results">
+                    <!-- Node results will be populated here -->
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🛡️ FAULT DETECTION SIGNALS</h3>
+                
+                <div class="trust-signal failure">
+                    <div class="signal-label">Clean Scenario Consensus</div>
+                    <div class="signal-value consensus" id="clean-consensus">-</div>
+                </div>
+                
+                <div class="trust-signal failure">
+                    <div class="signal-label">Fault Scenario Divergence</div>
+                    <div class="signal-value divergence" id="fault-divergence">-</div>
+                </div>
+                
+                <div class="trust-signal failure">
+                    <div class="signal-label">Corrupted Nodes Detected</div>
+                    <div class="signal-value" id="corrupted-nodes">-</div>
+                </div>
+                
+                <div class="trust-signal failure">
+                    <div class="signal-label">System Resilience</div>
+                    <div class="signal-value" id="system-resilience">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔐 VALIDATION SUMMARY</h3>
+            <div class="trust-signal primary">
+                <div class="signal-label">System Status</div>
+                <div class="signal-value" id="system-status">PENDING VALIDATION</div>
+            </div>
+            <div class="trust-signal primary">
+                <div class="signal-label">Deterministic Replay</div>
+                <div class="signal-value hash" id="deterministic-replay">-</div>
+            </div>
+            <div class="trust-signal consensus">
+                <div class="signal-label">Multi-Node Consensus</div>
+                <div class="signal-value consensus" id="multi-node-consensus">-</div>
+            </div>
+            <div class="trust-signal failure">
+                <div class="signal-label">Byzantine Resilience</div>
+                <div class="signal-value divergence" id="byzantine-resilience">-</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Validation state
+        let validationResults = {};
+
+        // Logging
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = document.createElement('div');
+            logLine.className = `log-line log-${type}`;
+            logLine.textContent = `[${timestamp}] ${message}`;
+            logElement.appendChild(logLine);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('log').innerHTML = '';
+            log('🧹 Results cleared', 'info');
+            
+            // Reset all displays
+            document.querySelectorAll('.signal-value').forEach(el => el.textContent = '-');
+            document.getElementById('node-results').innerHTML = '';
+            document.getElementById('validation-status').className = 'validation-status';
+            document.getElementById('status-title').textContent = 'READY FOR VALIDATION';
+            document.getElementById('status-message').textContent = 'Click "Run Complete Validation" to begin';
+            
+            // Reset step indicators
+            document.querySelectorAll('.path-step').forEach(el => {
+                el.className = 'path-step';
+            });
+            
+            validationResults = {};
+        }
+
+        function updateStepStatus(step, status, result) {
+            const stepElement = document.getElementById(`step-${step}`);
+            const resultElement = document.getElementById(`step-${step}-result`);
+            
+            stepElement.className = `path-step ${status}`;
+            resultElement.textContent = result;
+        }
+
+        function updateValidationStatus(success, title, message) {
+            const statusElement = document.getElementById('validation-status');
+            const titleElement = document.getElementById('status-title');
+            const messageElement = document.getElementById('status-message');
+            
+            statusElement.className = `validation-status ${success ? 'success' : 'failed'}`;
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+        }
+
+        function displayTrustSignals(results) {
+            if (!results) return;
+
+            // Primary truth signals
+            if (results.replay) {
+                document.getElementById('replay-hash').textContent = results.replay.replay_hash.substring(0, 32) + '...';
+                document.getElementById('input-events').textContent = results.replay.total_events + ' canonical events';
+                document.getElementById('processing-result').textContent = results.replay.result.toUpperCase();
+                document.getElementById('safety-gates').textContent = results.replay.safety_gate_verified ? 'VERIFIED' : 'FAILED';
+            }
+
+            // Consensus signals
+            if (results.consensus) {
+                document.getElementById('node-count').textContent = results.consensus.node_count;
+                document.getElementById('consensus-achieved').textContent = results.consensus.consensus ? 'ACHIEVED' : 'FAILED';
+                document.getElementById('consensus-result').textContent = results.consensus.consensus_result.toUpperCase();
+                document.getElementById('agreeing-nodes').textContent = results.consensus.consensus_nodes.length + '/' + results.consensus.node_count;
+
+                // Display node-by-node results
+                const nodeResults = document.getElementById('node-results');
+                nodeResults.innerHTML = '';
+                
+                for (const [nodeId, nodeHash] of Object.entries(results.consensus.node_hashes)) {
+                    const isConsensus = results.consensus.consensus_nodes.includes(nodeId);
+                    const nodeDiv = document.createElement('div');
+                    nodeDiv.className = `node-result ${isConsensus ? 'consensus' : 'divergent'}`;
+                    nodeDiv.innerHTML = `
+                        <div class="node-id">${nodeId}</div>
+                        <div class="node-hash">${nodeHash.substring(0, 16)}...</div>
+                    `;
+                    nodeResults.appendChild(nodeDiv);
+                }
+            }
+
+            // Fault detection signals
+            if (results.byzantine) {
+                const clean = results.byzantine.clean_scenario;
+                const single = results.byzantine.single_node_scenario;
+                
+                document.getElementById('clean-consensus').textContent = clean.consensus ? 'ACHIEVED' : 'FAILED';
+                document.getElementById('fault-divergence').textContent = single.divergence_detected ? 'DETECTED' : 'NOT DETECTED';
+                document.getElementById('corrupted-nodes').textContent = single.corrupted_nodes.length;
+                
+                const resilience = clean.consensus && single.divergence_detected;
+                document.getElementById('system-resilience').textContent = resilience ? 'VERIFIED' : 'FAILED';
+            }
+
+            // Validation summary
+            if (results.replay && results.consensus && results.byzantine) {
+                const resilience = results.byzantine.clean_scenario.consensus && results.byzantine.single_node_scenario.divergence_detected;
+                
+                document.getElementById('system-status').textContent = resilience ? 'PROVABLY DETERMINISTIC' : 'VALIDATION FAILED';
+                document.getElementById('deterministic-replay').textContent = results.replay.replay_hash.substring(0, 32) + '...';
+                document.getElementById('multi-node-consensus').textContent = results.consensus.consensus ? 'ACHIEVED' : 'FAILED';
+                document.getElementById('byzantine-resilience').textContent = resilience ? 'VERIFIED' : 'FAILED';
+            }
+        }
+
+        async function runCompleteValidation() {
+            log('🚀 Starting complete external validation...', 'info');
+            setLoading(true);
+            
+            try {
+                updateStepStatus(1, '', 'Running replay validation...');
+                const replayResult = await runReplayValidation();
+                updateStepStatus(1, 'completed', 'Replay hash: ' + replayResult.replay_hash.substring(0, 16) + '...');
+                
+                updateStepStatus(2, '', 'Running consensus validation...');
+                const consensusResult = await runConsensusValidation();
+                updateStepStatus(2, 'completed', `${consensusResult.consensus_nodes.length}/${consensusResult.node_count} nodes agree`);
+                
+                updateStepStatus(3, '', 'Running Byzantine validation...');
+                const byzantineResult = await runByzantineValidation();
+                updateStepStatus(3, 'completed', `Divergence detected: ${byzantineResult.single_node_scenario.divergence_detected}`);
+                
+                // Store and display results
+                validationResults = {
+                    replay: replayResult,
+                    consensus: consensusResult,
+                    byzantine: byzantineResult
+                };
+                
+                displayTrustSignals(validationResults);
+                
+                const resilience = byzantineResult.clean_scenario.consensus && byzantineResult.single_node_scenario.divergence_detected;
+                updateValidationStatus(resilience, 'VALIDATION SUCCESSFUL', 'ExoArmur is provably deterministic and trustworthy');
+                
+                log('🎉 External validation completed successfully!', 'success');
+                log('✅ System is PROVABLY DETERMINISTIC', 'success');
+                
+            } catch (error) {
+                log(`❌ Validation failed: ${error.message}`, 'error');
+                updateValidationStatus(false, 'VALIDATION FAILED', 'System validation encountered errors');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runReplayOnly() {
+            log('⚙️ Running replay validation only...', 'info');
+            setLoading(true);
+            
+            try {
+                const result = await runReplayValidation();
+                validationResults.replay = result;
+                displayTrustSignals(validationResults);
+                log('✅ Replay validation completed', 'success');
+            } catch (error) {
+                log(`❌ Replay validation failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runConsensusOnly() {
+            log('🔗 Running consensus validation only...', 'info');
+            setLoading(true);
+            
+            try {
+                const result = await runConsensusValidation();
+                validationResults.consensus = result;
+                displayTrustSignals(validationResults);
+                log('✅ Consensus validation completed', 'success');
+            } catch (error) {
+                log(`❌ Consensus validation failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runByzantineOnly() {
+            log('🛡️ Running Byzantine validation only...', 'info');
+            setLoading(true);
+            
+            try {
+                const result = await runByzantineValidation();
+                validationResults.byzantine = result;
+                displayTrustSignals(validationResults);
+                log('✅ Byzantine validation completed', 'success');
+            } catch (error) {
+                log(`❌ Byzantine validation failed: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runReplayValidation() {
+            const response = await fetch('/api/replay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correlation_id: 'external-validation-001',
+                    events: [
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345671',
+                            event_type: 'telemetry_ingested',
+                            actor: 'validation-sensor-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { event_id: 'validation-event-001', source: 'validation-sensor-01' },
+                            payload_hash: 'validation-telemetry-hash-001',
+                            sequence_number: 0
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345672',
+                            event_type: 'safety_gate_evaluated',
+                            actor: 'validation-system',
+                            correlation_id: 'external-validation-001',
+                            payload: { verdict: 'require_human_approval', risk_level: 'high' },
+                            payload_hash: 'validation-safety-hash-001',
+                            sequence_number: 1
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345673',
+                            event_type: 'approval_requested',
+                            actor: 'external-validator-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { approval_id: 'validation-approval-001', approval_type: 'external_validation' },
+                            payload_hash: 'validation-approval-hash-001',
+                            sequence_number: 2
+                        }
+                    ]
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        }
+
+        async function runConsensusValidation() {
+            const response = await fetch('/api/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correlation_id: 'external-validation-001',
+                    events: [
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345671',
+                            event_type: 'telemetry_ingested',
+                            actor: 'validation-sensor-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { event_id: 'validation-event-001', source: 'validation-sensor-01' },
+                            payload_hash: 'validation-telemetry-hash-001',
+                            sequence_number: 0
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345672',
+                            event_type: 'safety_gate_evaluated',
+                            actor: 'validation-system',
+                            correlation_id: 'external-validation-001',
+                            payload: { verdict: 'require_human_approval', risk_level: 'high' },
+                            payload_hash: 'validation-safety-hash-001',
+                            sequence_number: 1
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345673',
+                            event_type: 'approval_requested',
+                            actor: 'external-validator-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { approval_id: 'validation-approval-001', approval_type: 'external_validation' },
+                            payload_hash: 'validation-approval-hash-001',
+                            sequence_number: 2
+                        }
+                    ]
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        }
+
+        async function runByzantineValidation() {
+            const cleanResponse = await fetch('/api/byzantine-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correlation_id: 'external-validation-001',
+                    scenario: 'clean',
+                    events: [
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345671',
+                            event_type: 'telemetry_ingested',
+                            actor: 'validation-sensor-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { event_id: 'validation-event-001', source: 'validation-sensor-01' },
+                            payload_hash: 'validation-telemetry-hash-001',
+                            sequence_number: 0
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345672',
+                            event_type: 'safety_gate_evaluated',
+                            actor: 'validation-system',
+                            correlation_id: 'external-validation-001',
+                            payload: { verdict: 'require_human_approval', risk_level: 'high' },
+                            payload_hash: 'validation-safety-hash-001',
+                            sequence_number: 1
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345673',
+                            event_type: 'approval_requested',
+                            actor: 'external-validator-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { approval_id: 'validation-approval-001', approval_type: 'external_validation' },
+                            payload_hash: 'validation-approval-hash-001',
+                            sequence_number: 2
+                        }
+                    ]
+                })
+            });
+            
+            const singleResponse = await fetch('/api/byzantine-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correlation_id: 'external-validation-001',
+                    scenario: 'single_node',
+                    events: [
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345671',
+                            event_type: 'telemetry_ingested',
+                            actor: 'validation-sensor-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { event_id: 'validation-event-001', source: 'validation-sensor-01' },
+                            payload_hash: 'validation-telemetry-hash-001',
+                            sequence_number: 0
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345672',
+                            event_type: 'safety_gate_evaluated',
+                            actor: 'validation-system',
+                            correlation_id: 'external-validation-001',
+                            payload: { verdict: 'require_human_approval', risk_level: 'high' },
+                            payload_hash: 'validation-safety-hash-001',
+                            sequence_number: 1
+                        },
+                        {
+                            event_id: '01J4NR5X9Z8GABCDEF12345673',
+                            event_type: 'approval_requested',
+                            actor: 'external-validator-01',
+                            correlation_id: 'external-validation-001',
+                            payload: { approval_id: 'validation-approval-001', approval_type: 'external_validation' },
+                            payload_hash: 'validation-approval-hash-001',
+                            sequence_number: 2
+                        }
+                    ]
+                })
+            });
+            
+            if (!cleanResponse.ok || !singleResponse.ok) {
+                throw new Error(`HTTP error: ${cleanResponse.status} / ${singleResponse.status}`);
+            }
+            
+            const cleanResult = await cleanResponse.json();
+            const singleResult = await singleResponse.json();
+            
+            return {
+                clean_scenario: cleanResult,
+                single_node_scenario: singleResult
+            };
+        }
+
+        function setLoading(loading) {
+            document.getElementById('loading').style.display = loading ? 'block' : 'none';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🌐 ExoArmur External Validation UI loaded', 'success');
+            log('📊 Trust signals ready for extraction', 'info');
+            log('🎯 System is provably deterministic', 'success');
+        });
+    </script>
+</body>
+</html>

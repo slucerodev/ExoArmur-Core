@@ -27,6 +27,8 @@ from exoarmur.spec.contracts.models_v1 import (
     AnomalyDetectionPayloadV1,
     TelemetrySummaryPayloadV1
 )
+from exoarmur.replay.canonical_utils import to_canonical_event
+from exoarmur.replay.event_envelope import CanonicalEvent
 
 
 def create_sessions_scope():
@@ -471,7 +473,11 @@ class TestIdentityContainmentReplay:
             ))
         
         # Store in mock audit store
-        mock_audit_store["test-replay"] = audit_events
+        canonical_events = [
+            CanonicalEvent(**to_canonical_event(event, sequence_number=index))
+            for index, event in enumerate(audit_events)
+        ]
+        mock_audit_store["test-replay"] = canonical_events
         
         # Run replay
         report = replay_engine.replay_correlation("test-replay")
@@ -521,7 +527,7 @@ class TestIdentityContainmentReplay:
             recorded_at_utc=fixed_clock.now()
         )
         
-        mock_audit_store["test-malicious"] = [malicious_event]
+        mock_audit_store["test-malicious"] = [CanonicalEvent(**to_canonical_event(malicious_event))]
         
         # Run replay - should detect inconsistency
         report = replay_engine.replay_correlation("test-malicious")

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExoArmur System Integrity Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #00ff88;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .value-proposition {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+            padding: 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .demo-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .step-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            border-color: #00ff88;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: #00ff88;
+            color: #000;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .step-title {
+            font-size: 1.3rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .step-description {
+            color: #ccc;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .step-proof {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #00ff88;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .result-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-family: 'Courier New', monospace;
+            color: #ccc;
+            word-break: break-all;
+        }
+
+        .status-indicator {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: #fff;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #ffaa00, #ff8800);
+            color: #000;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #00ff88;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .explanation {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .explanation strong {
+            color: #00ff88;
+        }
+
+        @media (max-width: 768px) {
+            .demo-steps {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .btn {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ ExoArmur</h1>
+            <div class="subtitle">System Integrity Verification</div>
+            <div class="value-proposition">
+                ✅ Prove your system behaves consistently<br>
+                ✅ Detect corruption or tampering<br>
+                ✅ Verify independent systems agree
+            </div>
+        </div>
+
+        <div class="status-indicator status-pending" id="status">
+            🔄 Ready to verify system integrity
+        </div>
+
+        <div class="demo-steps">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-title">Run Deterministic Replay</div>
+                <div class="step-description">
+                    This proves the system behaves the same every time with identical input
+                </div>
+                <div class="step-proof" id="replay-proof">
+                    Integrity Fingerprint: Waiting...
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-title">Verify Across Multiple Systems</div>
+                <div class="step-description">
+                    This proves independent systems agree on the same result
+                </div>
+                <div class="step-proof" id="consensus-proof">
+                    Agreement Across Systems: Waiting...
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-title">Simulate Corruption Attack</div>
+                <div class="step-description">
+                    This proves the system detects when something is wrong
+                </div>
+                <div class="step-proof" id="corruption-proof">
+                    Mismatch Detection: Waiting...
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="runCompleteVerification()">
+                🚀 Run Complete Verification
+            </button>
+            <button class="btn" onclick="runStep(1)">
+                ⚙️ Step 1 Only
+            </button>
+            <button class="btn" onclick="runStep(2)">
+                🔗 Step 2 Only
+            </button>
+            <button class="btn" onclick="runStep(3)">
+                🛡️ Step 3 Only
+            </button>
+            <button class="btn" onclick="clearResults()">
+                🧹 Clear Results
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Verifying system integrity...</p>
+        </div>
+
+        <div class="results" id="results" style="display: none;">
+            <div class="result-item">
+                <div class="result-label">🔐 Integrity Fingerprint</div>
+                <div class="result-value" id="integrity-hash">-</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">🤝 Agreement Across Systems</div>
+                <div class="result-value" id="agreement-status">-</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">🚨 Corruption Detection</div>
+                <div class="result-value" id="corruption-status">-</div>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <strong>What this proves:</strong> Your system behaves consistently and detects when something goes wrong.<br>
+            <strong>Why this matters:</strong> In critical systems, you need to know if your data or processes have been tampered with.<br>
+            <strong>What just happened:</strong> <span id="what-happened">Run the verification to see the results.</span>
+        </div>
+    </div>
+
+    <script>
+        let verificationResults = {};
+
+        function updateStatus(type, message) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status-indicator status-${type}`;
+            statusElement.innerHTML = message;
+        }
+
+        function setLoading(loading) {
+            document.getElementById('loading').style.display = loading ? 'block' : 'none';
+        }
+
+        function updateStepProof(step, value, success = true) {
+            const proofElement = document.getElementById(`${step}-proof`);
+            proofElement.innerHTML = value;
+            proofElement.style.borderLeftColor = success ? '#00ff88' : '#ff4444';
+        }
+
+        function updateResults(results) {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('integrity-hash').textContent = results.integrityHash || '-';
+            document.getElementById('agreement-status').textContent = results.agreementStatus || '-';
+            document.getElementById('corruption-status').textContent = results.corruptionStatus || '-';
+            
+            const whatHappened = document.getElementById('what-happened');
+            if (results.allAgree) {
+                whatHappened.textContent = "All systems agreed - your system is behaving consistently and securely.";
+            } else {
+                whatHappened.textContent = "A mismatch was detected - the system caught a potential problem.";
+            }
+        }
+
+        async function runReplayVerification() {
+            try {
+                const response = await fetch('/api/replay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        correlation_id: 'integrity-verification-001',
+                        events: [
+                            {
+                                event_id: 'integrity-001',
+                                event_type: 'system_check',
+                                actor: 'integrity-validator',
+                                correlation_id: 'integrity-verification-001',
+                                payload: { check_type: 'integrity_verification' },
+                                payload_hash: 'integrity-check-hash',
+                                sequence_number: 0
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) throw new Error('Verification failed');
+                
+                const result = await response.json();
+                const integrityHash = result.replay_hash.substring(0, 16) + '...';
+                
+                updateStepProof('replay', `Integrity Fingerprint: ${integrityHash}`, true);
+                verificationResults.integrityHash = integrityHash;
+                
+                return result;
+            } catch (error) {
+                updateStepProof('replay', `Error: ${error.message}`, false);
+                throw error;
+            }
+        }
+
+        async function runConsensusVerification() {
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        correlation_id: 'integrity-verification-001',
+                        events: [
+                            {
+                                event_id: 'integrity-001',
+                                event_type: 'system_check',
+                                actor: 'integrity-validator',
+                                correlation_id: 'integrity-verification-001',
+                                payload: { check_type: 'integrity_verification' },
+                                payload_hash: 'integrity-check-hash',
+                                sequence_number: 0
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) throw new Error('Verification failed');
+                
+                const result = await response.json();
+                const agreementStatus = result.consensus ? '✅ All systems agree' : '❌ Systems disagree';
+                
+                updateStepProof('consensus', `Agreement: ${result.consensus_nodes.length}/${result.node_count} systems agree`, result.consensus);
+                verificationResults.agreementStatus = agreementStatus;
+                verificationResults.allAgree = result.consensus;
+                
+                return result;
+            } catch (error) {
+                updateStepProof('consensus', `Error: ${error.message}`, false);
+                throw error;
+            }
+        }
+
+        async function runCorruptionSimulation() {
+            try {
+                const response = await fetch('/api/byzantine-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        correlation_id: 'integrity-verification-001',
+                        scenario: 'single_node',
+                        events: [
+                            {
+                                event_id: 'integrity-001',
+                                event_type: 'system_check',
+                                actor: 'integrity-validator',
+                                correlation_id: 'integrity-verification-001',
+                                payload: { check_type: 'integrity_verification' },
+                                payload_hash: 'integrity-check-hash',
+                                sequence_number: 0
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) throw new Error('Verification failed');
+                
+                const result = await response.json();
+                const corruptionStatus = result.divergence_detected ? '✅ Corruption detected' : '❌ No corruption detected';
+                
+                updateStepProof('corruption', `Detection: ${corruptionStatus}`, result.divergence_detected);
+                verificationResults.corruptionStatus = corruptionStatus;
+                
+                return result;
+            } catch (error) {
+                updateStepProof('corruption', `Error: ${error.message}`, false);
+                throw error;
+            }
+        }
+
+        async function runCompleteVerification() {
+            updateStatus('pending', '🔄 Verifying system integrity...');
+            setLoading(true);
+            clearResults();
+
+            try {
+                await runReplayVerification();
+                await runConsensusVerification();
+                await runCorruptionSimulation();
+                
+                updateResults(verificationResults);
+                updateStatus('success', '✅ System integrity verified - All checks passed');
+            } catch (error) {
+                updateStatus('error', '❌ Verification failed - System integrity compromised');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function runStep(stepNumber) {
+            updateStatus('pending', `🔄 Running step ${stepNumber}...`);
+            setLoading(true);
+
+            try {
+                switch(stepNumber) {
+                    case 1:
+                        await runReplayVerification();
+                        updateStatus('success', '✅ Step 1 complete - Consistency verified');
+                        break;
+                    case 2:
+                        await runConsensusVerification();
+                        updateStatus('success', '✅ Step 2 complete - Agreement verified');
+                        break;
+                    case 3:
+                        await runCorruptionSimulation();
+                        updateStatus('success', '✅ Step 3 complete - Corruption detection verified');
+                        break;
+                }
+                
+                if (verificationResults.integrityHash || verificationResults.agreementStatus || verificationResults.corruptionStatus) {
+                    updateResults(verificationResults);
+                }
+            } catch (error) {
+                updateStatus('error', `❌ Step ${stepNumber} failed`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').style.display = 'none';
+            updateStepProof('replay', 'Integrity Fingerprint: Waiting...');
+            updateStepProof('consensus', 'Agreement Across Systems: Waiting...');
+            updateStepProof('corruption', 'Mismatch Detection: Waiting...');
+            updateStatus('pending', '🔄 Ready to verify system integrity');
+            verificationResults = {};
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('pending', '🔄 Ready to verify system integrity');
+        });
+    </script>
+</body>
+</html>

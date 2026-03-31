@@ -1,20 +1,32 @@
 version: '3.8'
 
 services:
-  nats:
-    image: nats:2.10.9-alpine
+  exoarmur-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exoarmur-demo
     ports:
-      - "4222:4222"
-      - "8222:8222"
-    command: ["nats-server", "-js", "-sd", "/data/jetstream", "-m", "8222"]
-    volumes:
-      - jetstream_data:/data/jetstream
+      - "8080:8080"
+    environment:
+      - PYTHONHASHSEED=0
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/varz"]
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.exoarmur-demo.rule=Host(`localhost`)"
+      - "traefik.http.services.exoarmur-demo.loadbalancer.server.port=8080"
+      - "org.exoarmur.name=ExoArmur Deterministic Governance Demo"
+      - "org.exoarmur.version=1.0.0"
+      - "org.exoarmur.determinism=enforced"
 
-volumes:
-  jetstream_data:
-    driver: local
+networks:
+  default:
+    name: exoarmur-demo-network
