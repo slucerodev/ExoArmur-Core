@@ -78,6 +78,8 @@ jobs:
           git diff || true
 
       - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
+        env:
+          EXOARMUR_STABILITY_REPORT: "${RUNNER_TEMP}/boundary-stability-report.json"
         run: |
           echo "=== BEFORE BOUNDARY GATE ==="
           git status --porcelain || true
