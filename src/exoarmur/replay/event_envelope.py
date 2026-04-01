@@ -145,7 +145,12 @@ class AuditEventEnvelope:
         
         # Validate timestamp is in UTC
         if self.timestamp.tzinfo is None:
+            # Convert naive timestamp to UTC
             utc_timestamp = self.timestamp.replace(tzinfo=timezone.utc)
+            object.__setattr__(self, 'timestamp', utc_timestamp)
+        elif self.timestamp.tzinfo != timezone.utc:
+            # Convert timezone-aware timestamp to UTC
+            utc_timestamp = self.timestamp.astimezone(timezone.utc)
             object.__setattr__(self, 'timestamp', utc_timestamp)
     
     @property

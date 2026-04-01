@@ -40,6 +40,8 @@ def canonical_json(data: Union[Dict[str, Any], list, str, int, float, bool, None
             # Normalize datetime to UTC ISO format
             if value.tzinfo is None:
                 value = value.replace(tzinfo=timezone.utc)
+            else:
+                value = value.astimezone(timezone.utc)
             return value.isoformat().replace('+00:00', 'Z')
         elif isinstance(value, float):
             # Ensure consistent float representation

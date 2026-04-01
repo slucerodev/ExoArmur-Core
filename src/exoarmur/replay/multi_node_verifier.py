@@ -25,6 +25,11 @@ class ConsensusResult(Enum):
     ERROR = "error"
 
 
+class VerificationError(Exception):
+    """Exception raised when verification fails due to invalid data or state"""
+    pass
+
+
 @dataclass(frozen=True)
 class NodeResult:
     """Deterministic result from a single replay node execution"""
