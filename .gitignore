@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
 *.so
 .Python
 build/
@@ -27,6 +29,11 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.venv/
+.venv_build/
+.venv_audit/
+.venv_clean_install/
+.venv_test/
 .python-version
 
 # pytest Cache
@@ -76,6 +83,7 @@ pip-wheel-metadata/
 coverage.json
 GOVERNANCE_HEALTH_REPORT.md
 9159
+stability_report.json
 
 # Documentation Build
 docs/_build/
@@ -88,13 +96,6 @@ site/
 run_*.sh
 test_*.sh
 
-# Local environments (additional entries)
-.venv/
-.venv_build/
-.venv_audit/
-.venv_clean_install/
-.venv_test/
-
 # IDE configurations
 .windsurf/
 
@@ -103,11 +104,14 @@ test_output.txt
 test_replay.txt
 demo_output.zip
 scripts/demo_audit_stream.json
+tmp/
 
 # Runtime State and Evidence Bundles
 data/
 artifacts/reality_run_*/
-*.log
 audit_venv/
 test_install_venv/
 snapshot_out/
+
+# OS / editor junk
+Thumbs.db
