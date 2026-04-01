@@ -543,7 +543,9 @@ class ByzantineTestRunner:
         baseline_report = self.verifier.verify_consensus(base_events, "baseline")
         baseline_hash = None
         if baseline_report.consensus_result == ConsensusResult.CONSENSUS:
-            baseline_hash = list(baseline_report.node_hashes.values())[0]
+            # Use deterministic key selection instead of list()[0] to avoid platform-dependent ordering
+            first_node_id = sorted(baseline_report.node_hashes.keys())[0]
+            baseline_hash = baseline_report.node_hashes[first_node_id]
         
         # Inject faults
         injection_results = self.fault_injector.inject_faults(base_events, fault_configs)
