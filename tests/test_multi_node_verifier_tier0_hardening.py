@@ -66,14 +66,14 @@ class TestMultiNodeVerifierIsolation:
     def test_node_state_isolation(self, verifier, sample_events):
         """Test that node state doesn't leak between runs"""
         # First verification
-        report1 = verifier.verify_consensus(sample_events, "run-1")
+        report1 = verifier.verify_consensus(sample_events, "isolation-test")
         hashes1 = list(report1.node_hashes.values())
         
-        # Second verification with same data
-        report2 = verifier.verify_consensus(sample_events, "run-2")
+        # Second verification with SAME correlation_id (TRACE_IDENTITY_HASH semantics)
+        report2 = verifier.verify_consensus(sample_events, "isolation-test")
         hashes2 = list(report2.node_hashes.values())
         
-        # Hashes should be identical (deterministic)
+        # Hashes should be identical (deterministic for same correlation_id)
         assert hashes1 == hashes2
         
         # But node IDs should be consistent
