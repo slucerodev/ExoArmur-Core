@@ -85,6 +85,13 @@ class TestGoldenArtifacts:
                 }
                 assert current_file_hash in valid_hashes, \
                     f"Artifact {artifact_name} hash mismatch. Expected one of {list(valid_hashes)}, Got: {current_file_hash}"
+            elif artifact_name == "demo_replay_output.json":
+                valid_hashes = {
+                    "bcc6406a2ac6fd6b6eb4dc00e64e23e9847c1535873b11a59a0d0b7087a55a19",  # Linux/macOS
+                    "a31d403f745f7c59179ad25ebdf55ecdcfec2ba4dd4868e2a5c0dff9e0216cfe",   # Windows
+                }
+                assert current_file_hash in valid_hashes, \
+                    f"Artifact {artifact_name} hash mismatch. Expected one of {list(valid_hashes)}, Got: {current_file_hash}"
             else:
                 assert current_file_hash == manifest_hash, \
                     f"Artifact {artifact_name} hash mismatch. Expected: {manifest_hash}, Got: {current_file_hash}"
