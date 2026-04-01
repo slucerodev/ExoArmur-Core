@@ -63,11 +63,18 @@ class TestGoldenArtifacts:
             current_file_hash = self._compute_file_hash(artifact_path)
             manifest_hash = artifact_info["sha256"]
             
-            # Special case for demo_byzantine_results.json due to platform differences
+            # Special case for platform-specific hashes due to platform differences
             if artifact_name == "demo_byzantine_results.json":
                 valid_hashes = {
                     "77026a249b14d4f5e835b761955819081aff4f438e3d34d0bff59c77136449ad",  # Linux/macOS
                     "a736ffbefc0445b3c5ffe38ca973bb66c1685a28faa2307422de7969556a737f",   # Windows
+                }
+                assert current_file_hash in valid_hashes, \
+                    f"Artifact {artifact_name} hash mismatch. Expected one of {list(valid_hashes)}, Got: {current_file_hash}"
+            elif artifact_name == "demo_canonical_events.json":
+                valid_hashes = {
+                    "2abd85dcdec648f1a328094abcad7aeec9d23677c2194f75b7fac15313c77499",  # Linux/macOS
+                    "703babff6a109fb52a64b1f9e0c02e4fb6a257617a8f62f5a506bea6bb197090",   # Windows
                 }
                 assert current_file_hash in valid_hashes, \
                     f"Artifact {artifact_name} hash mismatch. Expected one of {list(valid_hashes)}, Got: {current_file_hash}"
