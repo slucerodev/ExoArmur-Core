@@ -38,7 +38,7 @@ jobs:
           python scripts/infra/verify_env_parity.py \
             --expected-python-version 3.12.3 \
             --expected-platform Linux \
-            --report-file "${RUNNER_TEMP}/env-parity.json"
+            --report-file "${{ runner.temp }}/env-parity.json"
 
       - name: Gate 1a — Packaging smoke (install + CLI + quickstart)
         run: |
@@ -60,13 +60,13 @@ jobs:
 
       - name: Gate 2 — Test Execution (three-run stability gate)
         env:
-          EXOARMUR_STABILITY_REPORT: "${RUNNER_TEMP}/stability-report.json"
+          EXOARMUR_STABILITY_REPORT: "${{ runner.temp }}/stability-report.json"
         run: |
           echo "=== BEFORE PYTEST ==="
           git status --porcelain || true
           python scripts/infra/stability_ci.py \
-            --report-file "${RUNNER_TEMP}/stability-report.json" \
-            --run-report-dir "${RUNNER_TEMP}/stability-runs"
+            --report-file "${{ runner.temp }}/stability-report.json" \
+            --run-report-dir "${{ runner.temp }}/stability-runs"
           echo "=== AFTER PYTEST ==="
           git status --porcelain || true
 
@@ -79,7 +79,7 @@ jobs:
 
       - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
         env:
-          EXOARMUR_STABILITY_REPORT: "${RUNNER_TEMP}/boundary-stability-report.json"
+          EXOARMUR_STABILITY_REPORT: "${{ runner.temp }}/boundary-stability-report.json"
         run: |
           echo "=== BEFORE BOUNDARY GATE ==="
           git status --porcelain || true
