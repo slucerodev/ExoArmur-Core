@@ -2,7 +2,7 @@
   "artifacts": {
     "demo_byzantine_results.json": {
       "file_path": "tests/artifacts/demo_byzantine_results.json",
-      "sha256": "77026a249b14d4f5e835b761955819081aff4f438e3d34d0bff59c77136449ad",
+      "sha256": "a736ffbefc0445b3c5ffe38ca973bb66c1685a28faa2307422de7969556a737f",
       "size": 502
     },
     "demo_canonical_events.json": {
