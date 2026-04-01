@@ -111,7 +111,7 @@ class TestReplayGuardrails:
         violations = []
 
         for path in sorted(replay_root.rglob("*.py")):
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
             for term in forbidden_terms:
                 if term in text:
                     violations.append(f"{path}:{term}")
