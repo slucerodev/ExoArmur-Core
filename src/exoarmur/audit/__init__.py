@@ -2,7 +2,8 @@
 Audit logging components
 """
 
-from .audit_logger import AuditLogger
+from .audit_logger import AuditLogger, compute_idempotency_key, compute_audit_id
+from .audit_normalizer import AuditNormalizer, CanonicalAuditEnvelope
 from datetime import datetime
 from typing import Dict, Any
 
@@ -39,4 +40,12 @@ class FederationAuditInterface:
         return True
 
 
-__all__ = ['AuditLogger', 'NoOpAuditInterface', 'FederationAuditInterface']
+__all__ = [
+    'AuditLogger',
+    'compute_idempotency_key', 
+    'compute_audit_id',
+    'AuditNormalizer',
+    'CanonicalAuditEnvelope',
+    'NoOpAuditInterface',
+    'FederationAuditInterface'
+]

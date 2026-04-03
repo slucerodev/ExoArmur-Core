@@ -1,16 +1,20 @@
 """
 Replay Engine for deterministic audit replay
 Reconstructs and verifies organism behavior from audit logs
+Enhanced with dual-format support for V1 and CanonicalAuditEnvelope
 """
 
 import logging
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
 
 from .event_envelope import CanonicalEvent, EnvelopeValidationError
+from .replay_envelope_builder import ReplayEnvelopeBuilder, ReplayEnvelope
+from spec.contracts.models_v1 import AuditRecordV1
+from exoarmur.audit.audit_normalizer import CanonicalAuditEnvelope
 
 # Import system components for reconstruction
 import sys
@@ -105,28 +109,29 @@ class ReplayReport:
 
 
 class ReplayEngine:
-    """Deterministic audit replay engine"""
+    """Deterministic audit replay engine with dual-format support"""
     
     def __init__(self, 
-                 audit_store: Dict[str, List[CanonicalEvent]],
+                 audit_store: Dict[str, List[Union[CanonicalEvent, AuditRecordV1, CanonicalAuditEnvelope]]],
                  intent_store: Optional['IntentStore'] = None,
                  approval_service: Optional['ApprovalService'] = None):
         """
-        Initialize replay engine
+        Initialize replay engine with dual-format support
         
         Args:
-            audit_store: Canonical replay event storage by correlation_id
+            audit_store: Mixed format audit storage by correlation_id (V1, CanonicalEvent, or CanonicalAuditEnvelope)
             intent_store: Intent store for verification
             approval_service: Approval service for verification
         """
         self.audit_store = audit_store
         self.intent_store = intent_store
         self.approval_service = approval_service
+        self.envelope_builder = ReplayEnvelopeBuilder()
         self.logger = logging.getLogger(__name__)
     
     def replay_correlation(self, correlation_id: str) -> ReplayReport:
         """
-        Replay all events for a correlation ID deterministically
+        Replay all events for a correlation ID deterministically with dual-format support
         
         Args:
             correlation_id: Correlation ID to replay
@@ -136,34 +141,43 @@ class ReplayEngine:
         """
         report = ReplayReport(correlation_id=correlation_id)
         
-        # Step 1: Retrieve and validate canonical replay events
+        # Step 1: Retrieve mixed format audit records
         audit_records = self.audit_store.get(correlation_id, [])
         if not audit_records:
             report.add_failure(f"No audit records found for correlation_id: {correlation_id}")
             return report
 
-        self._validate_canonical_inputs(audit_records, correlation_id)
+        # Step 2: Build unified replay envelopes from mixed formats
+        replay_envelopes = self.envelope_builder.build_envelopes(audit_records, preserve_ordering=True)
+        if not replay_envelopes:
+            report.add_failure("No valid replay envelopes created from audit records")
+            return report
+        
+        # Step 3: Validate envelope sequence
+        validation_issues = self.envelope_builder.validate_envelope_sequence(replay_envelopes)
+        for issue in validation_issues:
+            report.add_warning(f"Envelope validation issue: {issue}")
 
         try:
-            # Step 2: Validate canonical events and sort deterministically
-            envelopes = self._create_envelopes(audit_records, report)
-            if not envelopes:
-                report.add_failure("No valid envelopes created from audit records")
+            # Step 4: Convert to CanonicalEvent for compatibility with existing replay logic
+            canonical_events = self.envelope_builder.convert_to_canonical_events(replay_envelopes)
+            if not canonical_events:
+                report.add_failure("No valid canonical events created from replay envelopes")
                 return report
             
-            # Step 3: Sort by deterministic ordering
-            envelopes.sort(key=lambda e: e.ordering_key)
-            report.total_events = len(envelopes)
+            # Step 5: Sort by deterministic ordering (preserves original sequence)
+            canonical_events.sort(key=lambda e: e.ordering_key)
+            report.total_events = len(canonical_events)
             
-            # Step 4: Process events in order
-            for envelope in envelopes:
+            # Step 6: Process events in order
+            for event in canonical_events:
                 try:
-                    self._process_envelope(envelope, report)
+                    self._process_envelope(event, report)
                     report.processed_events += 1
                 except Exception as e:
-                    report.add_failure(f"Failed to process envelope {envelope.event_id}: {e}")
+                    report.add_failure(f"Failed to process envelope {event.event_id}: {e}")
             
-            # Step 5: Verify final state integrity
+            # Step 7: Verify final state integrity
             self._verify_final_state(report)
             
         except Exception as e:
@@ -171,6 +185,17 @@ class ReplayEngine:
             self.logger.error(f"Replay failed for {correlation_id}: {e}")
         
         return report
+    
+    def _validate_dual_format_inputs(self, audit_records: List[Any], correlation_id: str) -> None:
+        """Validate dual-format audit records before replay begins."""
+        supported_types = (AuditRecordV1, CanonicalAuditEnvelope, CanonicalEvent)
+        
+        for index, record in enumerate(audit_records):
+            if not isinstance(record, supported_types):
+                raise EnvelopeValidationError(
+                    f"ReplayEngine requires AuditRecordV1, CanonicalAuditEnvelope, or CanonicalEvent inputs only; "
+                    f"got {type(record).__name__} at index {index} for correlation_id {correlation_id}"
+                )
     
     def _create_envelopes(self, 
                          audit_records: List[CanonicalEvent], 
@@ -188,15 +213,110 @@ class ReplayEngine:
         
         return envelopes
 
-    def _validate_canonical_inputs(self, audit_records: List[Any], correlation_id: str) -> None:
-        """Reject raw audit/event objects before replay begins."""
-        for index, record in enumerate(audit_records):
-            if not isinstance(record, CanonicalEvent):
-                raise EnvelopeValidationError(
-                    "ReplayEngine requires CanonicalEvent inputs only; "
-                    f"got {type(record).__name__} at index {index} for correlation_id {correlation_id}"
-                )
-
+    def replay_dual_format_validation(
+        self,
+        correlation_id: str,
+        test_format_mixing: bool = False
+    ) -> Dict[str, ReplayReport]:
+        """
+        Validate dual-format replay by testing different format combinations
+        
+        Args:
+            correlation_id: Correlation ID to test
+            test_format_mixing: Whether to test mixed format scenarios
+            
+        Returns:
+            Dictionary of replay reports for different format scenarios
+        """
+        reports = {}
+        
+        # Get original audit records
+        original_records = self.audit_store.get(correlation_id, [])
+        if not original_records:
+            return {"error": ReplayReport(correlation_id=correlation_id, result=ReplayResult.FAILURE)}
+        
+        # Test 1: Pure V1 format (if available)
+        v1_records = [r for r in original_records if isinstance(r, AuditRecordV1)]
+        if v1_records:
+            v1_store = {correlation_id: v1_records}
+            v1_engine = ReplayEngine(v1_store, self.intent_store, self.approval_service)
+            reports["pure_v1"] = v1_engine.replay_correlation(correlation_id)
+        
+        # Test 2: Pure CanonicalAuditEnvelope format (if available)
+        canonical_records = [r for r in original_records if isinstance(r, CanonicalAuditEnvelope)]
+        if canonical_records:
+            canonical_store = {correlation_id: canonical_records}
+            canonical_engine = ReplayEngine(canonical_store, self.intent_store, self.approval_service)
+            reports["pure_canonical"] = canonical_engine.replay_correlation(correlation_id)
+        
+        # Test 3: Mixed format (original mixed records)
+        mixed_store = {correlation_id: original_records}
+        mixed_engine = ReplayEngine(mixed_store, self.intent_store, self.approval_service)
+        reports["mixed_format"] = mixed_engine.replay_correlation(correlation_id)
+        
+        # Test 4: Random format mixing (if requested)
+        if test_format_mixing and len(original_records) > 1:
+            import random
+            random.seed(42)  # Explicit seeding for determinism
+            random.shuffle(original_records)
+            random_store = {correlation_id: original_records}
+            random_engine = ReplayEngine(random_store, self.intent_store, self.approval_service)
+            reports["random_mixed"] = random_engine.replay_correlation(correlation_id)
+        
+        return reports
+    
+    def verify_dual_format_equivalence(self, reports: Dict[str, ReplayReport]) -> List[str]:
+        """
+        Verify that all dual-format replay reports produce identical results
+        
+        Args:
+            reports: Dictionary of replay reports from different format scenarios
+            
+        Returns:
+            List of equivalence issues found
+        """
+        issues = []
+        
+        if len(reports) < 2:
+            issues.append("Insufficient reports for equivalence verification")
+            return issues
+        
+        # Get the first successful report as baseline
+        baseline_report = None
+        for report in reports.values():
+            if report.result == ReplayResult.SUCCESS:
+                baseline_report = report
+                break
+        
+        if not baseline_report:
+            issues.append("No successful replay report found for baseline")
+            return issues
+        
+        # Compare all reports against baseline
+        for scenario, report in reports.items():
+            if report.result != ReplayResult.SUCCESS:
+                issues.append(f"Replay failed for scenario {scenario}: {report.result}")
+                continue
+            
+            # Compare key metrics
+            if report.total_events != baseline_report.total_events:
+                issues.append(f"Event count mismatch in {scenario}: {report.total_events} vs {baseline_report.total_events}")
+            
+            if report.processed_events != baseline_report.processed_events:
+                issues.append(f"Processed events mismatch in {scenario}: {report.processed_events} vs {baseline_report.processed_events}")
+            
+            # Compare reconstructed state
+            if report.reconstructed_intents != baseline_report.reconstructed_intents:
+                issues.append(f"Reconstructed intents mismatch in {scenario}")
+            
+            if report.reconstructed_decisions != baseline_report.reconstructed_decisions:
+                issues.append(f"Reconstructed decisions mismatch in {scenario}")
+            
+            if report.safety_gate_verdicts != baseline_report.safety_gate_verdicts:
+                issues.append(f"Safety gate verdicts mismatch in {scenario}")
+        
+        return issues
+    
     def _extract_payload_ref(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(payload, dict):
             return {}

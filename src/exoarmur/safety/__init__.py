@@ -6,6 +6,9 @@ Phase 5: Added ExecutionGate for kill switch enforcement.
 """
 
 from .safety_gate import SafetyGate
+from .policy_evaluator import PolicyEvaluator
+from .trust_evaluator import TrustEvaluator
+from .environment_monitor import EnvironmentMonitor
 from .execution_gate import (
     ExecutionGate,
     ExecutionContext,
@@ -20,6 +23,9 @@ from .execution_gate import (
 
 __all__ = [
     'SafetyGate',
+    'PolicyEvaluator',
+    'TrustEvaluator',
+    'EnvironmentMonitor',
     'ExecutionGate',
     'ExecutionContext', 
     'GateResult',

@@ -19,6 +19,8 @@ from ..certification.certification_pipeline import *
 from ..trust.trust_enforcement import *
 from ..core.audit_logger import DeterministicAuditLogger
 from ..detection import get_v2_execution_context
+from ...telemetry.v2_telemetry_handler import get_v2_telemetry_handler
+from ...causal.causal_context_logger import get_causal_context_logger
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,8 @@ class V2EntryGate:
         self.state_validator = StateValidator()
         self.certification_function = CertificationFunction()
         self.trust_registry = TRUST_TIER_REGISTRY
+        self.telemetry_handler = get_v2_telemetry_handler()
+        self.causal_logger = get_causal_context_logger()
         
         logger.info("V2EntryGate initialized - SINGLE ENTRY POINT ENFORCED")
     
@@ -65,9 +69,13 @@ class V2EntryGate:
         This is the ONLY valid execution path. ALL execution MUST pass through here.
         NO fallback execution paths exist. NO partial execution is possible.
         """
+        entry_timestamp = datetime.now(timezone.utc)
+        
         # Mark V2 execution context for violation detection
         v2_context = get_v2_execution_context()
         with v2_context:
+            telemetry_event_id = None
+            causal_start_record_id = None
             try:
                 # STRICT PRECONDITION CHECKING - Validate everything before any logic
                 self._validate_execution_request_strict(request)
@@ -75,27 +83,54 @@ class V2EntryGate:
                 # Create V2 context with fail-stop semantics
                 v2_context_data = self._create_v2_context_strict(request)
                 
+                # CAPTURE ENTRY TELEMETRY (observational only - never affects execution)
+                telemetry_event_id = self._capture_entry_telemetry(request, v2_context_data, entry_timestamp)
+                
+                # CAPTURE CAUSAL CONTEXT START (observational only - never affects execution)
+                causal_start_record_id = self._capture_causal_start(request, v2_context_data, entry_timestamp)
+                
                 # DETERMINISTIC ROUTING - If valid → proceed, if invalid → HARD FAIL
                 self._enforce_v2_lifecycle_strict(v2_context_data)
                 self._inject_deterministic_context_strict(v2_context_data)
                 audit_trail_id = self._attach_audit_session_strict(v2_context_data)
                 self._validate_v2_requirements_strict(v2_context_data)
                 
+                # CAPTURE DECISION POINT CAUSAL CONTEXT (observational only)
+                self._capture_decision_point_causal(request, v2_context_data, causal_start_record_id)
+                
                 # EXECUTE THROUGH V1 CORE (only after full validation)
                 core_result = self._dispatch_to_v1_core_strict(v2_context_data)
                 
                 # FINALIZE THROUGH V2
-                return self._finalize_through_v2_strict(v2_context_data, core_result)
+                final_result = self._finalize_through_v2_strict(v2_context_data, core_result)
+                
+                # CAPTURE EXIT TELEMETRY (observational only)
+                self._capture_exit_telemetry(telemetry_event_id, final_result, entry_timestamp)
+                
+                # CAPTURE CAUSAL CONTEXT END (observational only)
+                self._capture_causal_end(causal_start_record_id, request, v2_context_data, final_result, entry_timestamp)
+                
+                return final_result
                 
             except Exception as e:
                 # FAIL-STOP SEMANTICS - ANY exception = immediate HALT
                 logger.error(f"V2 Entry Gate execution failed: {str(e)}")
-                return ExecutionResult(
+                error_result = ExecutionResult(
                     success=False,
                     result_data={'error': str(e), 'stage': 'v2_entry_gate_failure'},
                     execution_id=request.execution_context.execution_id.value if request else 'unknown',
                     audit_trail_id=''
                 )
+                
+                # CAPTURE EXIT TELEMETRY for error case (observational only)
+                self._capture_exit_telemetry(telemetry_event_id, error_result, entry_timestamp)
+                
+                # CAPTURE CAUSAL CONTEXT END for error case (observational only)
+                self._capture_causal_end(causal_start_record_id, request, 
+                    {'execution_id': v2_context_data.get('execution_id', 'unknown')} if 'v2_context_data' in locals() else {'execution_id': 'unknown'}, 
+                    error_result, entry_timestamp)
+                
+                return error_result
     
     def _initialize_v2_context(self, request: ExecutionRequest, execution_id: str) -> Dict[str, Any]:
         """Initialize V2 execution context"""
@@ -658,6 +693,208 @@ class V2EntryGate:
             execution_id=v2_context['execution_id'],
             audit_trail_id=v2_context.get('audit_trail_id', '')
         )
+    
+    def _capture_entry_telemetry(self, request: ExecutionRequest, v2_context: Dict[str, Any], entry_timestamp: datetime) -> Optional[str]:
+        """
+        Capture V2 entry boundary telemetry (observational only)
+        
+        NEVER affects execution behavior or decisions
+        """
+        try:
+            # Determine entry path
+            entry_path = "v2_wrapped"  # All execution through V2 entry gate is V2 wrapped
+            
+            # Extract feature flags (observational only)
+            feature_flags = self._get_current_feature_flags()
+            
+            # Determine routing decision (observational only)
+            routing_decision = "v2_governance_active"
+            routing_context = {
+                'module_id': str(request.module_id.value),
+                'execution_id': v2_context['execution_id'],
+                'v2_validation_required': True
+            }
+            
+            # Capture telemetry (non-blocking, failure-tolerant)
+            return self.telemetry_handler.capture_entry_observation(
+                entry_path=entry_path,
+                module_id=str(request.module_id.value),
+                execution_id=v2_context['execution_id'],
+                correlation_id=request.correlation_id,
+                trace_id=getattr(request.execution_context, 'trace_id', None),
+                feature_flags=feature_flags,
+                routing_decision=routing_decision,
+                routing_context=routing_context,
+                v2_governance_active=True,
+                v2_validation_passed=True
+            )
+        except Exception as e:
+            # Telemetry failure must never affect execution
+            logger.debug(f"Entry telemetry capture failed: {e}")
+            return None
+    
+    def _capture_exit_telemetry(self, telemetry_event_id: Optional[str], result: ExecutionResult, entry_timestamp: datetime) -> bool:
+        """
+        Capture V2 exit boundary telemetry (observational only)
+        
+        NEVER affects execution behavior or decisions
+        """
+        try:
+            if not telemetry_event_id:
+                return False
+            
+            # Calculate processing duration
+            processing_duration_ms = None
+            try:
+                exit_timestamp = datetime.now(timezone.utc)
+                duration = exit_timestamp - entry_timestamp
+                processing_duration_ms = duration.total_seconds() * 1000
+            except Exception:
+                pass
+            
+            # Create result summary (observational only)
+            result_summary = {
+                'success': result.success,
+                'has_error': result.error is not None,
+                'execution_id': result.execution_id,
+                'audit_trail_id': result.audit_trail_id
+            }
+            
+            # Capture exit telemetry (non-blocking, failure-tolerant)
+            return self.telemetry_handler.capture_exit_observation(
+                event_id=telemetry_event_id,
+                success=result.success,
+                result_summary=result_summary,
+                processing_duration_ms=processing_duration_ms
+            )
+        except Exception as e:
+            # Telemetry failure must never affect execution
+            logger.debug(f"Exit telemetry capture failed: {e}")
+            return False
+    
+    def _get_current_feature_flags(self) -> Dict[str, bool]:
+        """
+        Get current feature flag state (observational only)
+        
+        Returns snapshot of feature flags for telemetry purposes
+        """
+        try:
+            # Import feature flags module if available
+            from feature_flags import get_feature_flag_state
+            
+            # Get commonly relevant flags for V2 boundary
+            relevant_flags = [
+                'v2_federation_enabled',
+                'v2_temporal_enabled',
+                'v2_analytics_enabled',
+                'v2_monitoring_enabled'
+            ]
+            
+            flag_state = {}
+            for flag in relevant_flags:
+                try:
+                    flag_state[flag] = get_feature_flag_state(flag)
+                except Exception:
+                    # Default to False if flag not available
+                    flag_state[flag] = False
+            
+            return flag_state
+        except Exception as e:
+            logger.debug(f"Failed to get feature flags for telemetry: {e}")
+            return {}
+    
+    def _capture_causal_start(self, request: ExecutionRequest, v2_context: Dict[str, Any], entry_timestamp: datetime) -> Optional[str]:
+        """
+        Capture causal context start (observational only)
+        
+        NEVER affects execution behavior or decisions
+        """
+        try:
+            return self.causal_logger.capture_execution_start(
+                module_id=str(request.module_id.value),
+                execution_id=v2_context['execution_id'],
+                correlation_id=request.correlation_id,
+                trace_id=getattr(request.execution_context, 'trace_id', None),
+                parent_event_id=None,  # Start of causal chain
+                boundary_type="v2",
+                metadata={
+                    'entry_timestamp': entry_timestamp.isoformat(),
+                    'module_type': 'v2_entry_gate',
+                    'correlation_id': request.correlation_id,
+                    'approval_id': request.approval_id
+                }
+            )
+        except Exception as e:
+            # Causal logging failure must never affect execution
+            logger.debug(f"Causal start capture failed: {e}")
+            return None
+    
+    def _capture_decision_point_causal(self, request: ExecutionRequest, v2_context: Dict[str, Any], parent_event_id: Optional[str]) -> Optional[str]:
+        """
+        Capture decision point causal context (observational only)
+        
+        NEVER affects execution behavior or decisions
+        """
+        try:
+            return self.causal_logger.capture_decision_point(
+                decision_type="v2_governance_routing",
+                module_id=str(request.module_id.value),
+                execution_id=v2_context['execution_id'],
+                correlation_id=request.correlation_id,
+                trace_id=getattr(request.execution_context, 'trace_id', None),
+                parent_event_id=parent_event_id,
+                boundary_type="v2",
+                decision_metadata={
+                    'v2_validation_passed': True,
+                    'routing_decision': 'v2_governance_active',
+                    'feature_flags': self._get_current_feature_flags(),
+                    'module_id': str(request.module_id.value)
+                }
+            )
+        except Exception as e:
+            # Causal logging failure must never affect execution
+            logger.debug(f"Causal decision point capture failed: {e}")
+            return None
+    
+    def _capture_causal_end(self, causal_start_record_id: Optional[str], request: ExecutionRequest, v2_context: Dict[str, Any], result: ExecutionResult, entry_timestamp: datetime) -> bool:
+        """
+        Capture causal context end (observational only)
+        
+        NEVER affects execution behavior or decisions
+        """
+        try:
+            if not causal_start_record_id:
+                return False
+            
+            # Calculate processing duration
+            duration_ms = None
+            try:
+                exit_timestamp = datetime.now(timezone.utc)
+                duration = exit_timestamp - entry_timestamp
+                duration_ms = duration.total_seconds() * 1000
+            except Exception:
+                pass
+            
+            return self.causal_logger.capture_execution_end(
+                execution_start_record_id=causal_start_record_id,
+                module_id=str(request.module_id.value),
+                execution_id=v2_context['execution_id'],
+                correlation_id=request.correlation_id,
+                trace_id=getattr(request.execution_context, 'trace_id', None),
+                boundary_type="v2",
+                success=result.success,
+                duration_ms=duration_ms,
+                metadata={
+                    'exit_timestamp': datetime.now(timezone.utc).isoformat(),
+                    'has_error': result.error is not None,
+                    'error_type': 'v2_entry_gate_failure' if result.error else None,
+                    'audit_trail_id': result.audit_trail_id
+                }
+            )
+        except Exception as e:
+            # Causal logging failure must never affect execution
+            logger.debug(f"Causal end capture failed: {e}")
+            return False
 
 # GLOBAL SINGLETON - THE ONLY ALLOWED ENTRY POINT
 _v2_entry_gate_instance: Optional[V2EntryGate] = None

@@ -460,17 +460,52 @@ async def ingest_telemetry(event: TelemetryEventV1):
         
         # Step 6: Safety - evaluate safety gate with arbitration
         from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState
+        from exoarmur.safety.policy_evaluator import PolicyEvaluator
+        from exoarmur.safety.trust_evaluator import TrustEvaluator
+        from exoarmur.safety.environment_monitor import EnvironmentMonitor
         
-        policy_state = PolicyState(
-            policy_verified=True,  # TODO: implement actual policy verification
-            kill_switch_global=False,  # TODO: implement actual kill switch checks
-            kill_switch_tenant=False,
-            required_approval="none"
+        # Initialize policy evaluator
+        policy_evaluator = PolicyEvaluator()
+        
+        # Evaluate policy state with safe fallback to preserve current behavior
+        policy_state = policy_evaluator.evaluate_policy(
+            intent=None,  # Will be created in execution step
+            tenant_id=event.tenant_id,
+            cell_id=event.cell_id
         )
         
-        trust_state = TrustState(emitter_trust_score=0.85)  # TODO: implement actual trust scoring
+        # Evaluate trust state with safe fallback to preserve current behavior
+        trust_evaluator = TrustEvaluator()
+        trust_score = trust_evaluator.evaluate_trust(
+            event_source=event.source,
+            emitter_id=event.source.get("sensor_id"),
+            tenant_id=event.tenant_id
+        )
+        trust_state = TrustState(emitter_trust_score=trust_score)
         
-        environment_state = EnvironmentState(degraded_mode=False)  # TODO: implement actual degraded mode detection
+        # Monitor environment state for observational purposes only
+        environment_monitor = EnvironmentMonitor()
+        environment_observation = environment_monitor.monitor_environment(
+            tenant_id=event.tenant_id,
+            cell_id=event.cell_id,
+            correlation_id=event.correlation_id,
+            trace_id=event.trace_id
+        )
+        
+        # Extract degraded mode state (observational only - never influences decisions)
+        degraded_mode = environment_monitor.get_degraded_mode_state(environment_observation)
+        environment_state = EnvironmentState(degraded_mode=degraded_mode)
+        
+        # Emit environment telemetry for observability (strictly observational)
+        from exoarmur.safety.environment_monitor import EnvironmentMonitoringContext
+        monitoring_context = EnvironmentMonitoringContext(
+            tenant_id=event.tenant_id,
+            cell_id=event.cell_id,
+            correlation_id=event.correlation_id,
+            trace_id=event.trace_id,
+            timestamp=None
+        )
+        environment_monitor.emit_environment_telemetry(environment_observation, monitoring_context)
         
         safety_verdict = safety_gate.evaluate_safety(
             intent=None,  # Will be created in execution step
