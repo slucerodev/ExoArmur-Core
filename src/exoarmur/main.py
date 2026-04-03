@@ -49,7 +49,7 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
@@ -186,61 +186,144 @@ def _to_action_intent(execution_intent) -> ActionIntent:
     )
 
 
-async def _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict) -> bool:
+async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) -> bool:
+    """Execute intent through V2 Entry Gate - SINGLE MANDATORY ENTRY POINT"""
     if execution_kernel is None or audit_logger is None:
         raise RuntimeError("Execution runtime is not initialized")
 
-    pipeline_audit_emitter = _BufferedPipelineAuditEmitter()
-
-    pipeline = ProxyPipeline(
-        _AllowPolicyDecisionPoint(),
-        _FixedSafetyGate(safety_verdict),
-        _ExecutionIntentRecorder(execution_kernel, execution_intent),
-        pipeline_audit_emitter,
+    # Create V2 ExecutionRequest
+    from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
+    
+    execution_request = ExecutionRequest(
+        module_id=ModuleID(execution_intent.intent_id[:26]),  # Ensure 26 chars
+        execution_context=ModuleExecutionContext(
+            execution_id=ExecutionID(execution_intent.intent_id[:26]),
+            module_id=ModuleID(execution_intent.intent_id[:26]),
+            module_version=ModuleVersion(1, 0, 0),
+            deterministic_seed=DeterministicSeed(hash(execution_intent.intent_id) % (2**63)),
+            logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+            dependency_hash=execution_intent.correlation_id or "default"
+        ),
+        action_data={
+            'action_class': execution_intent.action_class,
+            'action_type': execution_intent.action_type,
+            'subject': execution_intent.subject,
+            'parameters': execution_intent.action_parameters,
+            'safety_verdict': safety_verdict.verdict
+        },
+        correlation_id=execution_intent.correlation_id
     )
-    result = pipeline.execute(_to_action_intent(execution_intent))
 
-    for event in pipeline_audit_emitter.events:
-        await audit_logger.emit_audit_record_async(
-            event_kind=event["event_type"],
-            payload_ref={
-                "kind": "inline",
-                "ref": {
-                    "intent_id": event["intent_id"],
-                    "outcome": event["outcome"],
-                    "details": event["details"],
-                },
-            },
-            correlation_id=execution_intent.correlation_id,
-            trace_id=execution_intent.trace_id,
-            tenant_id=execution_intent.tenant_id,
-            cell_id=execution_intent.cell_id,
-            idempotency_key=f"{execution_intent.idempotency_key}:{event['event_type']}:{event['outcome']}",
-        )
+    # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+    result = execute_module(execution_request)
+    
+    # Record execution in kernel for idempotency
+    if result.success:
+        execution_kernel.executed_intents[execution_intent.intent_id] = execution_intent
+        logger.info(f"Intent executed via V2 Entry Gate: {execution_intent.intent_id}")
+        return True
+    else:
+        logger.error(f"V2 Entry Gate execution failed: {result.error}")
+        return False
 
-    return getattr(result, "success", False)
+
+def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, Any]] = None) -> bool:
+    """
+    Bootstrap ExoArmur system through V2EntryGate.
+    
+    This is the ONLY legitimate path for system initialization.
+    All component initialization happens through V2EntryGate governance.
+    
+    Args:
+        nats_client_config: Optional NATS client configuration
+        
+    Returns:
+        True if bootstrap successful, False otherwise
+    """
+    from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+    from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
+    from datetime import datetime, timezone
+    import hashlib
+    import ulid
+    
+    logger.info("Initiating system bootstrap through V2EntryGate")
+    
+    # Generate proper ULIDs for bootstrap
+    bootstrap_ulid = str(ulid.ULID())
+    execution_ulid = str(ulid.ULID())
+    
+    # Create bootstrap execution request
+    bootstrap_request = ExecutionRequest(
+        module_id=ModuleID(bootstrap_ulid),
+        execution_context=ModuleExecutionContext(
+            execution_id=ExecutionID(execution_ulid),
+            module_id=ModuleID(bootstrap_ulid),
+            module_version=ModuleVersion(1, 0, 0),
+            deterministic_seed=DeterministicSeed(hash("system_bootstrap") % (2**63)),
+            logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+            dependency_hash="system_bootstrap"
+        ),
+        action_data={
+            'intent_type': 'SYSTEM_BOOTSTRAP',
+            'action_class': 'system_operation',
+            'action_type': 'bootstrap',
+            'subject': 'exosystem',
+            'parameters': {
+                'nats_client_config': nats_client_config
+            }
+        },
+        correlation_id="system_bootstrap"
+    )
+    
+    # Execute bootstrap through V2EntryGate
+    try:
+        result = execute_module(bootstrap_request)
+        
+        if result.success:
+            logger.info("System bootstrap completed successfully through V2EntryGate")
+            logger.info(f"Bootstrap result: {result.result_data}")
+            return True
+        else:
+            logger.error(f"System bootstrap failed: {result.result_data.get('error', 'Unknown error')}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"System bootstrap exception: {e}")
+        return False
 
 
 def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = None):
-    """Initialize ExoArmur Core components"""
-    global nats_client, telemetry_validator, facts_deriver, local_decider
-    global belief_generator, collective_aggregator, safety_gate, execution_kernel, audit_logger, approval_service, intent_store
+    """
+    [DEPRECATED] Initialize ExoArmur Core components
     
-    nats_client = nats_client_instance
+    CRITICAL: This function is a VIOLATION of V2 governance boundaries.
+    Direct component instantiation bypasses V2EntryGate enforcement.
     
-    # Initialize internal modules
-    telemetry_validator = TelemetryValidator()
-    facts_deriver = FactsDeriver()
-    local_decider = LocalDecider()
-    belief_generator = BeliefGenerator(nats_client)
-    collective_aggregator = CollectiveConfidenceAggregator(nats_client)
-    safety_gate = SafetyGate()
-    approval_service = ApprovalService()
-    intent_store = IntentStore()
-    execution_kernel = ExecutionKernel(nats_client, approval_service, intent_store)
-    audit_logger = AuditLogger(nats_client)
+    This function is blocked to prevent unauthorized domain logic access.
+    All component initialization MUST occur through V2EntryGate.
     
-    logger.info("ExoArmur Core components initialized")
+    For system startup: Use the FastAPI lifespan() function (already V2-compliant)
+    For testing: Use V2EntryGate.execute_module() with proper ExecutionRequest
+    For CLI: Commands must route through V2EntryGate, not call this directly
+    """
+    from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
+    
+    # DETECTION: Log violation attempt
+    check_domain_logic_access("main", "initialize_components", ViolationSeverity.CRITICAL)
+    
+    # ENFORCEMENT: Block direct component instantiation
+    raise RuntimeError(
+        "VIOLATION: initialize_components() bypasses V2EntryGate governance.\n"
+        "This function has been eliminated to prevent unauthorized domain logic access.\n"
+        "\n"
+        "SOLUTION:\n"
+        "• For system startup: Use FastAPI lifespan() (V2-compliant)\n"
+        "• For domain logic: Route through V2EntryGate.execute_module()\n"
+        "• For testing: Use V2EntryGate for component access\n"
+        "• For CLI: Commands must use V2EntryGate, not direct initialization\n"
+        "\n"
+        "All domain logic MUST pass through V2EntryGate. No exceptions."
+    )
 
 
 @asynccontextmanager
@@ -255,8 +338,15 @@ async def lifespan(app: FastAPI):
     await nats_client_instance.connect()
     await nats_client_instance.ensure_streams()
 
-    # Initialize components with NATS client
-    initialize_components(nats_client_instance)
+    # Initialize components with NATS client (V2 bootstrap through V2EntryGate)
+    nats_config_dict = {
+        'url': nats_config.url
+    }
+    
+    # Bootstrap system through V2EntryGate
+    bootstrap_success = bootstrap_system_via_v2_entry_gate(nats_config_dict)
+    if not bootstrap_success:
+        raise RuntimeError("System bootstrap failed through V2EntryGate")
 
     # Start background consumers with tracking
     if collective_aggregator:
@@ -308,14 +398,14 @@ app = FastAPI(
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - READ-ONLY (No V2 routing required)"""
     logger.info("Health check accessed")
     return {"status": "healthy", "service": "ExoArmur Core"}
 
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint - READ-ONLY (No V2 routing required)"""
     return {"message": "ExoArmur Core - deterministic governance runtime"}
 
 
@@ -325,9 +415,11 @@ async def ingest_telemetry(event: TelemetryEventV1):
     global telemetry_validator, facts_deriver, local_decider, belief_generator
     global collective_aggregator, safety_gate, execution_kernel, audit_logger
     
-    # Initialize components if not already done (for testing)
+    # Initialize components if not already done (V2 bootstrap through V2EntryGate)
     if telemetry_validator is None:
-        initialize_components()
+        bootstrap_success = bootstrap_system_via_v2_entry_gate()
+        if not bootstrap_success:
+            raise RuntimeError("System bootstrap failed during telemetry ingestion")
     
     try:
         logger.info(f"Ingesting telemetry event {event.event_id}")
@@ -416,8 +508,8 @@ async def ingest_telemetry(event: TelemetryEventV1):
         )
         
         if safety_verdict.verdict == "allow":
-            # Execute intent immediately
-            await _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict)
+            # Execute intent through V2 Entry Gate - SINGLE MANDATORY PATH
+            await _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict)
             
             # Audit: intent executed
             audit_logger.emit_audit_record(
@@ -515,7 +607,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
 
 @app.get("/v1/audit/{correlation_id}", response_model=AuditResponseV1)
 async def get_audit_records(correlation_id: str):
-    """Get audit records for a correlation ID"""
+    """Get audit records for a correlation ID - READ-ONLY (No V2 routing required)"""
     global audit_logger
     
     try:

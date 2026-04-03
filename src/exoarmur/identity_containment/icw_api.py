@@ -13,6 +13,7 @@ from exoarmur.federation.clock import Clock, FixedClock
 from exoarmur.federation.audit import AuditService
 from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
+from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
 from exoarmur.identity_containment.execution import IdentityContainmentExecutor
 from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
 from exoarmur.control_plane.approval_service import ApprovalService
@@ -297,26 +298,68 @@ class IdentityContainmentAPI:
             raise HTTPException(status_code=500, detail=str(e))
     
     async def tick(self) -> TickResponse:
-        """Process expirations (admin/test only)"""
+        """Process expirations through V2 Entry Gate - ONLY ALLOWED PATH"""
         self._check_feature_flag()
         self._ensure_components()
         
         try:
-            # Process expirations
+            # Create V2 ExecutionRequest for tick-based expiration processing
+            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+            
+            execution_request = ExecutionRequest(
+                module_id=ModuleID("icw_tick_expiration"),
+                execution_context=ModuleExecutionContext(
+                    execution_id=ExecutionID("tick_processing" + "0" * 8),
+                    module_id=ModuleID("icw_tick_expiration"),
+                    module_version=ModuleVersion(1, 0, 0),
+                    deterministic_seed=DeterministicSeed(hash("tick_expiration") % (2**63)),
+                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    dependency_hash="icw_tick"
+                ),
+                action_data={
+                    'action_class': 'identity_containment',
+                    'action_type': 'tick_expiration',
+                    'subject': 'system',
+                    'parameters': {'tick_based': True}
+                },
+                correlation_id="tick_system"
+            )
+
+            # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+            result = execute_module(execution_request)
+            
+            if not result.success:
+                logger.error(f"V2 Entry Gate blocked tick expiration: {result.error}")
+                return TickResponse(
+                    processed_count=0,
+                    reverted_records=[],
+                    v2_enforced=True,
+                    v2_execution_id=result.execution_id,
+                    v2_error=result.error
+                )
+            
+            # Process expirations through effector (only after V2 validation)
             reverted_records = self.effector.process_expirations()
             
             return TickResponse(
                 processed_count=len(reverted_records),
                 reverted_records=[
                     {
-                        "intent_id": r.intent_id,
-                        "subject_id": r.subject_id,
-                        "provider": r.provider,
-                        "reason": r.reason,
-                        "reverted_at": r.reverted_at_utc.isoformat()
+                        "reverted_record": {
+                            "intent_id": r.intent_id,
+                            "subject_id": r.subject_id,
+                            "provider": r.provider,
+                            "scope": r.scope.value,
+                            "reverted_at": r.reverted_at_utc.isoformat(),
+                            "reversion_reason": r.reversion_reason
+                        },
+                        "reason": "expired"
                     }
                     for r in reverted_records
-                ]
+                ],
+                v2_enforced=True,
+                v2_execution_id=result.execution_id,
+                v2_audit_trail=result.audit_trail_id
             )
             
         except Exception as e:
@@ -324,29 +367,55 @@ class IdentityContainmentAPI:
             raise HTTPException(status_code=500, detail=str(e))
     
     async def execute_approval(self, approval_id: str) -> Dict[str, Any]:
-        """Execute containment with approval"""
+        """Execute containment with approval through V2 Entry Gate - SINGLE MANDATORY PATH"""
         self._check_feature_flag()
         self._ensure_components()
         
         try:
-            # Execute containment apply
-            result = self.executor.execute_containment_apply(approval_id)
+            # Create V2 ExecutionRequest for containment execution
+            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
             
-            if result is None:
+            execution_request = ExecutionRequest(
+                module_id=ModuleID("icw_containment_executor"),
+                execution_context=ModuleExecutionContext(
+                    execution_id=ExecutionID(approval_id[:26] + "0" * (26 - len(approval_id[:26]))),
+                    module_id=ModuleID("icw_containment_executor"),
+                    module_version=ModuleVersion(1, 0, 0),
+                    deterministic_seed=DeterministicSeed(hash(approval_id) % (2**63)),
+                    logical_timestamp=int(datetime.now().timestamp()),
+                    dependency_hash="icw_execution"
+                ),
+                action_data={
+                    'action_class': 'identity_containment',
+                    'action_type': 'execute_approval',
+                    'subject': 'containment_approval',
+                    'parameters': {'approval_id': approval_id}
+                },
+                correlation_id=approval_id
+            )
+
+            # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+            result = execute_module(execution_request)
+            
+            if not result.success:
                 raise HTTPException(
                     status_code=403,
-                    detail="Execution blocked - approval not found or not approved"
+                    detail=f"V2 Entry Gate execution blocked: {result.error}"
                 )
             
+            # Return result from V2 execution only
             return {
                 "success": True,
-                "intent_id": result.intent_id,
-                "subject_id": result.subject_id,
-                "provider": result.provider,
-                "scope": result.scope.value,
-                "applied_at": result.applied_at_utc.isoformat(),
-                "expires_at": result.expires_at_utc.isoformat(),
-                "approval_id": result.approval_id
+                "intent_id": result.result_data.get('intent_id', 'unknown'),
+                "subject_id": result.result_data.get('subject_id', 'unknown'),
+                "provider": result.result_data.get('provider', 'unknown'),
+                "scope": result.result_data.get('scope', 'unknown'),
+                "applied_at": result.result_data.get('applied_at', datetime.now(timezone.utc).isoformat()),
+                "expires_at": result.result_data.get('expires_at', ''),
+                "approval_id": approval_id,
+                "v2_enforced": True,
+                "v2_execution_id": result.execution_id,
+                "v2_audit_trail": result.audit_trail_id
             }
             
         except Exception as e:

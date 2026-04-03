@@ -44,7 +44,7 @@ def run_protocol_enforcer_tests() -> Dict[str, str]:
     print("🔍 Running protocol enforcer tests...")
     
     cmd = [
-        'python3', '-m', 'pytest',
+        '.venv/bin/python', '-m', 'pytest',
         'tests/test_protocol_enforcer.py',
         '--tb=no', '-q'
     ]

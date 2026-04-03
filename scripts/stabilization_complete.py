@@ -173,7 +173,7 @@ def run_final_verification():
     print("1. Testing core invariant suite...")
     try:
         result = subprocess.run([
-            'python3', '-m', 'pytest', 'tests/test_invariants.py', '-v', '-q'
+            '.venv/bin/python', '-m', 'pytest', 'tests/test_invariants.py', '-v', '-q'
         ], capture_output=True, text=True, env={**os.environ, 'PYTHONHASHSEED': '0'})
         
         if result.returncode == 0:
@@ -190,7 +190,7 @@ def run_final_verification():
     print("2. Testing golden artifact regression...")
     try:
         result = subprocess.run([
-            'python3', '-m', 'pytest', 'tests/test_golden_artifacts.py', '-v', '-q'
+            '.venv/bin/python', '-m', 'pytest', 'tests/test_golden_artifacts.py', '-v', '-q'
         ], capture_output=True, text=True, env={**os.environ, 'PYTHONHASHSEED': '0'})
         
         if result.returncode == 0:
@@ -207,7 +207,7 @@ def run_final_verification():
     print("3. Testing core determinism...")
     try:
         result = subprocess.run([
-            'python3', 'scripts/check_core_determinism.py'
+            '.venv/bin/python', 'scripts/check_core_determinism.py'
         ], capture_output=True, text=True, env={**os.environ, 'PYTHONHASHSEED': '0'})
         
         if result.returncode == 0:
@@ -224,7 +224,7 @@ def run_final_verification():
     print("4. Testing demo scenario...")
     try:
         result = subprocess.run([
-            'python3', 'scripts/demo_scenario.py'
+            '.venv/bin/python', 'scripts/demo_scenario.py'
         ], capture_output=True, text=True, env={**os.environ, 'PYTHONHASHSEED': '0'})
         
         if result.returncode == 0:

@@ -297,8 +297,8 @@ def verify_all(verbose: bool, fast: bool):
         sys.exit(1)
 
 @main.command()
-@click.option('--scenario', default='standalone', type=click.Choice(['standalone', 'v2_restrained_autonomy']),
-              help='Demo scenario to run (standalone is the canonical proof path)')
+@click.option('--scenario', default='canonical', type=click.Choice(['canonical', 'v2_restrained_autonomy']),
+              help='Demo scenario to run (canonical is the canonical proof path)')
 @click.option('--operator-decision', type=click.Choice(['approve', 'deny']), 
               default='deny', help='Operator decision for the legacy V2 demo scenario')
 @click.option('--replay', help='Audit stream ID to replay for the legacy V2 demo scenario')
@@ -307,8 +307,8 @@ def demo(scenario: str, operator_decision: str, replay: Optional[str]):
     click.echo(f"🚀 ExoArmur Demo: {scenario}")
     repo_root = Path(__file__).resolve().parents[2]
 
-    if scenario == 'standalone' and replay is None:
-        script_path = repo_root / "examples" / "demo_standalone.py"
+    if scenario == 'canonical' and replay is None:
+        script_path = repo_root / "demos" / "canonical_truth_reconstruction_demo.py"
         result = subprocess.run(
             [sys.executable, str(script_path)],
             cwd=repo_root,

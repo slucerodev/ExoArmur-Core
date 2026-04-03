@@ -25,7 +25,7 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     
     repo_root = Path(cli.__file__).resolve().parents[2]
     src_dir = repo_root / "src"
-    script_path = repo_root / "examples" / "demo_standalone.py"
+    script_path = repo_root / "demos" / "canonical_truth_reconstruction_demo.py"
 
     calls = []
 
@@ -42,10 +42,10 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
             returncode=0,
             stdout=(
                 "Execution boundary result: policy denied before any filesystem side effect\n"
-                "Proof bundle written: examples/demo_standalone_proof_bundle.json\n"
+                "Proof bundle written: demos/canonical_proof_bundle.json\n"
                 "DEMO_RESULT=DENIED\n"
                 "ACTION_EXECUTED=false\n"
-                "AUDIT_STREAM_ID=demo123\n"
+                "AUDIT_STREAM_ID=canonical-truth-reconstruction-demo\n"
             ),
             stderr="",
         )
@@ -55,7 +55,7 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli.main,
-        ["demo"],
+        ["demo", "--scenario", "canonical"],
         env={"PYTHONPATH": "priorpath"},
     )
 

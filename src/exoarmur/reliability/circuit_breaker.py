@@ -206,7 +206,7 @@ class CircuitBreaker:
         task.add_done_callback(self._background_tasks.discard)
     
     async def _emit_state_transition_audit(self, transition: CircuitStateTransition):
-        """Emit audit event for state transition"""
+        """Emit audit event for state transition through V2EntryGate"""
         if not self._audit_emitter:
             return
         
@@ -222,10 +222,49 @@ class CircuitBreaker:
                 "timestamp": transition.timestamp.isoformat()
             }
             
-            await self._audit_emitter(audit_data)
+            # Route audit emission through V2EntryGate
+            from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
+            from datetime import datetime, timezone
+            import hashlib
+            import ulid
+            
+            # Create audit emission request
+            audit_ulid = str(ulid.ULID())
+            execution_ulid = str(ulid.ULID())
+            
+            audit_request = ExecutionRequest(
+                module_id=ModuleID(audit_ulid),
+                execution_context=ModuleExecutionContext(
+                    execution_id=ExecutionID(execution_ulid),
+                    module_id=ModuleID(audit_ulid),
+                    module_version=ModuleVersion(1, 0, 0),
+                    deterministic_seed=DeterministicSeed(hash("audit_emission") % (2**63)),
+                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    dependency_hash="audit_emission"
+                ),
+                action_data={
+                    'intent_type': 'AUDIT_EMISSION',
+                    'action_class': 'audit_operation',
+                    'action_type': 'emit_audit',
+                    'subject': 'circuit_breaker_state_change',
+                    'parameters': {
+                        'audit_data': audit_data
+                    }
+                },
+                correlation_id=f"cb_{self.service_name}_{transition.timestamp.isoformat()}"
+            )
+            
+            # Execute audit emission through V2EntryGate
+            result = execute_module(audit_request)
+            
+            if result.success:
+                logger.debug(f"Circuit breaker audit emitted through V2EntryGate: {self.service_name}")
+            else:
+                logger.error(f"Circuit breaker audit emission failed through V2EntryGate: {result.error}")
             
         except Exception as e:
-            logger.error(f"Failed to emit circuit breaker audit: {e}")
+            logger.error(f"Failed to emit circuit breaker audit through V2EntryGate: {e}")
     
     async def call(self, func: Callable, *args, **kwargs) -> Any:
         """

@@ -21,7 +21,7 @@ from exoarmur.federation.audit import AuditService, AuditEventType
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.identity_containment.effector import IdentityContainmentEffector
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
-from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
+from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,41 @@ class IdentityContainmentExecutor:
             # Audit event already emitted by execution gate
             return None
         
+        # Create V2 ExecutionRequest for containment apply
+        from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+        
+        execution_request = ExecutionRequest(
+            module_id=ModuleID("identity_containment_apply"),
+            execution_context=ModuleExecutionContext(
+                execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                module_id=ModuleID("identity_containment_apply"),
+                module_version=ModuleVersion(1, 0, 0),
+                deterministic_seed=DeterministicSeed(hash(intent.intent_id) % (2**63)),
+                logical_timestamp=int(self.clock.now().timestamp()),
+                dependency_hash=intent.metadata.get("intent_hash")
+            ),
+            action_data={
+                'action_class': 'identity_containment',
+                'action_type': 'containment_apply',
+                'subject': intent.subject_id,
+                'parameters': {
+                    'intent_hash': intent.metadata.get("intent_hash"),
+                    'intent_id': intent.intent_id,
+                    'scope': intent.scope.value,
+                    'provider': intent.provider,
+                    'approval_id': approval_id
+                }
+            },
+            correlation_id=intent.metadata.get("correlation_id", "")
+        )
+
+        # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+        result = execute_module(execution_request)
+        
+        if not result.success:
+            logger.error(f"V2 Entry Gate blocked containment apply: {result.error}")
+            return None
+        
         # Verify approval binding
         intent_hash = intent.metadata.get("intent_hash")
         if not intent_hash:
@@ -119,11 +154,10 @@ class IdentityContainmentExecutor:
             return None
         
         try:
-            # Execute containment
+            # Execute containment through effector (only after V2 validation)
             applied_record = self.effector.apply(intent, approval_id)
             
-            logger.info(f"Successfully executed containment apply for intent {intent.intent_id}")
-            
+            logger.info(f"Successfully executed containment apply for intent {intent.intent_id} via V2 Entry Gate")
             return applied_record
             
         except Exception as e:
@@ -145,46 +179,49 @@ class IdentityContainmentExecutor:
             return None
     
     async def execute_containment_revert(self, intent_hash: str, reason: str) -> Optional[IdentityContainmentRevertedRecordV1]:
-        """Execute containment revert operation
-        
-        Args:
-            intent_hash: Hash of the intent to revert
-            reason: Reason for reversion
-            
-        Returns:
-            Reverted record or None if execution failed
-        """
+        """Execute containment revert through V2 Entry Gate - ONLY ALLOWED PATH"""
         # Get intent by hash
         intent = self.intent_service.get_intent(intent_hash)
         if not intent:
             logger.error(f"No intent found for hash {intent_hash}")
             return None
         
-        # PHASE 5: Enforce execution gate BEFORE any side effects
-        gate_result = await enforce_execution_gate(
-            action_type=ExecutionActionType.IDENTITY_CONTAINMENT_REVERT,
-            tenant_id=intent.tenant_id,
-            correlation_id=intent.correlation_id,
-            trace_id=intent.trace_id,
-            principal_id="system",  # System-initiated revert
-            additional_context={
-                "intent_hash": intent_hash,
-                "intent_id": intent.intent_id,
-                "reason": reason
-            }
-        )
-        
-        if gate_result.decision != GateDecision.ALLOW:
-            logger.warning(f"Containment revert blocked by execution gate: {gate_result.reason.value}")
-            # Audit event already emitted by execution gate
-            return None
-        
         try:
-            # Execute revert
+            # Create V2 ExecutionRequest for containment revert
+            execution_request = ExecutionRequest(
+                module_id=ModuleID("identity_containment_revert"),
+                execution_context=ModuleExecutionContext(
+                    execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                    module_id=ModuleID("identity_containment_revert"),
+                    module_version=ModuleVersion(1, 0, 0),
+                    deterministic_seed=DeterministicSeed(hash(intent.intent_id + reason) % (2**63)),
+                    logical_timestamp=int(self.clock.now().timestamp()),
+                    dependency_hash=intent_hash
+                ),
+                action_data={
+                    'action_class': 'identity_containment',
+                    'action_type': 'containment_revert',
+                    'subject': intent.subject_id,
+                    'parameters': {
+                        'intent_hash': intent_hash,
+                        'intent_id': intent.intent_id,
+                        'reason': reason
+                    }
+                },
+                correlation_id=intent.correlation_id
+            )
+
+            # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+            result = execute_module(execution_request)
+            
+            if not result.success:
+                logger.error(f"V2 Entry Gate blocked containment revert: {result.error}")
+                return None
+            
+            # Execute revert through effector (only after V2 validation)
             reverted_record = self.effector.revert(intent, reason)
             
-            logger.info(f"Successfully executed containment revert for intent {intent.intent_id}")
-            
+            logger.info(f"Successfully executed containment revert for intent {intent.intent_id} via V2 Entry Gate")
             return reverted_record
             
         except Exception as e:
@@ -206,33 +243,39 @@ class IdentityContainmentExecutor:
             return None
     
     async def process_expirations(self) -> int:
-        """Process expired containments
-        
-        Returns:
-            Number of containments that expired and were reverted
-        """
+        """Process expired containments through V2 Entry Gate - ONLY ALLOWED PATH"""
         try:
-            # PHASE 5: Enforce execution gate for batch expiration processing
-            gate_result = await enforce_execution_gate(
-                action_type=ExecutionActionType.IDENTITY_CONTAINMENT_EXPIRE,
-                tenant_id="system",  # System-level operation
-                correlation_id=None,
-                trace_id=None,
-                principal_id="system",
-                additional_context={
-                    "operation": "batch_expiration_processing",
-                    "timestamp": self.clock.now().isoformat()
-                }
+            # Create V2 ExecutionRequest for expiration processing
+            execution_request = ExecutionRequest(
+                module_id=ModuleID("identity_containment_expire"),
+                execution_context=ModuleExecutionContext(
+                    execution_id=ExecutionID("expiration_processing" + "0" * 8),
+                    module_id=ModuleID("identity_containment_expire"),
+                    module_version=ModuleVersion(1, 0, 0),
+                    deterministic_seed=DeterministicSeed(hash("expiration_processing") % (2**63)),
+                    logical_timestamp=int(self.clock.now().timestamp()),
+                    dependency_hash="system_expiration"
+                ),
+                action_data={
+                    'action_class': 'identity_containment',
+                    'action_type': 'process_expirations',
+                    'subject': 'system',
+                    'parameters': {'batch_processing': True}
+                },
+                correlation_id="system"
             )
+
+            # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+            result = execute_module(execution_request)
             
-            if gate_result.decision != GateDecision.ALLOW:
-                logger.warning(f"Expiration processing blocked by execution gate: {gate_result.reason.value}")
+            if not result.success:
+                logger.error(f"V2 Entry Gate blocked expiration processing: {result.error}")
                 return 0
             
+            # Process expirations through effector (only after V2 validation)
             reverted_records = self.effector.process_expirations()
             
-            logger.info(f"Processed {len(reverted_records)} expired containments")
-            
+            logger.info(f"Processed {len(reverted_records)} expired containments via V2 Entry Gate")
             return len(reverted_records)
             
         except Exception as e:

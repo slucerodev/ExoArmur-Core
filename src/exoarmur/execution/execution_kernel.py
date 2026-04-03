@@ -15,8 +15,9 @@ from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 from exoarmur.clock import deterministic_timestamp
 from exoarmur.audit.audit_logger import compute_idempotency_key
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
-from exoarmur.feature_flags import get_feature_flags
+from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
 from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
+from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ class ExecutionKernel:
         idempotency_identifier: str
     ) -> ExecutionIntentV1:
         """Create execution intent from local decision and safety verdict"""
+        # DETECTION ONLY: Check if this domain logic access is outside V2EntryGate
+        check_domain_logic_access("ExecutionKernel", "create_execution_intent", ViolationSeverity.HIGH)
+        
         logger.info(f"Creating execution intent for decision {local_decision.decision_id}")
         
         # Determine action class from safety verdict and local decision
@@ -117,84 +121,41 @@ class ExecutionKernel:
         return intent
     
     async def execute_intent(self, intent: ExecutionIntentV1) -> bool:
-        """Execute intent with idempotency enforcement"""
-        logger.info(f"Executing intent {intent.intent_id}")
+        """Execute intent through V2 Entry Gate - SINGLE MANDATORY PATH"""
+        logger.info(f"Executing intent {intent.intent_id} through V2 Entry Gate")
         
-        # PHASE 5: Enforce execution gate BEFORE any side effects
-        gate_result = await enforce_execution_gate(
-            action_type=ExecutionActionType.EXECUTION_KERNEL_INTENT,
-            tenant_id=intent.tenant_id,
-            correlation_id=intent.correlation_id,
-            trace_id=intent.trace_id,
-            principal_id="system",  # System-initiated execution
-            additional_context={
-                "intent_id": intent.intent_id,
-                "action_class": intent.action_class,
-                "intent_type": intent.intent_type,
-                "subject": intent.subject
-            }
+        # Create V2 ExecutionRequest
+        execution_request = ExecutionRequest(
+            module_id=ModuleID("execution_kernel"),
+            execution_context=ModuleExecutionContext(
+                execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                module_id=ModuleID("execution_kernel"),
+                module_version=ModuleVersion(1, 0, 0),
+                deterministic_seed=DeterministicSeed(hash(intent.intent_id) % (2**63)),
+                logical_timestamp=int(datetime.now().timestamp()),
+                dependency_hash=intent.correlation_id or "default"
+            ),
+            action_data={
+                'action_class': intent.action_class,
+                'action_type': intent.action_type,
+                'subject': intent.subject,
+                'parameters': intent.action_parameters,
+                'tenant_id': intent.tenant_id,
+                'correlation_id': intent.correlation_id,
+                'trace_id': intent.trace_id
+            },
+            correlation_id=intent.correlation_id
         )
-        
-        if gate_result.decision != GateDecision.ALLOW:
-            logger.warning(f"Intent execution blocked by execution gate: {gate_result.reason.value}")
-            # Audit event already emitted by execution gate
-            return False
-        
-        # Check approval requirement for A1/A2/A3 actions (only in V2)
-        feature_flags = get_feature_flags()
-        if (intent.action_class in ["A1_soft_containment", "A2_hard_containment", "A3_irreversible"] and 
-            feature_flags.is_v2_operator_approval_required()):
-            approval_id = intent.safety_context.get("human_approval_id")
-            
-            if not approval_id:
-                logger.warning(f"Execution blocked: intent {intent.intent_id} requires approval but none provided")
-                return False
-            
-            # Verify approval is APPROVED and bound to this intent
-            if not self._verify_approval_for_intent(intent, approval_id):
-                logger.warning(f"Execution blocked: intent {intent.intent_id} approval verification failed")
-                return False
-        
-        # A0_observe always allowed
-        if intent.action_class == "A0_observe":
-            pass  # Continue with execution
-        
-        # Check idempotency
-        if intent.idempotency_key in self.executed_intents:
-            logger.info(f"Intent {intent.intent_id} already executed (idempotency_key: {intent.idempotency_key})")
-            return True
-        
-        # No-op execution for thin vertical slice
-        logger.info(f"No-op execution for intent {intent.intent_id} (action_class: {intent.action_class})")
-        
-        # Record as executed
-        self.executed_intents[intent.idempotency_key] = intent
 
-        if self.audit_logger:
-            payload_ref = {
-                "kind": "execution_intent",
-                "intent_id": intent.intent_id,
-                "ref": {
-                    "intent_type": intent.intent_type,
-                    "action_class": intent.action_class,
-                    "subject": intent.subject,
-                },
-            }
-            audit_idempotency_key = compute_idempotency_key(
-                tenant_id=intent.tenant_id,
-                correlation_id=intent.correlation_id,
-                event_kind="execution_intent_executed",
-                payload_ref=payload_ref,
-            )
-            await self.audit_logger.emit_audit_record_async(
-                event_kind="execution_intent_executed",
-                payload_ref=payload_ref,
-                correlation_id=intent.correlation_id,
-                trace_id=intent.trace_id,
-                tenant_id=intent.tenant_id,
-                cell_id=intent.cell_id,
-                idempotency_key=audit_idempotency_key,
-            )
+        # Execute through V2 Entry Gate - ONLY ALLOWED PATH
+        result = execute_module(execution_request)
+        
+        if result.success:
+            logger.info(f"Intent executed via V2 Entry Gate: {intent.intent_id}")
+            return True
+        else:
+            logger.error(f"V2 Entry Gate execution failed: {result.error}")
+            return False
         
         return True
     
