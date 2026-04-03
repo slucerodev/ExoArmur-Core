@@ -16,7 +16,7 @@ readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: Apache Software License",
@@ -72,7 +72,6 @@ exoarmur = "exoarmur.cli:main"
 exoarmur-stability = "exoarmur.stability.classifier"
 
 [project.optional-dependencies]
-v2 = []
 dev = [
   "pytest>=7.0.0",
   "pytest-asyncio>=0.21.0",

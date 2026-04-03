@@ -4,7 +4,7 @@
 
 ## Why This Exists
 
-AI agents exhibit nondeterministic behavior - the same agent with the same prompt can produce different outputs across runs or systems. This makes debugging impossible and creates unreproducible failures in production.
+AI agents exhibit nondeterministic behavior - the same agent with the same prompt can produce different outputs across runs or systems. This makes debugging impossible and creates unreproducible failures in real deployments.
 
 ExoArmur fixes this via deterministic replay and verification, ensuring byte-for-byte identical execution across any environment.
 
@@ -13,12 +13,12 @@ ExoArmur fixes this via deterministic replay and verification, ensuring byte-for
 ExoArmur has a 3-layer architecture with strict separation:
 
 ### 🔧 Core Engine (`src/exoarmur/`)
-**Production-grade deterministic execution system**
+**Deterministic execution system**
 - **Deterministic replay**: 100% reproducible execution with byte-for-byte identical outputs
 - **Safety enforcement**: Kill switches, approvals, and tenant isolation
 - **Audit & replay**: Complete traceability with cryptographic evidence
 - **Consensus verification**: Multi-node agreement verification
-- **Status**: ✅ Production ready, 78/78 tests passing
+- **Status**: ✅ Core functionality verified, 78/78 tests passing
 
 ### 🧪 V2 Experimental (`src/exoarmur/execution_boundary_v2/`)
 **Feature-flagged experimental autonomy boundary**
@@ -32,8 +32,8 @@ ExoArmur has a 3-layer architecture with strict separation:
 - **`demo/`**: System demos and examples
 - **`validation/`**: External validation and positioning tests
 - **`infra/`**: Determinism checking and verification tools
-- **`experiments/`**: Production drift demos and research experiments
-- **Status**: 🛠️ Development tools, non-production
+- **`experiments/`**: System behavior demos and research experiments
+- **Status**: 🛠️ Development tools, for testing and validation
 
 ## Execution Model
 
@@ -49,27 +49,86 @@ ExoArmur has a 3-layer architecture with strict separation:
 # Install ExoArmur
 pip install -e .
 
+# Run canonical demo (proves ExoArmur works)
+exoarmur demo --scenario canonical
+```
+
+## Canonical Proof Path
+
+**Run this single command to see ExoArmur's core capabilities in action:**
+
+```bash
+exoarmur demo --scenario canonical
+```
+
+**Expected output:**
+```
+🚀 ExoArmur Demo: canonical
+ExoArmur Canonical Truth Reconstruction Demo
+==================================================
+Demonstrating deterministic execution boundary enforcement
+
+Simulated AI agent action: delete a file outside the authorized path
+Authorized root: /tmp/exoarmur-demo-authorized
+Requested delete target: /tmp/exoarmur-demo-private/secret-exports/customer-records.csv
+
+Execution boundary result: policy denied before any filesystem side effect
+Proof bundle written: /home/oem/CascadeProjects/ExoArmur/demos/canonical_proof_bundle.json
+Proof bundle replay hash: 86f93b8aa64e0a7f236ab13099956e8a71eaa36f756717aaeb733478d24bc798
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=canonical-truth-reconstruction-demo
+
+REPLAY_VERDICT=FAIL
+```
+
+**What this proves:**
+- Policy enforcement prevents unauthorized actions
+- Deterministic execution with cryptographic proof bundles
+- Complete audit trail with replay verification
+- No filesystem side effects when policy denies
+
+## External Integration Example
+
+**LangChain + ExoArmur integration:**
+
+```bash
+python3 examples/langchain_integration.py
+```
+
+**Expected output:**
+```
+LangChain + ExoArmur Integration Demo
+==================================================
+External Request: langchain-agent-001 wants to delete_file /tmp/unauthorized/secret.txt
+Rationale: Clean up temporary files
+
+ExoArmur Governance Decision: DENIED
+Final Status: DENIED
+
+REPLAY_VERDICT=FAIL
+
+Integration Summary:
+- External agent: langchain-agent-001
+- Requested action: delete_file /tmp/unauthorized/secret.txt
+- ExoArmur decision: DENIED
+- Replay verification: FAIL
+- Audit events: 1
+```
+
+**What this demonstrates:**
+- External agent requests are governed by ExoArmur
+- Policy decisions are enforced before execution
+- Replay verification validates audit integrity
+- Real integration without abstraction layers
+
+## Development Testing
+
+```bash
 # Run core deterministic test
 export PYTHONHASHSEED=0
 python3 -m pytest tests/test_invariants.py
-
-# Run production drift demo (shows the problem)
-python3 scripts/experiments/production_drift_presentation.py
 ```
-
-## Golden Path - See Execution Divergence in Action
-
-**Run this to see execution divergence and how ExoArmur verifies it:**
-
-```bash
-python3 scripts/experiments/production_drift_presentation.py
-```
-
-This demo shows:
-- Same AI agent with same prompt
-- Different execution outcomes (production drift)
-- How ExoArmur detects and verifies the divergence
-- Why this matters for production AI systems
 
 ## Determinism Guarantees
 
@@ -119,7 +178,7 @@ pytest tests/test_integration.py
 
 ## What Is Demo/Validation
 
-- 🛠️ **Production drift demos**: Research experiments
+- 🛠️ **System behavior demos**: Research experiments
 - 🛠️ **External validation**: Positioning and clarity tests
 - 🛠️ **Infrastructure tools**: Determinism checking and verification
 

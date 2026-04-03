@@ -27,7 +27,7 @@ pip install .
 
 Expected result: Package installs successfully with all dependencies.
 
-Editable installs (`pip install -e .` and `pip install -e ".[v2]"`) are also supported for current development and CI verification.
+Editable installs (`pip install -e .`) are supported for current development and CI verification.
 
 ## Step 3: Verify CLI Version
 

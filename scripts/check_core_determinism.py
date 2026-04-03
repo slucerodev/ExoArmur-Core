@@ -34,7 +34,7 @@ def run_core_determinism_check():
         if Path(path).exists():
             print(f"📁 Checking: {path}")
             result = subprocess.run([
-                "python3", "scripts/check_determinism.py", path
+                ".venv/bin/python", "scripts/check_determinism.py", path
             ], capture_output=True, text=True, cwd=Path.cwd())
             
             if result.returncode != 0:

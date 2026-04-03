@@ -23,7 +23,7 @@ def start_api_server():
     env['PYTHONHASHSEED'] = '0'
     
     cmd = [
-        "python3", "-c", 
+        ".venv/bin/python", "-c", 
         """
 import sys
 sys.path.insert(0, '/home/oem/CascadeProjects/ExoArmur/src')

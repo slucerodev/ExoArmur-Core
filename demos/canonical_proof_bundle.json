@@ -1,0 +1,67 @@
+{
+  "execution_proof": {
+    "replay_hash": "86f93b8aa64e0a7f236ab13099956e8a71eaa36f756717aaeb733478d24bc798",
+    "intent": {
+      "intent_id": "canonical-truth-reconstruction-demo",
+      "actor_id": "demo-operator",
+      "actor_type": "human",
+      "action_type": "delete",
+      "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv",
+      "parameters": {
+        "operation": "delete"
+      },
+      "safety_context": {},
+      "timestamp": "2024-01-01 12:00:00+00:00",
+      "tenant_id": "",
+      "cell_id": ""
+    },
+    "trace_final_status": "DENIED",
+    "events_count": 2
+  },
+  "audit_events": [
+    {
+      "schema_version": "1.0.0",
+      "audit_id": "3D1MYFHFG0YNH9M67NA7MHV5ZD",
+      "tenant_id": "",
+      "cell_id": "",
+      "idempotency_key": "canonical-truth-reconstruction-demo",
+      "recorded_at": "2024-01-01 12:00:00+00:00",
+      "event_kind": "policy_denial",
+      "payload_ref": {
+        "kind": {
+          "ref": {
+            "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized",
+            "policy_version": null
+          }
+        }
+      },
+      "hashes": {
+        "sha256": "demo-hash",
+        "upstream_hashes": []
+      },
+      "correlation_id": "canonical-truth-reconstruction-demo",
+      "trace_id": "canonical-truth-reconstruction-demo"
+    },
+    {
+      "event_id": "3D1MYFHFG0YNH9M67NA7MHV5ZD",
+      "event_type": "policy_denial",
+      "actor": "system",
+      "correlation_id": "canonical-truth-reconstruction-demo",
+      "payload": {
+        "kind": {
+          "ref": {
+            "policy_version": null,
+            "rationale": "Denied delete request for /tmp/exoarmur-demo-private/secret-exports/customer-records.csv outside authorized root /tmp/exoarmur-demo-authorized"
+          }
+        }
+      },
+      "payload_hash": "a5033b64a15b97bc3d1913b7b8609a1829ea1dd1bb69581c95dc9bc33107f2f6",
+      "sequence_number": null,
+      "parent_event_id": null,
+      "cell_id": "",
+      "tenant_id": "",
+      "trace_id": "canonical-truth-reconstruction-demo"
+    }
+  ],
+  "timestamp": "2024-01-01T12:00:00+00:00"
+}

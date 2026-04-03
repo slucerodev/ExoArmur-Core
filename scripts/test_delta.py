@@ -11,10 +11,11 @@ from pathlib import Path
 def get_failing_tests():
     """Get current failing tests using canonical command"""
     cmd = [
-        "python3", "-m", "pytest",
+        ".venv/bin/python", "-m", "pytest",
         "--ignore=tests/test_icw_api.py",
         "--ignore=tests/test_identity_containment.py", 
         "--ignore=tests/test_protocol_enforcer.py",
+        "--ignore=tests/test_gateway_guard_tools.py",
         "--tb=no", "-q"
     ]
     

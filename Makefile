@@ -13,15 +13,15 @@ help:
 	@echo "  clean    - Clean build artifacts"
 
 test:
-	python3 -m pytest tests/ -v
+	.venv/bin/python -m pytest tests/ -v
 
 verify:
 	@echo "Running comprehensive verification pipeline..."
-	python3 scripts/verify_all.py
+	.venv/bin/python scripts/verify_all.py
 
 lint:
 	@echo "Running basic Python syntax checks..."
-	python3 -m py_compile src/federation/*.py
+	.venv/bin/python -m py_compile src/federation/*.py
 	@echo "✅ Syntax checks passed"
 
 format:

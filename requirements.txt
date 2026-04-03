@@ -1,31 +1,56 @@
-# ExoArmur ADMO Workflow 1 Dependencies
-
-# Core web framework
-fastapi==0.127.1
-uvicorn[standard]==0.24.0
-
-# Pydantic for data validation
-pydantic==2.12.5
-
-# NATS JetStream for messaging
-nats-py==2.7.0
-
-# Testing framework
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-randomly==3.15.0
-pytest-timeout==2.4.0
-pytest-json-report==1.5.0
-httpx==0.25.2
-
-# Development tools
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
 black==26.3.1
+certifi==2026.2.25
+cffi==2.0.0
+click==8.3.1
+coverage==7.13.5
+cryptography==46.0.6
+# Editable Git install with no remote (exoarmur-bft==0.1.0)
+-e /home/oem/CascadeProjects/exoarmur-bft
+-e git+https://github.com/slucerodev/ExoArmur-Core.git@e41ce7bbbf20782ba2c12abd9c3187ddfcdd621b#egg=exoarmur_core
+-e git+https://github.com/slucerodev/ExoArmur-DPO.git@e42a355d84bda11525164387cda18d6f20b2cab3#egg=exoarmur_dpo
+-e git+https://github.com/slucerodev/ExoArmur-PoD.git@fda2f8bd0fd77193a9e5445e01526d321117e4e1#egg=exoarmur_pod
+fastapi==0.127.1
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.25.2
+idna==3.11
+iniconfig==2.3.0
 isort==5.12.0
 mypy==1.7.1
-
-# Explicit pin to remediate security scan findings
-starlette==0.50.0
-
-# Logging and utilities
+mypy_extensions==1.1.0
+nats-py==2.7.0
+packaging==26.0
+pathspec==1.0.4
+platformdirs==4.9.4
+pluggy==1.6.0
+psutil==7.2.2
+pycparser==3.0
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.19.2
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==7.1.0
+pytest-json-report==1.5.0
+pytest-metadata==3.1.1
+pytest-randomly==3.15.0
+pytest-timeout==2.4.0
+python-dotenv==1.2.2
 python-json-logger==2.0.7
-cryptography==46.0.6
+python-ulid==3.1.0
+pytokens==0.4.1
+PyYAML==6.0.3
+setuptools==82.0.1
+sniffio==1.3.1
+starlette==0.50.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+uvicorn==0.24.0
+uvloop==0.22.1
+watchfiles==1.1.1
+websockets==16.0
+wheel==0.46.3
