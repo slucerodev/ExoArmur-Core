@@ -379,5 +379,26 @@ def health():
         click.echo(f"❌ Health check failed: {e}")
         sys.exit(1)
 
+@main.command()
+def proof():
+    """Run deterministic proof mode - single command system validation"""
+    _ensure_windows_utf8_output()
+    
+    try:
+        # Import and run proof module
+        from exoarmur.proof.run_proof import main as proof_main
+        exit_code = proof_main()
+        sys.exit(exit_code)
+    except ImportError as e:
+        click.echo("❌ Proof mode not available")
+        if "proof" in str(e):
+            click.echo("Run: ./scripts/quickstart.sh to install dependencies")
+        else:
+            click.echo(f"Import error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"❌ Proof mode failed: {e}")
+        sys.exit(1)
+
 if __name__ == '__main__':
     main()

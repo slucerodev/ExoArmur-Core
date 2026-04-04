@@ -8,6 +8,61 @@ AI agents exhibit nondeterministic behavior - the same agent with the same promp
 
 ExoArmur fixes this via deterministic replay and verification, ensuring byte-for-byte identical execution across any environment.
 
+## Get Started in 60 Seconds
+
+### Step 1: Setup (30 seconds)
+
+```bash
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+./scripts/quickstart.sh
+```
+
+This automatically:
+- Sets up a Python virtual environment
+- Installs required dependencies  
+- Runs a minimal demo execution
+- Shows you the system is working
+
+### Step 2: Trust Validation (15 seconds)
+
+```bash
+exoarmur proof
+```
+
+**Expected output:**
+```
+EXOARMUR PROOF MODE
+====================
+
+Scenario: canonical
+Execution Mode: deterministic
+Tenant: exoarmur-core
+
+RESULT:
+- Decision: DENIED
+- Action Executed: False
+- Replay Hash: 854bcac0688515227d560022eedae4d0abd0a2c268694a4a4f89a9bd8b69d3c0
+- Correlation ID: <uuid>
+
+VERDICT:
+PROOF COMPLETE
+```
+
+This single command proves ExoArmur works deterministically. The same replay hash appears every time.
+
+### Step 3: Deep Exploration (15 seconds)
+
+```bash
+exoarmur demo --scenario canonical
+```
+
+This demonstrates full system capabilities with policy enforcement and replay verification.
+
+**That's it.** You now have a working ExoArmur system with deterministic guarantees.
+
+---
+
 ## Architecture
 
 ExoArmur has a 3-layer architecture with strict separation:
@@ -42,93 +97,6 @@ ExoArmur has a 3-layer architecture with strict separation:
 3. **Safety**: Multi-layer safety gates with approval requirements
 4. **Execution**: Action dispatch with complete audit trail
 5. **Verification**: Replay verification and consensus agreement
-
-## Quick Start
-
-```bash
-# Install ExoArmur
-pip install -e .
-
-# Run canonical demo (proves ExoArmur works)
-exoarmur demo --scenario canonical
-```
-
-## Canonical Proof Path
-
-**Run this single command to see ExoArmur's core capabilities in action:**
-
-```bash
-exoarmur demo --scenario canonical
-```
-
-**Expected output:**
-```
-🚀 ExoArmur Demo: canonical
-ExoArmur Canonical Truth Reconstruction Demo
-==================================================
-Demonstrating deterministic execution boundary enforcement
-
-Simulated AI agent action: delete a file outside the authorized path
-Authorized root: /tmp/exoarmur-demo-authorized
-Requested delete target: /tmp/exoarmur-demo-private/secret-exports/customer-records.csv
-
-Execution boundary result: policy denied before any filesystem side effect
-Proof bundle written: /home/oem/CascadeProjects/ExoArmur/demos/canonical_proof_bundle.json
-Proof bundle replay hash: 86f93b8aa64e0a7f236ab13099956e8a71eaa36f756717aaeb733478d24bc798
-DEMO_RESULT=DENIED
-ACTION_EXECUTED=false
-AUDIT_STREAM_ID=canonical-truth-reconstruction-demo
-
-REPLAY_VERDICT=FAIL
-```
-
-**What this proves:**
-- Policy enforcement prevents unauthorized actions
-- Deterministic execution with cryptographic proof bundles
-- Complete audit trail with replay verification
-- No filesystem side effects when policy denies
-
-## External Integration Example
-
-**LangChain + ExoArmur integration:**
-
-```bash
-python3 examples/langchain_integration.py
-```
-
-**Expected output:**
-```
-LangChain + ExoArmur Integration Demo
-==================================================
-External Request: langchain-agent-001 wants to delete_file /tmp/unauthorized/secret.txt
-Rationale: Clean up temporary files
-
-ExoArmur Governance Decision: DENIED
-Final Status: DENIED
-
-REPLAY_VERDICT=FAIL
-
-Integration Summary:
-- External agent: langchain-agent-001
-- Requested action: delete_file /tmp/unauthorized/secret.txt
-- ExoArmur decision: DENIED
-- Replay verification: FAIL
-- Audit events: 1
-```
-
-**What this demonstrates:**
-- External agent requests are governed by ExoArmur
-- Policy decisions are enforced before execution
-- Replay verification validates audit integrity
-- Real integration without abstraction layers
-
-## Development Testing
-
-```bash
-# Run core deterministic test
-export PYTHONHASHSEED=0
-python3 -m pytest tests/test_invariants.py
-```
 
 ## Determinism Guarantees
 

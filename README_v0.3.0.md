@@ -7,7 +7,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/exoarmur-core.svg)](https://pypi.org/project/exoarmur-core/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> **🎯 Production-Ready Deterministic Governance Runtime**
+> **🎯 Deterministic Execution Ready (Local Validation)**
 > 
 > ExoArmur Core provides deterministic enforcement for autonomous and AI-driven systems with replayable audit trails and locked contract governance.
 
@@ -15,7 +15,7 @@
 
 ## 🚀 What's New in v0.3.0
 
-### ✅ **Production-Ready Infrastructure**
+### ✅ **Infrastructure Complete**
 - **Multi-platform CI/CD** with automated testing on Ubuntu, Windows, and macOS
 - **Enhanced security scanning** with dependency audits and SAST analysis
 - **Automated deployment** workflows for PyPI and GitHub releases
@@ -56,18 +56,39 @@ ExoArmur solves the **accountability problem** in autonomous systems:
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Get Started in 60 Seconds
 
-### **1. Installation (30 seconds)**
+### Step 1: Setup (30 seconds)
+
+```bash
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+./scripts/quickstart.sh
+```
+
+### Step 2: Trust Validation (15 seconds)
+
+```bash
+exoarmur proof
+```
+
+### Step 3: Deep Exploration (15 seconds)
+
+```bash
+exoarmur demo --scenario canonical
+```
+
+**That's it.** You now have a working ExoArmur system with deterministic guarantees.
+
+---
+
+### **Alternative: Package Installation**
 ```bash
 pip install exoarmur-core
-```
-
-### **2. Health Check (10 seconds)**
-```bash
 exoarmur health
 ```
-**Expected output:**
+
+**Expected health check output:**
 ```
 🏥 ExoArmur Health Check
 ✅ Core imports working

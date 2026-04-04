@@ -254,14 +254,15 @@ class ReplayEngine:
         mixed_engine = ReplayEngine(mixed_store, self.intent_store, self.approval_service)
         reports["mixed_format"] = mixed_engine.replay_correlation(correlation_id)
         
-        # Test 4: Random format mixing (if requested)
+        # Test 4: Deterministic format mixing (if requested)
         if test_format_mixing and len(original_records) > 1:
-            import random
-            random.seed(42)  # Explicit seeding for determinism
-            random.shuffle(original_records)
-            random_store = {correlation_id: original_records}
-            random_engine = ReplayEngine(random_store, self.intent_store, self.approval_service)
-            reports["random_mixed"] = random_engine.replay_correlation(correlation_id)
+            # Use deterministic ordering instead of random shuffle
+            mixed_records = original_records.copy()
+            # Simple deterministic shuffle: reverse order for testing
+            mixed_records.reverse()
+            mixed_store = {correlation_id: mixed_records}
+            mixed_engine = ReplayEngine(mixed_store, self.intent_store, self.approval_service)
+            reports["deterministic_mixed"] = mixed_engine.replay_correlation(correlation_id)
         
         return reports
     

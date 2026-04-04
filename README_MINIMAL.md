@@ -2,17 +2,43 @@
 
 **ExoArmur is a deterministic execution safety substrate for AI agent systems.**
 
+## Get Started in 60 Seconds
+
+### Step 1: Setup (30 seconds)
+
+```bash
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+./scripts/quickstart.sh
+```
+
+### Step 2: Trust Validation (15 seconds)
+
+```bash
+exoarmur proof
+```
+
+### Step 3: Deep Exploration (15 seconds)
+
+```bash
+exoarmur demo --scenario canonical
+```
+
+**That's it.** You now have a working ExoArmur system with deterministic guarantees.
+
+---
+
 ## Architecture
 
 ExoArmur has a 3-layer architecture with strict separation:
 
 ### 🔧 Core Engine (`src/exoarmur/`)
-**Production-grade deterministic execution system**
+**Deterministic execution system**
 - **Deterministic replay**: 100% reproducible execution with byte-for-byte identical outputs
 - **Safety enforcement**: Kill switches, approvals, and tenant isolation
 - **Audit & replay**: Complete traceability with cryptographic evidence
 - **Consensus verification**: Multi-node agreement verification
-- **Status**: ✅ Production ready, 78/78 tests passing
+- **Status**: ✅ Core functionality verified, 78/78 tests passing
 
 ### 🧪 V2 Experimental (`src/exoarmur/execution_boundary_v2/`)
 **Feature-flagged experimental autonomy boundary**
@@ -39,6 +65,14 @@ ExoArmur has a 3-layer architecture with strict separation:
 
 ## Quick Start
 
+**Primary Entry Point (Recommended)**:
+```bash
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+./scripts/quickstart.sh
+```
+
+**For Development Testing**:
 ```bash
 # Install ExoArmur
 pip install -e .
@@ -59,6 +93,25 @@ python3 scripts/experiments/production_drift_demo.py
 - **No wall-clock dependencies**: Uses deterministic timestamp generation
 - **Stable hashing**: SHA-256 hashes remain constant across executions
 - **Replay verification**: Complete execution reconstruction without side effects
+
+## What Runs Deterministically
+
+- ✅ **Core replay engine**: 100% reproducible execution
+- ✅ **Safety enforcement**: Deterministic kill switches and approvals
+- ✅ **Audit trails**: Complete traceability with stable hashes
+- ✅ **Consensus verification**: Multi-node agreement verification
+
+## What Is Experimental
+
+- 🧪 **V2 execution boundary**: Behind feature flags (default OFF)
+- 🧪 **Autonomy pipeline**: Operator approval workflows
+- 🧪 **Mock executors**: Test implementations
+
+## What Is Demo/Validation
+
+- 🛠️ **System behavior demos**: Research experiments
+- 🛠️ **External validation**: Positioning and clarity tests
+- 🛠️ **Infrastructure tools**: Determinism checking and verification
 
 ## Feature Flags
 
