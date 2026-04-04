@@ -44,8 +44,7 @@ def build_minimal_record() -> AuditRecordV1:
 
 def main() -> None:
     record = build_minimal_record()
-    canonical_event = CanonicalEvent(**to_canonical_event(record))
-    engine = ReplayEngine(audit_store={"corr-1": [canonical_event]})
+    engine = ReplayEngine(audit_store={"corr-1": [record]})
     report = engine.replay_correlation("corr-1")
 
     result_value = getattr(report.result, "value", report.result)
