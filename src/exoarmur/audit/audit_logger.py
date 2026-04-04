@@ -21,11 +21,6 @@ from exoarmur.feature_flags.resolver import (
 logger = logging.getLogger(__name__)
 
 
-def utc_now() -> datetime:
-    """Get current UTC time"""
-    return datetime.now(timezone.utc)
-
-
 def compute_idempotency_key(tenant_id: str, correlation_id: str, event_kind: str, payload_ref: Dict[str, Any]) -> str:
     """Compute deterministic idempotency key from stable fields"""
     canonical = json.dumps({

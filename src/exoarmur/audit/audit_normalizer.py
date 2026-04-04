@@ -5,17 +5,13 @@ Purely derivative transformation for unified audit representation
 
 import logging
 from typing import Dict, Any, Optional, Union
-from datetime import datetime, timezone
+from datetime import datetime
 from dataclasses import dataclass
 
 from spec.contracts.models_v1 import AuditRecordV1
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
-
-
-def utc_now() -> datetime:
-    """Get current UTC time"""
-    return datetime.now(timezone.utc)
 
 
 @dataclass

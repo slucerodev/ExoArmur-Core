@@ -108,14 +108,19 @@ def check_disallowed_imports() -> List[Tuple[str, str]]:
         'pandas': 'Pandas - not allowed in core',
         'numpy': 'NumPy - not allowed in core',
         'scipy': 'SciPy - not allowed in core',
+        'exoarmur.execution_boundary_v2': 'Direct execution_boundary_v2 import must route through exoarmur.feature_flags.resolver',
     }
     
-    src_dir = Path('src')
+    src_dir = Path('src/exoarmur')
     if not src_dir.is_dir():
         return violations
+
+    allowed_boundary_file = src_dir / 'feature_flags' / 'resolver.py'
+    py_files = sorted(src_dir.rglob('*.py'))
+    print(f"Scanning {len(py_files)} Python files under {src_dir}")
     
-    # Scan all Python files under src/
-    for py_file in src_dir.rglob('*.py'):
+    # Scan all Python files under src/exoarmur/
+    for py_file in py_files:
         try:
             with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -123,8 +128,8 @@ def check_disallowed_imports() -> List[Tuple[str, str]]:
             # Parse AST to find real import statements
             try:
                 tree = ast.parse(content)
-            except SyntaxError:
-                # Skip files with syntax errors
+            except SyntaxError as exc:
+                violations.append((str(py_file), f"Syntax error while parsing boundary scan: {exc.msg}"))
                 continue
             
             # Walk AST to find import nodes
@@ -143,6 +148,10 @@ def check_disallowed_imports() -> List[Tuple[str, str]]:
                 
                 # Check if disallowed
                 if module_name:
+                    normalized_path = py_file.resolve()
+                    if normalized_path == allowed_boundary_file.resolve() and module_name.startswith('exoarmur.execution_boundary_v2'):
+                        continue
+
                     for disallowed, reason in disallowed_imports.items():
                         if module_name == disallowed or module_name.startswith(disallowed + '.'):
                             violations.append((str(py_file), reason))
@@ -151,10 +160,10 @@ def check_disallowed_imports() -> List[Tuple[str, str]]:
                     if violations and violations[-1][0] == str(py_file):
                         break  # Found violation for this file, move to next file
                         
-        except (OSError, UnicodeDecodeError):
-            # Skip files we can't read
+        except (OSError, UnicodeDecodeError) as exc:
+            violations.append((str(py_file), f"Unable to read file during boundary scan: {exc}"))
             continue
-    
+
     return violations
 
 

@@ -18,11 +18,11 @@ from spec.contracts.models_v1 import (
 )
 from exoarmur.federation.clock import Clock
 from exoarmur.federation.audit import AuditService, AuditEventType
-from exoarmur.feature_flags.resolver import load_v2_diagnostics
+from exoarmur.feature_flags.resolver import load_v2_core_types, load_v2_diagnostics, load_v2_entry_gate
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.identity_containment.effector import IdentityContainmentEffector
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
-from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+from exoarmur.safety import GateDecision
 
 logger = logging.getLogger(__name__)
 
@@ -105,15 +105,16 @@ class IdentityContainmentExecutor:
             return None
         
         # Create V2 ExecutionRequest for containment apply
-        from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+        v2_entry_gate = load_v2_entry_gate()
+        v2_core_types = load_v2_core_types()
         
-        execution_request = ExecutionRequest(
-            module_id=ModuleID("identity_containment_apply"),
-            execution_context=ModuleExecutionContext(
-                execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
-                module_id=ModuleID("identity_containment_apply"),
-                module_version=ModuleVersion(1, 0, 0),
-                deterministic_seed=DeterministicSeed(hash(intent.intent_id) % (2**63)),
+        execution_request = v2_entry_gate.ExecutionRequest(
+            module_id=v2_core_types.ModuleID("identity_containment_apply"),
+            execution_context=v2_core_types.ModuleExecutionContext(
+                execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                module_id=v2_core_types.ModuleID("identity_containment_apply"),
+                module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
                 logical_timestamp=int(self.clock.now().timestamp()),
                 dependency_hash=intent.metadata.get("intent_hash")
             ),
@@ -133,7 +134,7 @@ class IdentityContainmentExecutor:
         )
 
         # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-        result = execute_module(execution_request)
+        result = v2_entry_gate.execute_module(execution_request)
         
         if not result.success:
             logger.error(f"V2 Entry Gate blocked containment apply: {result.error}")
@@ -190,13 +191,16 @@ class IdentityContainmentExecutor:
         
         try:
             # Create V2 ExecutionRequest for containment revert
-            execution_request = ExecutionRequest(
-                module_id=ModuleID("identity_containment_revert"),
-                execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
-                    module_id=ModuleID("identity_containment_revert"),
-                    module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash(intent.intent_id + reason) % (2**63)),
+            v2_entry_gate = load_v2_entry_gate()
+            v2_core_types = load_v2_core_types()
+
+            execution_request = v2_entry_gate.ExecutionRequest(
+                module_id=v2_core_types.ModuleID("identity_containment_revert"),
+                execution_context=v2_core_types.ModuleExecutionContext(
+                    execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                    module_id=v2_core_types.ModuleID("identity_containment_revert"),
+                    module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                    deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id + reason) % (2**63)),
                     logical_timestamp=int(self.clock.now().timestamp()),
                     dependency_hash=intent_hash
                 ),
@@ -214,7 +218,7 @@ class IdentityContainmentExecutor:
             )
 
             # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-            result = execute_module(execution_request)
+            result = v2_entry_gate.execute_module(execution_request)
             
             if not result.success:
                 logger.error(f"V2 Entry Gate blocked containment revert: {result.error}")
@@ -248,13 +252,16 @@ class IdentityContainmentExecutor:
         """Process expired containments through V2 Entry Gate - ONLY ALLOWED PATH"""
         try:
             # Create V2 ExecutionRequest for expiration processing
-            execution_request = ExecutionRequest(
-                module_id=ModuleID("identity_containment_expire"),
-                execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID("expiration_processing" + "0" * 8),
-                    module_id=ModuleID("identity_containment_expire"),
-                    module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash("expiration_processing") % (2**63)),
+            v2_entry_gate = load_v2_entry_gate()
+            v2_core_types = load_v2_core_types()
+
+            execution_request = v2_entry_gate.ExecutionRequest(
+                module_id=v2_core_types.ModuleID("identity_containment_expire"),
+                execution_context=v2_core_types.ModuleExecutionContext(
+                    execution_id=v2_core_types.ExecutionID("expiration_processing" + "0" * 8),
+                    module_id=v2_core_types.ModuleID("identity_containment_expire"),
+                    module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                    deterministic_seed=v2_core_types.DeterministicSeed(hash("expiration_processing") % (2**63)),
                     logical_timestamp=int(self.clock.now().timestamp()),
                     dependency_hash="system_expiration"
                 ),
@@ -268,7 +275,7 @@ class IdentityContainmentExecutor:
             )
 
             # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-            result = execute_module(execution_request)
+            result = v2_entry_gate.execute_module(execution_request)
             
             if not result.success:
                 logger.error(f"V2 Entry Gate blocked expiration processing: {result.error}")

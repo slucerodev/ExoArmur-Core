@@ -13,7 +13,7 @@ from exoarmur.federation.clock import Clock, FixedClock
 from exoarmur.federation.audit import AuditService
 from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
-from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+from exoarmur.feature_flags.resolver import load_v2_core_types, load_v2_entry_gate
 from exoarmur.identity_containment.execution import IdentityContainmentExecutor
 from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
 from exoarmur.control_plane.approval_service import ApprovalService
@@ -304,15 +304,16 @@ class IdentityContainmentAPI:
         
         try:
             # Create V2 ExecutionRequest for tick-based expiration processing
-            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+            v2_entry_gate = load_v2_entry_gate()
+            v2_core_types = load_v2_core_types()
             
-            execution_request = ExecutionRequest(
-                module_id=ModuleID("icw_tick_expiration"),
-                execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID("tick_processing" + "0" * 8),
-                    module_id=ModuleID("icw_tick_expiration"),
-                    module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash("tick_expiration") % (2**63)),
+            execution_request = v2_entry_gate.ExecutionRequest(
+                module_id=v2_core_types.ModuleID("icw_tick_expiration"),
+                execution_context=v2_core_types.ModuleExecutionContext(
+                    execution_id=v2_core_types.ExecutionID("tick_processing" + "0" * 8),
+                    module_id=v2_core_types.ModuleID("icw_tick_expiration"),
+                    module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                    deterministic_seed=v2_core_types.DeterministicSeed(hash("tick_expiration") % (2**63)),
                     logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
                     dependency_hash="icw_tick"
                 ),
@@ -326,7 +327,7 @@ class IdentityContainmentAPI:
             )
 
             # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-            result = execute_module(execution_request)
+            result = v2_entry_gate.execute_module(execution_request)
             
             if not result.success:
                 logger.error(f"V2 Entry Gate blocked tick expiration: {result.error}")
@@ -373,15 +374,16 @@ class IdentityContainmentAPI:
         
         try:
             # Create V2 ExecutionRequest for containment execution
-            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+            v2_entry_gate = load_v2_entry_gate()
+            v2_core_types = load_v2_core_types()
             
-            execution_request = ExecutionRequest(
-                module_id=ModuleID("icw_containment_executor"),
-                execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID(approval_id[:26] + "0" * (26 - len(approval_id[:26]))),
-                    module_id=ModuleID("icw_containment_executor"),
-                    module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash(approval_id) % (2**63)),
+            execution_request = v2_entry_gate.ExecutionRequest(
+                module_id=v2_core_types.ModuleID("icw_containment_executor"),
+                execution_context=v2_core_types.ModuleExecutionContext(
+                    execution_id=v2_core_types.ExecutionID(approval_id[:26] + "0" * (26 - len(approval_id[:26]))),
+                    module_id=v2_core_types.ModuleID("icw_containment_executor"),
+                    module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                    deterministic_seed=v2_core_types.DeterministicSeed(hash(approval_id) % (2**63)),
                     logical_timestamp=int(datetime.now().timestamp()),
                     dependency_hash="icw_execution"
                 ),
@@ -395,7 +397,7 @@ class IdentityContainmentAPI:
             )
 
             # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-            result = execute_module(execution_request)
+            result = v2_entry_gate.execute_module(execution_request)
             
             if not result.success:
                 raise HTTPException(
