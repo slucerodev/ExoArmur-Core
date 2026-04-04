@@ -170,7 +170,8 @@ class AuditLogger:
     ) -> AuditRecordV1:
         """Emit audit record with JetStream publishing and durable idempotency"""
         # DETECTION ONLY: Check if this domain logic access is outside V2EntryGate
-        check_domain_logic_access("AuditLogger", "emit_audit_record", ViolationSeverity.HIGH)
+        v2_diagnostics = load_v2_diagnostics()
+        v2_diagnostics.check_domain_logic_access("AuditLogger", "emit_audit_record", v2_diagnostics.ViolationSeverity.HIGH)
         
         logger.info(f"Emitting audit record for {event_kind}")
         

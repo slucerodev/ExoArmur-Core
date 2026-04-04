@@ -51,7 +51,8 @@ class ExecutionKernel:
     ) -> ExecutionIntentV1:
         """Create execution intent from local decision and safety verdict"""
         # DETECTION ONLY: Check if this domain logic access is outside V2EntryGate
-        check_domain_logic_access("ExecutionKernel", "create_execution_intent", ViolationSeverity.HIGH)
+        v2_diagnostics = load_v2_diagnostics()
+        v2_diagnostics.check_domain_logic_access("ExecutionKernel", "create_execution_intent", v2_diagnostics.ViolationSeverity.HIGH)
         
         logger.info(f"Creating execution intent for decision {local_decision.decision_id}")
         

@@ -117,3 +117,23 @@ Integration tests that previously called `initialize_components()` directly must
 - `ARCHITECTURE.md` - V2EntryGate governance model
 - `BOUNDARY_MODEL.md` - Execution boundary enforcement
 - `ISOLATION_GUARANTEES.md` - Structural bypass elimination
+
+---
+
+## Core Test Suite Baseline Definition
+
+### Standard Test Filter for Core Tests
+To ensure consistent baseline measurements, use this filter for all core test runs:
+
+```bash
+python3 -m pytest tests/ --ignore=tests/integration/ --ignore=tests/test_integration.py --ignore=tests/test_intent_freeze_binding.py --ignore=tests/test_approval_wiring.py --ignore=tests/test_step9_isolation_stress_validation.py -q
+```
+
+### Rationale
+- `--ignore=tests/integration/`: Excludes all files in the integration/ subdirectory
+- `--ignore=tests/test_integration.py`: Excludes the main integration test file
+- `--ignore=tests/test_intent_freeze_binding.py`: Integration-style approval tests
+- `--ignore=tests/test_approval_wiring.py`: Integration-style approval tests  
+- `--ignore=tests/test_step9_isolation_stress_validation.py`: Has syntax errors
+
+This filter captures exactly the non-integration core test suite consistently across runs.

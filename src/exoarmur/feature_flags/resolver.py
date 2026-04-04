@@ -52,8 +52,10 @@ def load_v2_safety_models() -> SimpleNamespace:
 @lru_cache(maxsize=None)
 def load_v2_diagnostics() -> SimpleNamespace:
     from exoarmur.execution_boundary_v2.detection import ViolationSeverity, check_domain_logic_access
+    from exoarmur.safety import enforce_execution_gate
 
     return SimpleNamespace(
         ViolationSeverity=ViolationSeverity,
         check_domain_logic_access=check_domain_logic_access,
+        enforce_execution_gate=enforce_execution_gate,
     )

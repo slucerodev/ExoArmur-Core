@@ -18,6 +18,7 @@ from spec.contracts.models_v1 import (
 )
 from exoarmur.federation.clock import Clock
 from exoarmur.federation.audit import AuditService, AuditEventType
+from exoarmur.feature_flags.resolver import load_v2_diagnostics
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.identity_containment.effector import IdentityContainmentEffector
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
@@ -84,7 +85,8 @@ class IdentityContainmentExecutor:
             return None
         
         # PHASE 5: Enforce execution gate BEFORE any side effects
-        gate_result = await enforce_execution_gate(
+        v2_diagnostics = load_v2_diagnostics()
+        gate_result = await v2_diagnostics.enforce_execution_gate(
             action_type=ExecutionActionType.IDENTITY_CONTAINMENT_APPLY,
             tenant_id=intent.subject_id,  # Use subject_id as tenant identifier
             correlation_id=intent.metadata.get("correlation_id", ""),
