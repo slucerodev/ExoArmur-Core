@@ -1,0 +1,10 @@
+# Minimal requirements for ExoArmur Quickstart
+# These are the core dependencies needed to run the basic system
+
+# Core dependencies
+pydantic>=2.0.0
+cryptography>=46.0.0
+uuid>=1.30
+
+# Development dependencies (minimal)
+pytest>=7.0.0

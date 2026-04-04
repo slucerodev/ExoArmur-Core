@@ -1,7 +1,5 @@
 # ExoArmur Quickstart
 
-Get ExoArmur-Core running in under 60 seconds with these copy-paste commands.
-
 ## Quick Start
 
 ```bash
@@ -13,15 +11,7 @@ cd ExoArmur-Core
 ./scripts/quickstart.sh
 ```
 
-That's it! The script will:
-- Set up a Python virtual environment
-- Install required dependencies  
-- Run a minimal demo execution
-- Show you the system is working
-
 ## Expected Output
-
-You should see output similar to this:
 
 ```
 🚀 ExoArmur Quickstart Setup
@@ -69,8 +59,6 @@ ExoArmur-Core is properly installed and functional.
 
 ## Next Steps
 
-After quickstart completes, run proof mode for deterministic validation:
-
 ```bash
 exoarmur proof
 ```
@@ -85,8 +73,6 @@ If you see "QUICKSTART FAILED":
 
 ## Manual Installation
 
-If the script doesn't work, you can run manually:
-
 ```bash
 # Setup environment
 python3 -m venv venv_quickstart
@@ -96,20 +82,3 @@ pip install -r requirements-quickstart.txt
 # Run quickstart
 python -m exoarmur.quickstart.run_quickstart
 ```
-
-## What This Tests
-
-The quickstart validates:
-- ✅ Core system imports work
-- ✅ Safety evaluation system functions
-- ✅ Audit normalization works
-- ✅ Replay engine can store and retrieve
-- ✅ All components integrate properly
-
-This is a minimal smoke test - it doesn't modify any existing behavior or require external dependencies.
-
-## System Status
-
-**Deterministic Execution Ready (Local Validation)**
-
-This quickstart demonstrates that ExoArmur-Core is properly installed and functional for local development and validation. For production deployment, see the full documentation.
