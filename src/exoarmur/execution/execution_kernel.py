@@ -15,9 +15,12 @@ from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 from exoarmur.clock import deterministic_timestamp
 from exoarmur.audit.audit_logger import compute_idempotency_key
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
-from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+from exoarmur.feature_flags.resolver import (
+    load_v2_core_types,
+    load_v2_diagnostics,
+    load_v2_entry_gate,
+)
 from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
-from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -125,13 +128,16 @@ class ExecutionKernel:
         logger.info(f"Executing intent {intent.intent_id} through V2 Entry Gate")
         
         # Create V2 ExecutionRequest
-        execution_request = ExecutionRequest(
-            module_id=ModuleID("execution_kernel"),
-            execution_context=ModuleExecutionContext(
-                execution_id=ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
-                module_id=ModuleID("execution_kernel"),
-                module_version=ModuleVersion(1, 0, 0),
-                deterministic_seed=DeterministicSeed(hash(intent.intent_id) % (2**63)),
+        v2_entry_gate = load_v2_entry_gate()
+        v2_core_types = load_v2_core_types()
+        
+        execution_request = v2_entry_gate.ExecutionRequest(
+            module_id=v2_core_types.ModuleID("execution_kernel"),
+            execution_context=v2_core_types.ModuleExecutionContext(
+                execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
+                module_id=v2_core_types.ModuleID("execution_kernel"),
+                module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
                 logical_timestamp=int(datetime.now().timestamp()),
                 dependency_hash=intent.correlation_id or "default"
             ),
@@ -148,7 +154,7 @@ class ExecutionKernel:
         )
 
         # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-        result = execute_module(execution_request)
+        result = v2_entry_gate.execute_module(execution_request)
         
         if result.success:
             logger.info(f"Intent executed via V2 Entry Gate: {intent.intent_id}")

@@ -49,7 +49,12 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
-from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+from exoarmur.feature_flags.resolver import (
+    load_v2_core_types,
+    load_v2_diagnostics,
+    load_v2_entry_gate,
+    load_v2_safety_models,
+)
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
@@ -192,15 +197,16 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
         raise RuntimeError("Execution runtime is not initialized")
 
     # Create V2 ExecutionRequest
-    from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
+    v2_entry_gate = load_v2_entry_gate()
+    v2_core_types = load_v2_core_types()
     
-    execution_request = ExecutionRequest(
-        module_id=ModuleID(execution_intent.intent_id[:26]),  # Ensure 26 chars
-        execution_context=ModuleExecutionContext(
-            execution_id=ExecutionID(execution_intent.intent_id[:26]),
-            module_id=ModuleID(execution_intent.intent_id[:26]),
-            module_version=ModuleVersion(1, 0, 0),
-            deterministic_seed=DeterministicSeed(hash(execution_intent.intent_id) % (2**63)),
+    execution_request = v2_entry_gate.ExecutionRequest(
+        module_id=v2_core_types.ModuleID(execution_intent.intent_id[:26]),  # Ensure 26 chars
+        execution_context=v2_core_types.ModuleExecutionContext(
+            execution_id=v2_core_types.ExecutionID(execution_intent.intent_id[:26]),
+            module_id=v2_core_types.ModuleID(execution_intent.intent_id[:26]),
+            module_version=v2_core_types.ModuleVersion(1, 0, 0),
+            deterministic_seed=v2_core_types.DeterministicSeed(hash(execution_intent.intent_id) % (2**63)),
             logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
             dependency_hash=execution_intent.correlation_id or "default"
         ),
@@ -215,7 +221,7 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
     )
 
     # Execute through V2 Entry Gate - ONLY ALLOWED PATH
-    result = execute_module(execution_request)
+    result = v2_entry_gate.execute_module(execution_request)
     
     # Record execution in kernel for idempotency
     if result.success:

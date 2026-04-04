@@ -12,7 +12,11 @@ import ulid
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.nats_client import ExoArmurNATSClient
 from exoarmur.clock import utc_now
-from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
+from exoarmur.feature_flags.resolver import (
+    load_v2_core_types,
+    load_v2_diagnostics,
+    load_v2_entry_gate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -291,9 +295,9 @@ class AuditLogger:
         logger.info("Starting audit record consumer through V2EntryGate")
         
         try:
-            # Import V2EntryGate components
-            from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
-            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
+            # Import V2EntryGate components via resolver
+            v2_entry_gate = load_v2_entry_gate()
+            v2_core_types = load_v2_core_types()
             from datetime import datetime, timezone
             import hashlib
             import ulid
@@ -320,13 +324,13 @@ class AuditLogger:
             audit_ulid = str(ulid.ULID())
             execution_ulid = str(ulid.ULID())
             
-            audit_request = ExecutionRequest(
-                module_id=ModuleID(audit_ulid),
-                execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID(execution_ulid),
-                    module_id=ModuleID(audit_ulid),
-                    module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash("audit_processing") % (2**63)),
+            audit_request = v2_entry_gate.ExecutionRequest(
+                module_id=v2_core_types.ModuleID(audit_ulid),
+                execution_context=v2_core_types.ModuleExecutionContext(
+                    execution_id=v2_core_types.ExecutionID(execution_ulid),
+                    module_id=v2_core_types.ModuleID(audit_ulid),
+                    module_version=v2_core_types.ModuleVersion(1, 0, 0),
+                    deterministic_seed=v2_core_types.DeterministicSeed(hash("audit_processing") % (2**63)),
                     logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
                     dependency_hash="audit_processing"
                 ),
@@ -343,7 +347,7 @@ class AuditLogger:
             )
             
             # Execute audit processing through V2EntryGate
-            result = execute_module(audit_request)
+            result = v2_entry_gate.execute_module(audit_request)
             
             if result.success:
                 logger.info(f"Audit record processed successfully through V2EntryGate: {result.result_data.get('event_id')}")
