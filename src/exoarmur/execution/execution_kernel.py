@@ -5,6 +5,7 @@ Phase 5: Added execution gate enforcement for all side effects.
 
 import logging
 import hashlib
+from exoarmur.clock import utc_now
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
@@ -139,7 +140,7 @@ class ExecutionKernel:
                 module_id=v2_core_types.ModuleID("execution_kernel"),
                 module_version=v2_core_types.ModuleVersion(1, 0, 0),
                 deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
-                logical_timestamp=int(datetime.now().timestamp()),
+                logical_timestamp=int(utc_now().timestamp()),
                 dependency_hash=intent.correlation_id or "default"
             ),
             action_data={

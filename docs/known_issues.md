@@ -137,3 +137,129 @@ python3 -m pytest tests/ --ignore=tests/integration/ --ignore=tests/test_integra
 - `--ignore=tests/test_step9_isolation_stress_validation.py`: Has syntax errors
 
 This filter captures exactly the non-integration core test suite consistently across runs.
+
+---
+
+# Known Issues - Cluster 3 Deferred Findings
+
+## Finding 3.7: Hard-coded datetime Import in Multiple Files
+
+### Files Affected
+- `src/exoarmur/main.py` (lines 15, 251)
+- `src/exoarmur/execution/execution_kernel.py` (line 8)
+- `src/exoarmur/execution_boundary_v2/pipeline/proxy_pipeline.py` (line 12)
+- `src/exoarmur/replay/replay_engine.py` (line 9)
+
+### Issue
+Direct `from datetime import datetime` statements create potential determinism risks where non-deterministic time usage could be introduced.
+
+### Classification
+Potential determinism risk
+
+### Risk Level
+LOW
+
+### Proposed Correction
+Review usage and route through exoarmur.clock where appropriate
+
+### Status
+DEFERRED - Requires comprehensive review of datetime usage patterns
+
+---
+
+## Finding 3.8: Mixed V1/V2 Integration in proxy_pipeline.py
+
+### File
+`src/exoarmur/execution_boundary_v2/pipeline/proxy_pipeline.py`
+
+### Lines
+25-26
+
+### Evidence
+```python
+from spec.contracts.models_v1 import AuditRecordV1, LocalDecisionV1
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
+```
+
+### Issue
+V2 pipeline directly imports V1 models and safety gate components, creating architectural coupling between V1 and V2 systems.
+
+### Classification
+Architectural coupling
+
+### Risk Level
+MEDIUM
+
+### Proposed Correction
+Document and potentially abstract V1 dependencies
+
+### Status
+DEFERRED - Requires architectural decision on V1/V2 integration pattern
+
+---
+
+## Finding 3.9: Direct V2 Model Construction in replay_engine.py
+
+### File
+`src/exoarmur/replay/replay_engine.py`
+
+### Line
+556
+
+### Evidence
+```python
+reconstructed_intent = ExecutionIntentV1(**intent_data)
+```
+
+### Issue
+Direct construction of V1 models from raw data without validation creates hard coupling to V1 model structure.
+
+### Classification
+Hard coupling to V1 model structure
+
+### Risk Level
+LOW
+
+### Proposed Correction
+Add validation and error handling
+
+### Status
+DEFERRED - Requires replay validation strategy
+
+---
+
+## Finding 3.10: Missing Resolver Integration in bundle_builder.py
+
+### File
+`src/exoarmur/execution_boundary_v2/utils/bundle_builder.py`
+
+### Lines
+10-14
+
+### Evidence
+Direct imports from sibling modules within V2 boundary
+
+### Issue
+Internal architecture inconsistency
+
+### Classification
+Internal architecture inconsistency
+
+### Risk Level
+LOW
+
+### Proposed Correction
+Use relative imports consistently
+
+### Status
+REJECTED - Relative imports within V2 boundary are correct
+
+---
+
+## Cluster 3 Summary
+
+- **Total Deferred Findings**: 3 (3.7, 3.8, 3.9)
+- **Total Rejected Findings**: 1 (3.10)
+- **Remaining Risk**: One MEDIUM risk finding (3.8) requiring architectural decision
+
+All deferred findings require broader architectural review and should be addressed in a future iteration focused on V1/V2 integration patterns.

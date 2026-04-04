@@ -12,7 +12,7 @@ import logging
 import sys
 import os
 import asyncio
-from datetime import datetime, timezone
+from exoarmur.clock import utc_now
 from typing import Dict, Any, List, Optional
 import uuid
 
@@ -55,9 +55,6 @@ from exoarmur.feature_flags.resolver import (
     load_v2_entry_gate,
     load_v2_safety_models,
 )
-from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
-from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
-from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
 
 # Configure structured logging
 logging.basicConfig(
@@ -207,7 +204,7 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
             module_id=v2_core_types.ModuleID(execution_intent.intent_id[:26]),
             module_version=v2_core_types.ModuleVersion(1, 0, 0),
             deterministic_seed=v2_core_types.DeterministicSeed(hash(execution_intent.intent_id) % (2**63)),
-            logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+            logical_timestamp=int(utc_now().timestamp()),
             dependency_hash=execution_intent.correlation_id or "default"
         ),
         action_data={
@@ -246,9 +243,13 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
     Returns:
         True if bootstrap successful, False otherwise
     """
-    from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
-    from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
-    from datetime import datetime, timezone
+        # Load V2 models through resolver
+    v2_safety_models = load_v2_safety_models()
+    ActionIntent = v2_safety_models.ActionIntent
+    PolicyDecision = v2_safety_models.PolicyDecision
+    PolicyVerdict = v2_safety_models.PolicyVerdict
+    ExecutorResult = v2_safety_models.ExecutorResult
+    from exoarmur.clock import utc_now
     import hashlib
     import ulid
     
@@ -266,7 +267,7 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
             module_id=ModuleID(bootstrap_ulid),
             module_version=ModuleVersion(1, 0, 0),
             deterministic_seed=DeterministicSeed(hash("system_bootstrap") % (2**63)),
-            logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+            logical_timestamp=int(utc_now().timestamp()),
             dependency_hash="system_bootstrap"
         ),
         action_data={
@@ -312,7 +313,17 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     For testing: Use V2EntryGate.execute_module() with proper ExecutionRequest
     For CLI: Commands must route through V2EntryGate, not call this directly
     """
-    from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
+        # Load V2 components through resolver
+    v2_entry_gate = load_v2_entry_gate()
+    v2_core_types = load_v2_core_types()
+    
+    execute_module = v2_entry_gate.execute_module
+    ExecutionRequest = v2_entry_gate.ExecutionRequest
+    ModuleID = v2_core_types.ModuleID
+    ExecutionID = v2_core_types.ExecutionID
+    DeterministicSeed = v2_core_types.DeterministicSeed
+    ModuleExecutionContext = v2_core_types.ModuleExecutionContext
+    ModuleVersion = v2_core_types.ModuleVersion
     
     # DETECTION: Log violation attempt
     check_domain_logic_access("main", "initialize_components", ViolationSeverity.CRITICAL)
