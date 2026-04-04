@@ -2,6 +2,8 @@
 
 ## initialize_components() Structural Problem
 
+**BLOCKS: integration test suite — must be resolved before Cluster 2 corrections can be fully verified**
+
 ### Issue Description
 The `initialize_components()` function in `src/exoarmur/main.py` has been eliminated to enforce V2EntryGate governance boundaries. Direct component instantiation now bypasses V2EntryGate enforcement and is blocked.
 
