@@ -63,6 +63,19 @@ This demonstrates full system capabilities with policy enforcement and replay ve
 
 ---
 
+## System Positioning
+
+ExoArmur is a deterministic execution safety substrate that provides byte-for-byte reproducible execution guarantees for AI agent systems through causal traceability and safety gate enforcement.
+
+**Core Identity**: Deterministic layer that ensures identical execution across environments
+**Trust Primitive**: Proof Mode provides verifiable deterministic validation  
+**Boundaries**: Core engine (stable implementation) vs V2 experimental features
+**Guarantees**: Byte-for-byte execution, complete audit trails, safety gate enforcement
+
+[See detailed positioning](docs/POSITIONING.md)
+
+---
+
 ## Architecture
 
 ExoArmur has a 3-layer architecture with strict separation:

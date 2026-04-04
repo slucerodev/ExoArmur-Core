@@ -18,8 +18,8 @@ This directory contains minimal, self-contained demos that demonstrate ExoArmur'
 **Business Value**: 
 - Detects financial record tampering
 - Identifies compromised data sources
-- Maintains audit integrity for regulatory compliance
-- Provides cryptographic proof of tampering
+- Maintains audit integrity with cryptographic evidence
+- Provides verifiable proof of tampering
 
 **Runtime**: ~30 seconds
 
@@ -86,7 +86,7 @@ Node 4 and Node 5 receive tampered events (simulating insider threat)
    • Identifies which systems/data sources are compromised
    • Maintains audit integrity even with insider threats
    • Provides cryptographic proof of tampering
-   • Enables regulatory compliance with immutable audit trails
+   • Enables audit trail verification with immutable records
 
 🚀 Demo completed successfully!
    Total nodes simulated: 5
@@ -115,7 +115,7 @@ These demos are built on ExoArmur's production-stable Multi-Node Replay Verifier
 
 - **Consensus Divergence**: Network partition scenarios
 - **Replay Inconsistency**: Data corruption detection
-- **Regulatory Compliance**: Audit trail verification for compliance reporting
+- **Audit Trail Verification**: Immutable record verification for reporting
 
 ## Integration Notes
 
