@@ -1,22 +1,37 @@
 # ExoArmur
 
-**ExoArmur is a deterministic execution safety substrate for AI agent systems.**
+**A deterministic execution governance substrate for AI systems that enforces verifiable causal integrity across decision and action pipelines.**
 
-## System Overview
+## Problem Statement
 
-ExoArmur ensures that AI agent systems produce identical results across any environment or execution. It provides byte-for-byte reproducible execution with complete audit trails, allowing you to verify exactly what your system did and when.
+AI systems exhibit unpredictable execution behavior and lack auditable decision paths. The same input can produce different actions across runs, making it impossible to verify system behavior, debug failures, or prove compliance. This unpredictability creates fundamental trust issues in production environments where reproducible execution and audit trails are essential.
 
-**What it enables**: Run AI agents with deterministic guarantees, verify execution integrity, and maintain cryptographically auditable evidence of all system actions.
+## What ExoArmur Is
 
-## Why This Exists
+ExoArmur is a governance and execution control layer that creates deterministic, traceable AI system behavior. It enforces policy constraints, captures causal execution traces, and provides replayable execution logs for verification.
 
-AI agents naturally exhibit nondeterministic behavior - the same agent with the same prompt can produce different outputs across runs. This makes debugging impossible and creates unreproducible failures in real deployments.
+ExoArmur treats AI behavior as an executable, verifiable process rather than a black-box response system. Every action passes through a governed execution boundary that records intent, validates against constraints, and generates cryptographically verifiable audit trails.
 
-ExoArmur fixes this through deterministic replay and verification, ensuring byte-for-byte identical execution across any environment while maintaining complete causal traceability of all actions.
+## Core Capabilities
 
-## Get Started in 60 Seconds
+- **Controlled execution under policy constraints**: All AI actions validated against defined governance rules before execution
+- **Deterministic execution traces**: Causal ordering of system actions captured with cryptographic integrity
+- **Causal ordering of system actions**: Complete decision pipeline traceability from input to outcome
+- **Replayable execution for verification**: Exact reconstruction of execution behavior under identical conditions
+- **Audit-grade observability**: Complete decision pipeline visibility with tamper-evident records
 
-### Step 1: Setup
+## Architecture
+
+### Core Engine (`src/exoarmur/`)
+Stable deterministic execution system with trace generation. Provides the foundation for governed execution, safety enforcement, and audit trail maintenance. All core functionality verified with comprehensive test coverage.
+
+### Experimental Layer (`src/exoarmur/execution_boundary_v2/`)
+Optional extensions strictly isolated behind feature flags. Tests advanced governance patterns including human approval gates and complex decision pipelines. Disabled by default.
+
+### Tooling Layer (`scripts/`, `demo/`)
+Demos, validation scripts, and test harnesses. Provides system validation, performance testing, and educational examples of governance patterns.
+
+## Quickstart
 
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core.git
@@ -24,29 +39,31 @@ cd ExoArmur-Core
 ./scripts/quickstart.sh
 ```
 
-*This sets up the environment and verifies core functionality.*
-
-### Step 2: Trust Validation
+```bash
+exoarmur demo --scenario canonical
+```
 
 ```bash
 exoarmur proof
 ```
 
-*This single command proves ExoArmur works deterministically. The same replay hash appears every time, providing cryptographic proof of system correctness.*
+## Demo Flow
 
-**Expected outcome**: You'll see a structured "PROOF COMPLETE" output with a stable replay hash that remains constant across executions.
+1. **Initialize system**: Load governance rules and establish execution boundary
+2. **Run canonical scenario**: Execute controlled AI actions under policy constraints
+3. **Inspect execution trace**: Review causal ordering and decision validation
+4. **Verify replay consistency**: Confirm deterministic behavior under identical conditions
 
-### Step 3: Deep Exploration
+## Guarantees / Invariants
 
-```bash
-exoarmur demo --scenario canonical
-```
+- **Execution traces are reconstructible** under identical inputs and constraints
+- **System preserves causal ordering** of all actions and decisions
+- **Execution is fully auditable** after completion with cryptographic proofs
+- **Replay produces verifiable deterministic behavior** under defined conditions
 
-*This demonstrates full system capabilities with policy enforcement and replay verification.*
+## Positioning / System Class
 
-**That's it.** You now have a working ExoArmur system with deterministic guarantees.
-
----
+ExoArmur is an execution governance substrate that provides deterministic control plane capabilities for AI systems. It operates as a causal trace and verification layer, ensuring that AI system behavior is reproducible, auditable, and verifiable under defined governance constraints.
 
 ## System Positioning
 
@@ -59,16 +76,19 @@ ExoArmur is a deterministic execution safety substrate that provides byte-for-by
 
 [See detailed positioning](docs/POSITIONING.md)
 
----
-
-## Entry Points
-
-- **[Quickstart Guide](QUICKSTART.md)** - Detailed setup and execution steps
-- **[System Positioning](docs/POSITIONING.md)** - Complete system boundaries and guarantees
-
 ## License
 
-[License information]
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ## Contributing
 
