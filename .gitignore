@@ -115,3 +115,12 @@ snapshot_out/
 
 # OS / editor junk
 Thumbs.db
+
+# Local development artifacts and backups
+restore_venv/
+mirror_test.py
+mirror_test_throttled.py
+mirror_test_v2_gate.py
+EXOARMUR_COMPLETE_REPOSITORY_STATE_EXTRACTION.md
+tests/test_step9_isolation_stress_validation.py.backup
+docs/release/INHERITANCE_ROADMAP_STEP6_RESUME_DEVELOPMENT_MODE.md
