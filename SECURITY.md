@@ -16,7 +16,7 @@ the release security gate verifies current working tree cleanliness.
 | Version        | Supported |
 | -------------- | --------- |
 | Architecture / Contract: v1.0.0 | Security fixes and backported criticals |
-| Package (pip): 0.2.0 | Security fixes and backported criticals |
+| Package (pip): 0.3.0 | Security fixes and backported criticals |
 
 ## Reporting a Vulnerability
 

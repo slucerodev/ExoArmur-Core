@@ -209,13 +209,23 @@ pytest -q
 ### **Optional Modules**
 ```bash
 # Install with V2 capabilities
-pip install -e ".[v2]"
+# V2 capabilities require no additional pip extras.
+# They are activated via environment variables at runtime:
+# EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+# EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+# EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+pip install -e .
 
 # Install with development tools
 pip install -e ".[dev]"
 
 # Install everything
-pip install -e ".[v2,dev]"
+# V2 capabilities require no additional pip extras.
+# They are activated via environment variables at runtime:
+# EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+# EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+# EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+pip install -e ".[dev]"
 ```
 
 ---
