@@ -10,6 +10,8 @@ This is the counterfactual question. It is the question that determines liabilit
 
 No AI governance system in production can answer it today.
 
+While major players like Microsoft and well-funded startups like Fiddler are building AI governance toolkits, none have solved the counterfactual problem. The focus has been on monitoring, logging, and explainable AI — important capabilities that stop short of answering "what if" questions with mathematical rigor.
+
 Consider three real incidents. In 2023, UnitedHealth's nH Predict AI system was used by a Medicare Advantage insurer to override doctor recommendations with an alleged 90% error rate. Families whose care was denied could not answer the fundamental question: would the AI have approved care if it had seen additional medical data? The result was that the insurer is now required to retain detailed records of all inputs and decisions.
 
 In 2025, the Massachusetts Attorney General reached a settlement with a student loan company whose AI underwriting model had disparate impact based on race and immigration status. No effective process existed to test the model before deployment. The company is now required to document every algorithmic decision and retain that documentation.
@@ -90,7 +92,7 @@ Fifth, regulatory compliance. EU AI Act Articles 12-13 require logging sufficien
 
 ## SECTION 6: CURRENT STATE AND ROADMAP
 
-What works today is substantial. The policy enforcement pipeline is verified working. Deterministic replay is verified working. The counterfactual engine is a working prototype. The system has a clean install with zero dependencies beyond Python and 968 passing core tests.
+What works today is substantial. The policy enforcement pipeline is verified working. Deterministic replay is verified working. The counterfactual engine is a working prototype. The system has a clean install with zero dependencies beyond Python and a core test suite that passes without external infrastructure dependencies.
 
 What is being built includes Structural Causal Model construction from audit trails, do-calculus implementation for multi-variable interventions, integration with LangChain and OpenAI Agents SDK, and counterfactual certificates as first-class audit artifacts.
 
