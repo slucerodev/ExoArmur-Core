@@ -145,9 +145,9 @@ class ExecutionKernel:
             ),
             action_data={
                 'action_class': intent.action_class,
-                'action_type': intent.action_type,
+                'action_type': intent.intent_type,  # Fixed: use intent_type not action_type
                 'subject': intent.subject,
-                'parameters': intent.action_parameters,
+                'parameters': intent.parameters or {},  # Fixed: use parameters not action_parameters
                 'tenant_id': intent.tenant_id,
                 'correlation_id': intent.correlation_id,
                 'trace_id': intent.trace_id
@@ -160,6 +160,9 @@ class ExecutionKernel:
         
         if result.success:
             logger.info(f"Intent executed via V2 Entry Gate: {intent.intent_id}")
+            # Track idempotency for backward compatibility
+            if hasattr(intent, 'idempotency_key') and intent.idempotency_key:
+                self.executed_intents[intent.idempotency_key] = intent
             return True
         else:
             logger.error(f"V2 Entry Gate execution failed: {result.error}")
