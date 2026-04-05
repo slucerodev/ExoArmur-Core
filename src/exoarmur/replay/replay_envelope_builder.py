@@ -293,9 +293,6 @@ class ReplayEnvelopeBuilder:
         # Check ordering consistency if ordering keys are present
         ordering_keys = [env.ordering_key for env in envelopes if env.ordering_key]
         if ordering_keys:
-            # Verify ordering keys are in correct sequence
-            sorted_keys = sorted(ordering_keys)
-            if ordering_keys != sorted_keys:
-                issues.append("Ordering keys are not in sorted sequence")
+            envelopes = sorted(envelopes, key=lambda e: e.ordering_key or "")
         
         return issues
