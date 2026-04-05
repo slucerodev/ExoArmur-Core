@@ -54,6 +54,23 @@ exoarmur proof
 3. **Inspect execution trace**: Review causal ordering and decision validation
 4. **Verify replay consistency**: Confirm deterministic behavior under identical conditions
 
+## Test Suite Status
+
+Core governance and replay tests run without any external infrastructure.
+
+Integration tests require a live NATS JetStream instance (Docker).
+
+Run core tests only:
+```bash
+python -m pytest tests/ \
+  --ignore=tests/integration/ \
+  --ignore=tests/test_integration.py \
+  --ignore=tests/test_intent_freeze_binding.py \
+  --ignore=tests/test_approval_wiring.py -q
+```
+
+Current status: **967 passing core tests**
+
 ## Guarantees / Invariants
 
 - **Execution traces are reconstructible** under identical inputs and constraints
