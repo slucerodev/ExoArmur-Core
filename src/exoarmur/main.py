@@ -56,6 +56,9 @@ from exoarmur.feature_flags.resolver import (
     load_v2_safety_models,
 )
 
+# Import V2 detection functions
+from exoarmur.execution_boundary_v2.detection.execution_violation_detector import check_domain_logic_access, ViolationSeverity
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
