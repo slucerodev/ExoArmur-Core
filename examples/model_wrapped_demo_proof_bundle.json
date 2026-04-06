@@ -1,14 +1,14 @@
 {
   "action_executed": false,
   "audit_records": [],
-  "audit_stream_id": "demo-standalone-delete-outside-authorized-path",
+  "audit_stream_id": "demo-model-wrapped-governance",
   "bundle": {
     "approval_records": [],
     "audit_event_count": 0,
     "audit_stream_id": null,
-    "bundle_checksum": "e6f73985bae2bb3e29bb994a632a3ea8818f2cf18f3900b4b856de719ecdc373",
+    "bundle_checksum": "db94682c0c4ed68e13cc18ef03ec972dc66fb1eab25fe226ad95e43fdbce7ea1",
     "bundle_created_at": null,
-    "bundle_id": "4DARW5GWNT1EFE1E6FHVEMWY31",
+    "bundle_id": "70TW3VCD74EST2G0HN5M6N5VA1",
     "bundle_version": "v1",
     "canonicalization_verified": false,
     "deterministic_ids": true,
@@ -17,23 +17,23 @@
       "audit_event_count": 0,
       "audit_stream_id": null,
       "bundle_id": null,
-      "correlation_id": "0NPZV6EF4EXV74QBD4YCQ79VEQ",
+      "correlation_id": "0KDCFCVRE85BT734S7AMM781BP",
       "event_sequence": [
-        "697VMDYBB2D7Z017JE6ZW2PGV2",
-        "5YGVJF9AQGMH158JPDH1H8YEZN",
-        "6ZTSS2NKTBKPG07BYZC16Y4KT0",
-        "60MY4JP5GTHAVAQCJQ4QZG2DKW"
+        "7TE3JYNWS7GPEKN1PGV9BYZM0H",
+        "3V9RSSH6EDF9QNTEW7E77E4GWN",
+        "76P3NZA23HKTR1F3RJ8PZ5HJA8",
+        "34QV433N0F23A7DQ07NJTK36YE"
       ],
       "events": [
         {
           "checksum": null,
           "code": "RECEIVED",
           "details": {
-            "action_type": "file_delete",
-            "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv"
+            "action_type": "classify_threat",
+            "target": "threat_classification_model"
           },
-          "event_hash": "781a231102da920fbedf6de3f3468af0d9f3028cc97d755c6c0fd23b4d5b0b8e",
-          "event_id": "697VMDYBB2D7Z017JE6ZW2PGV2",
+          "event_hash": "965ef58a388587a4590a73766740df8cdefa1c3bec75c4c6087986414eb6ff58",
+          "event_id": "7TE3JYNWS7GPEKN1PGV9BYZM0H",
           "ok": true,
           "parent_event_id": null,
           "sequence": 0,
@@ -46,10 +46,10 @@
           "details": {
             "approval_required": false,
             "confidence": 1.0,
-            "decision_id": "6X2AEGCGF5FNQDQ1JGZG3KS2G9"
+            "decision_id": "7AY1305B035YX9AERH01PCQBSC"
           },
-          "event_hash": "e0dd024e87929f465f2ef3f5ca48238c526f7066866a1d01d592b2b26bb1cefe",
-          "event_id": "5YGVJF9AQGMH158JPDH1H8YEZN",
+          "event_hash": "1433d1e5433cabca677673db4dffc090056c1f29b2039514caef322a936542cc",
+          "event_id": "3V9RSSH6EDF9QNTEW7E77E4GWN",
           "ok": false,
           "parent_event_id": null,
           "sequence": 1,
@@ -60,7 +60,7 @@
           "checksum": null,
           "code": "allow",
           "details": {
-            "rationale": "Safe execution conditions verified for file_delete by demo-user",
+            "rationale": "Safe execution conditions verified for classify_threat by demo-model",
             "rule_ids": [
               "safe_execution_verified"
             ],
@@ -70,8 +70,8 @@
               "policy_verified": true
             }
           },
-          "event_hash": "e1abd1d75e66b03d18741d4b76769f8b67d7a216a8c8a12a1e1b1973ae183bc3",
-          "event_id": "6ZTSS2NKTBKPG07BYZC16Y4KT0",
+          "event_hash": "5a52459d698703e5d64f1b8ff723759cab3b1a7ed990dc6d2c4b8922ce7c67f3",
+          "event_id": "76P3NZA23HKTR1F3RJ8PZ5HJA8",
           "ok": true,
           "parent_event_id": null,
           "sequence": 2,
@@ -87,8 +87,8 @@
               "policy_deny_overrides_all"
             ]
           },
-          "event_hash": "7c8faf865de9fd4fd2b03a403c017c7eab6be53c2f95bd8a1064dee0badf9b1e",
-          "event_id": "60MY4JP5GTHAVAQCJQ4QZG2DKW",
+          "event_hash": "e3abf8d2105102c5cd7b7791b8ebf6261755411da084f0a66b4afe83a474450c",
+          "event_id": "34QV433N0F23A7DQ07NJTK36YE",
           "ok": true,
           "parent_event_id": null,
           "sequence": 3,
@@ -99,16 +99,16 @@
       "executor_trace": null,
       "final_verdict": "deny",
       "integrity_checksum": null,
-      "intent_id": "0NPZV6EF4EXV74QBD4YCQ79VEQ",
+      "intent_id": "0KDCFCVRE85BT734S7AMM781BP",
       "policy_decision_id": null,
       "replay_timestamp": null,
       "safety_verdict_id": null,
       "trace_created_at": null,
-      "trace_hash": "b330c1f9607bcbd95431dacc6acc2205d269ab1fac73560822cab992e5527fea",
-      "trace_id": "5EN1AXM34W2R6MZ0DFNESY94ZS",
+      "trace_hash": "da9d4988a330af4deb826fa19a1a95cb60bfa94c05dc5a1fda7181684a616675",
+      "trace_id": "766401CX52S6X94GFM00FPXBT1",
       "verdict_trace": {
         "final_verdict": "deny",
-        "policy_decision_id": "6X2AEGCGF5FNQDQ1JGZG3KS2G9",
+        "policy_decision_id": "7AY1305B035YX9AERH01PCQBSC",
         "policy_evidence": {},
         "policy_rationale": "SDK demonstration: All actions denied for safety",
         "policy_verdict": "deny",
@@ -118,7 +118,7 @@
           "resolution_rules_applied": [
             "policy_deny_overrides_all"
           ],
-          "safety_rationale": "Safe execution conditions verified for file_delete by demo-user",
+          "safety_rationale": "Safe execution conditions verified for classify_threat by demo-model",
           "safety_rule_ids": [
             "safe_execution_verified"
           ],
@@ -127,7 +127,7 @@
         "resolution_rules_applied": [
           "policy_deny_overrides_all"
         ],
-        "safety_rationale": "Safe execution conditions verified for file_delete by demo-user",
+        "safety_rationale": "Safe execution conditions verified for classify_threat by demo-model",
         "safety_rule_ids": [
           "safe_execution_verified"
         ],
@@ -148,29 +148,29 @@
     "governance_evidence": {},
     "integrity_hash": null,
     "intent": {
-      "action_type": "file_delete",
-      "actor_id": "demo-user",
-      "actor_type": "human",
+      "action_type": "classify_threat",
+      "actor_id": "demo-model",
+      "actor_type": "ai_model",
       "cell_id": "",
-      "intent_id": "0NPZV6EF4EXV74QBD4YCQ79VEQ",
+      "intent_id": "0KDCFCVRE85BT734S7AMM781BP",
       "parameters": {
-        "force": true
+        "text": "Critical security breach detected with immediate attack vectors"
       },
       "safety_context": {},
-      "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv",
+      "target": "threat_classification_model",
       "tenant_id": "",
-      "timestamp": "2026-04-06T22:53:49.828372+00:00"
+      "timestamp": "2026-04-06T22:53:50.378455+00:00"
     },
     "policy_decision": {
       "approval_required": false,
       "confidence": 1.0,
-      "decision_id": "6X2AEGCGF5FNQDQ1JGZG3KS2G9",
+      "decision_id": "7AY1305B035YX9AERH01PCQBSC",
       "evidence": {},
       "metadata": {},
       "rationale": "SDK demonstration: All actions denied for safety",
       "verdict": "deny"
     },
-    "replay_hash": "1848b974834d29f7692a163d0a874040265bca86d40731ff9eaf2aac2cdbff4d",
+    "replay_hash": "a978e88616ca3bc7f7ffef9df62d0157f8f8adb20bebbd0933f14f105355e98a",
     "replay_verification_timestamp": null,
     "resolution_evidence": {},
     "safety_verdict": {
@@ -180,6 +180,5 @@
     "schema_version": "2.0",
     "validation_evidence": {}
   },
-  "final_verdict": "deny",
-  "written_at": "2026-04-06T22:53:49.834046+00:00"
+  "written_at": "2026-04-06T22:53:50.384329+00:00"
 }

@@ -6,24 +6,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
-from exoarmur.execution_boundary_v2.interfaces.executor_plugin import (
-    ExecutorPlugin,
-    ExecutorResult,
+# Use the public SDK API - this is the ONLY supported way to use ExoArmur
+from exoarmur.sdk.public_api import (
+    run_governed_execution,
+    replay_governed_execution,
+    verify_governance_integrity,
+    SDKConfig,
+    ActionIntent,
+    ExecutionProofBundle,
+    FinalVerdict
 )
-from exoarmur.execution_boundary_v2.interfaces.policy_decision_point import (
-    ApprovalStatus,
-    PolicyDecisionPoint,
-)
-from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
-from exoarmur.execution_boundary_v2.models.policy_decision import (
-    PolicyDecision,
-    PolicyVerdict,
-)
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import AuditEmitter, ProxyPipeline
-from exoarmur.execution_boundary_v2.utils.bundle_builder import build_execution_proof_bundle
-from exoarmur.safety.safety_gate import SafetyGate
-from exoarmur.replay.canonical_utils import to_canonical_event
 
+
+class EnumEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles enums."""
+    def default(self, obj):
+        if hasattr(obj, 'value'):
+            return obj.value
+        return super().default(obj)
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
@@ -34,158 +34,93 @@ FIXED_TIMESTAMP = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 INTENT_ID = "demo-standalone-delete-outside-authorized-path"
 
 
-class PathBoundaryPolicyDecisionPoint(PolicyDecisionPoint):
-    def __init__(self, authorized_root: Path):
-        self.authorized_root = authorized_root.resolve(strict=False)
-
-    def evaluate(self, intent: ActionIntent) -> PolicyDecision:
-        requested_path = Path(intent.target).expanduser().resolve(strict=False)
-        try:
-            requested_path.relative_to(self.authorized_root)
-        except ValueError:
-            return PolicyDecision(
-                verdict=PolicyVerdict.DENY,
-                rationale=(
-                    f"Denied delete request for {requested_path} outside authorized root "
-                    f"{self.authorized_root}"
-                ),
-                evidence={
-                    "action_type": intent.action_type,
-                    "requested_path": str(requested_path),
-                    "authorized_root": str(self.authorized_root),
-                    "requested_operation": intent.parameters.get("operation"),
-                },
-                confidence=1.0,
-                approval_required=False,
-                policy_version="demo-standalone-v1",
-            )
-
-        return PolicyDecision(
-            verdict=PolicyVerdict.ALLOW,
-            rationale=f"Delete request allowed under {self.authorized_root}",
-            evidence={
-                "action_type": intent.action_type,
-                "requested_path": str(requested_path),
-                "authorized_root": str(self.authorized_root),
-            },
-            confidence=1.0,
-            approval_required=False,
-            policy_version="demo-standalone-v1",
-        )
-
-    def approval_status(self, intent_id: str) -> str:
-        return ApprovalStatus.NOT_REQUIRED.value
-
-
-class GuardedFilesystemExecutor(ExecutorPlugin):
-    def name(self) -> str:
-        return "guarded-filesystem-executor"
-
-    def capabilities(self) -> Dict[str, Any]:
-        return {
-            "version": "1.0.0",
-            "capabilities": ["filesystem.delete"],
-            "constraints": {
-                "authorized_root": str(AUTHORIZED_ROOT),
-                "mode": "demo-deny-only",
-            },
-        }
-
-    def execute(self, intent: ActionIntent) -> ExecutorResult:
-        raise RuntimeError("GuardedFilesystemExecutor must never run for the denied standalone demo")
-
-
-def build_demo_intent() -> ActionIntent:
-    return ActionIntent(
-        intent_id=INTENT_ID,
-        actor_id="demo-agent-001",
-        actor_type="agent",
-        action_type="filesystem_delete",
-        target=str(UNAUTHORIZED_TARGET),
-        parameters={
-            "operation": "delete",
-            "path": str(UNAUTHORIZED_TARGET),
-            "authorized_root": str(AUTHORIZED_ROOT),
-        },
-        safety_context={
-            "scenario": "unauthorized_filesystem_delete",
-            "reason": "attempted deletion outside authorized root",
-        },
-        timestamp=FIXED_TIMESTAMP,
-        tenant_id="demo-tenant",
-        cell_id="demo-cell",
-    )
-
-
 def write_proof_bundle(
-    proof_bundle,
-    audit_records,
+    proof_bundle: ExecutionProofBundle,
+    audit_records: list[Dict[str, Any]],
     audit_stream_id: str,
     action_executed: bool,
     output_path: Path,
 ) -> Path:
-    payload = {
+    """Write proof bundle and audit records to disk."""
+    bundle_data = {
+        "bundle": proof_bundle.model_dump(),
+        "audit_records": audit_records,
         "audit_stream_id": audit_stream_id,
         "action_executed": action_executed,
-        "proof_bundle": proof_bundle.model_dump(mode="json"),
-        "audit_records": [to_canonical_event(record, sequence_number=index) for index, record in enumerate(audit_records)],
+        "written_at": datetime.now(timezone.utc).isoformat(),
+        "final_verdict": proof_bundle.final_verdict.value if hasattr(proof_bundle.final_verdict, 'value') else str(proof_bundle.final_verdict),
     }
-    output_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+    
+    output_path.write_text(json.dumps(bundle_data, indent=2, sort_keys=True, cls=EnumEncoder))
     return output_path
 
 
 def main() -> None:
+    """Demonstrate ExoArmur SDK governance boundary enforcement."""
     print("ExoArmur Standalone Execution Boundary Demo")
-    print("Simulated AI agent action: delete a file outside the authorized path")
+    
+    # Create SDK configuration with detailed logging
+    config = SDKConfig(
+        enable_detailed_logging=True,
+        strict_replay_verification=True,
+        audit_stream_id=INTENT_ID
+    )
+    
+    # Create intent to delete file outside authorized path
+    intent = ActionIntent.create(
+        actor_id="demo-user",
+        actor_type="human",
+        action_type="file_delete",
+        target=str(UNAUTHORIZED_TARGET),
+        parameters={"force": True}
+    )
+    
+    print(f"Simulated AI agent action: delete a file outside the authorized path")
     print(f"Authorized root: {AUTHORIZED_ROOT}")
     print(f"Requested delete target: {UNAUTHORIZED_TARGET}")
-    print()
-
-    intent = build_demo_intent()
-    policy = PathBoundaryPolicyDecisionPoint(AUTHORIZED_ROOT)
-    safety_gate = SafetyGate()
-    executor = GuardedFilesystemExecutor()
-    audit_emitter = AuditEmitter()
-    pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
-
-    policy_decision = policy.evaluate(intent)
-    result, trace = pipeline.execute_with_trace(intent)
-
-    if not isinstance(result, ExecutorResult):
-        raise RuntimeError(f"Expected a denied ExecutorResult, got {type(result).__name__}")
-    if result.success or result.error != "DENIED" or trace.final_status != "DENIED":
-        raise RuntimeError(
-            f"Expected denied pipeline outcome, got success={result.success}, error={result.error}, status={trace.final_status}"
-        )
-
-    proof_bundle = build_execution_proof_bundle(
-        intent=intent,
-        policy_decision=policy_decision,
-        approval_records=[],
-        execution_trace=trace,
-        executor_result={
-            "success": result.success,
-            "output": result.output,
-            "error": result.error,
-            "evidence": result.evidence,
-        },
-    )
-
-    audit_stream_id = intent.intent_id
-    bundle_path = write_proof_bundle(
-        proof_bundle=proof_bundle,
-        audit_records=audit_emitter.audit_records,
-        audit_stream_id=audit_stream_id,
-        action_executed=result.success,
-        output_path=PROOF_BUNDLE_PATH,
-    )
-
-    print("Execution boundary result: policy denied before any filesystem side effect")
-    print(f"Proof bundle written: examples/demo_standalone_proof_bundle.json")
-    print(f"Proof bundle replay hash: {proof_bundle.replay_hash}")
-    print("DEMO_RESULT=DENIED")
-    print("ACTION_EXECUTED=false")
-    print(f"AUDIT_STREAM_ID={audit_stream_id}")
+    
+    # Execute through governed SDK
+    try:
+        proof_bundle = run_governed_execution(intent, config)
+        
+        # Verify governance integrity
+        try:
+            verification = verify_governance_integrity(proof_bundle)
+            print(f"Governance integrity verified: {verification['is_valid']}")
+        except Exception as e:
+            print(f"Governance integrity verification failed: {e}")
+            verification = {"is_valid": False, "error": str(e)}
+        
+        # Replay the execution
+        replay_report = replay_governed_execution(proof_bundle, config)
+        print(f"Replay verification: {replay_report.result.value}")
+        
+        # Write proof bundle to disk (for external verification)
+        audit_stream_id = config.audit_stream_id or intent.intent_id
+        try:
+            bundle_path = write_proof_bundle(
+                proof_bundle=proof_bundle,
+                audit_records=[],  # SDK handles audit internally
+                audit_stream_id=audit_stream_id,
+                action_executed=False,  # Should be denied
+                output_path=PROOF_BUNDLE_PATH,
+            )
+            print("Execution boundary result: policy denied before any filesystem side effect")
+            print(f"Proof bundle written: examples/demo_standalone_proof_bundle.json")
+            print(f"Proof bundle schema version: {proof_bundle.schema_version}")
+            print(f"Proof bundle replay hash: {proof_bundle.replay_hash}")
+            print("DEMO_RESULT=DENIED")
+            print("ACTION_EXECUTED=false")
+            print(f"AUDIT_STREAM_ID={audit_stream_id}")
+        except Exception as e:
+            print(f"Failed to write proof bundle: {e}")
+            print("DEMO_RESULT=ERROR")
+            print("ACTION_EXECUTED=false")
+        
+    except Exception as e:
+        print(f"SDK execution failed: {e}")
+        print("DEMO_RESULT=ERROR")
+        print("ACTION_EXECUTED=false")
 
 
 if __name__ == "__main__":

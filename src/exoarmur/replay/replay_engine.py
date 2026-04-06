@@ -2,11 +2,16 @@
 Replay Engine for deterministic audit replay
 Reconstructs and verifies organism behavior from audit logs
 Enhanced with dual-format support for V1 and CanonicalAuditEnvelope
+Now includes schema versioning and migration support for proof bundles.
+
+# INTERNAL MODULE: Not part of the public SDK surface.
+# Use exoarmur.sdk.public_api instead.
+# This module is an implementation detail and may change without notice.
 """
 
 import logging
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
@@ -15,6 +20,9 @@ from .event_envelope import CanonicalEvent, EnvelopeValidationError
 from .replay_envelope_builder import ReplayEnvelopeBuilder, ReplayEnvelope
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.audit.audit_normalizer import CanonicalAuditEnvelope
+from exoarmur.clock import utc_now
+from exoarmur.execution_boundary_v2.schema_migrations import SchemaMigrations, MigrationError
+from exoarmur.execution_boundary_v2.utils.canonicalization import compute_replay_hash_with_migration
 
 # Import system components for reconstruction
 import sys
@@ -25,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 def _canonical_replay_timestamp() -> datetime:
-    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+    """Generate canonical timestamp for replay reports."""
+    return utc_now()
 
 
 class ReplayResult(Enum):
@@ -33,6 +42,10 @@ class ReplayResult(Enum):
     SUCCESS = "success"
     FAILURE = "failure"
     PARTIAL = "partial"
+    HASH_MISMATCH = "hash_mismatch"
+    NO_AUDIT_RECORDS = "no_audit_records"
+    MIGRATION_FAILED = "migration_failed"
+    REPLAY_FAILED = "replay_failed"
 
 
 @dataclass
@@ -73,6 +86,12 @@ class ReplayReport:
         self.warnings.append(message)
         if self.result == ReplayResult.SUCCESS:
             self.result = ReplayResult.PARTIAL
+    
+    def add_info(self, message: str):
+        """Add informational message to report"""
+        # For now, add info as warnings since ReplayReport doesn't have an info field
+        # In a future enhancement, we could add an info_messages field
+        self.warnings.append(f"INFO: {message}")
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize report deterministically for replay comparisons."""
@@ -611,6 +630,84 @@ class ReplayEngine:
             
         except Exception as e:
             report.add_failure(f"Final state verification failed: {e}")
+    
+    def replay_bundle_with_migration(self, bundle_dict: Dict[str, Any]) -> ReplayReport:
+        """Replay execution proof bundle with automatic schema migration.
+        
+        Args:
+            bundle_dict: Bundle dictionary to replay (may be older schema version)
+            
+        Returns:
+            Replay report with migration information
+            
+        Raises:
+            MigrationError: If bundle migration fails
+        """
+        report = ReplayReport(correlation_id=bundle_dict.get("bundle_id", "unknown"))
+        
+        try:
+            # Detect schema version
+            original_schema_version = SchemaMigrations.detect_schema_version(bundle_dict)
+            report.add_info(f"Original schema version: {original_schema_version}")
+            
+            # Migrate bundle if needed
+            migrated_bundle = SchemaMigrations.migrate_bundle(bundle_dict)
+            current_schema_version = migrated_bundle.get("schema_version", "2.0")
+            
+            if original_schema_version != current_schema_version:
+                report.add_info(f"Migrated from schema {original_schema_version} to {current_schema_version}")
+            
+            # Verify replay hash matches migrated bundle
+            computed_hash = compute_replay_hash_with_migration(migrated_bundle)
+            original_hash = migrated_bundle.get("replay_hash")
+            
+            if original_hash and computed_hash != original_hash:
+                report.add_failure(f"Replay hash mismatch after migration: computed={computed_hash}, original={original_hash}")
+                report.result = ReplayResult.HASH_MISMATCH
+            else:
+                report.add_info("Replay hash verification passed")
+            
+            # Extract correlation ID for replay
+            intent_data = migrated_bundle.get("intent", {})
+            correlation_id = intent_data.get("intent_id", migrated_bundle.get("bundle_id", "unknown"))
+            
+            # Perform standard replay
+            if correlation_id in self.audit_store:
+                return self.replay_correlation(correlation_id)
+            else:
+                report.add_warning(f"No audit records found for migrated bundle correlation_id: {correlation_id}")
+                report.result = ReplayResult.NO_AUDIT_RECORDS
+            
+        except MigrationError as e:
+            report.add_failure(f"Bundle migration failed: {e.message} (from {e.from_version} to {e.to_version})")
+            report.result = ReplayResult.MIGRATION_FAILED
+        except Exception as e:
+            report.add_failure(f"Bundle replay failed: {e}")
+            report.result = ReplayResult.REPLAY_FAILED
+        
+        return report
+    
+    def detect_bundle_schema_version(self, bundle_dict: Dict[str, Any]) -> str:
+        """Detect schema version of bundle dictionary.
+        
+        Args:
+            bundle_dict: Bundle dictionary to analyze
+            
+        Returns:
+            Detected schema version
+        """
+        return SchemaMigrations.detect_schema_version(bundle_dict)
+    
+    def validate_bundle_schema(self, bundle_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate bundle schema compliance.
+        
+        Args:
+            bundle_dict: Bundle dictionary to validate
+            
+        Returns:
+            Validation report
+        """
+        return SchemaMigrations.validate_schema_compliance(bundle_dict)
 
 
 class ReplayEngineError(Exception):

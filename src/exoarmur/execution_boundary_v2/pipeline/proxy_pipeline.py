@@ -1,7 +1,13 @@
 """
 Proxy Pipeline for execution governance boundary.
 
-Minimal orchestration using existing V1 primitives without modifying V1 behavior.
+# INTERNAL MODULE: Not part of the public SDK surface.
+# Use exoarmur.sdk.public_api instead.
+# This module is an implementation detail and may change without notice.
+
+Clean V2-native orchestration with V1 compatibility handled through adapter layer.
+Enhanced with deterministic verdict resolution, comprehensive governance tracking,
+and executor sandboxing with capability enforcement.
 """
 
 from __future__ import annotations
@@ -9,186 +15,287 @@ from __future__ import annotations
 import logging
 import hashlib
 import json
+from typing import Dict, Any, Union, Tuple, Optional
 from datetime import datetime
-from typing import Dict, Any, Union, Tuple
 import ulid
 
 from ..interfaces.policy_decision_point import PolicyDecisionPoint
-from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
+from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult, ValidationResult
 from ..models.action_intent import ActionIntent
 from ..models.policy_decision import PolicyDecision, PolicyVerdict
 from ..models.execution_dispatch import ExecutionDispatch, DispatchStatus
 from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
+from ..utils.verdict_resolution import FinalVerdict
 from exoarmur.clock import utc_now
+from exoarmur.ids import make_audit_id
 
-# Import V1 primitives for integration
-from spec.contracts.models_v1 import AuditRecordV1, LocalDecisionV1
-from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
+# Import V1 compatibility through adapter layer ONLY
+from ..v1_adapter import v1_compatibility
+
+# Import V2-native safety gate
+from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
+
+# Import verdict resolution utilities
+from ..utils.verdict_resolution import resolve_verdicts, FinalVerdict, create_verdict_resolution_id
 
 logger = logging.getLogger(__name__)
-def _deterministic_audit_id(intent_id: str, event_type: str, outcome: str, details: Dict[str, Any]) -> str:
-    canonical = json.dumps(
-        {
-            "intent_id": intent_id,
-            "event_type": event_type,
-            "outcome": outcome,
-            "details": details,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    digest = hashlib.sha256(canonical.encode("utf-8")).digest()
-    return str(ulid.ULID.from_bytes(digest[:16]))
 
 
-def _deterministic_audit_hash(intent_id: str, event_type: str, outcome: str, details: Dict[str, Any]) -> str:
-    canonical = json.dumps(
-        {
-            "intent_id": intent_id,
-            "event_type": event_type,
-            "outcome": outcome,
-            "details": details,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-def _deterministic_local_decision_id(intent: ActionIntent) -> str:
-    canonical = json.dumps(
-        {
-            "intent_id": intent.intent_id,
-            "actor_id": intent.actor_id,
-            "action_type": intent.action_type,
-            "target": intent.target,
-            "timestamp": intent.timestamp.isoformat(),
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    digest = hashlib.sha256(canonical.encode("utf-8")).digest()
-    return str(ulid.ULID.from_bytes(digest[:16]))
-
-
-class AuditEmitter:
-    """Minimal adapter for emitting V1 audit records from V2 pipeline."""
+class V2AuditEvent:
+    """V2-native audit event structure."""
     
-    def __init__(self):
-        self.audit_records: list[AuditRecordV1] = []
-    
-    def emit_audit_record(
+    def __init__(
         self,
         intent_id: str,
         event_type: str,
         outcome: str,
         details: Dict[str, Any],
-        recorded_at: datetime | None = None,
-        tenant_id: str = "test-tenant",
-        cell_id: str = "test-cell",
-    ) -> AuditRecordV1:
-        """Create and emit a V1 audit record."""
-        # Generate placeholder ULID for audit_id (will be deterministic in later phases)
-        audit_id = _deterministic_audit_id(intent_id, event_type, outcome, details)
-        
-        audit_record = AuditRecordV1(
-            schema_version="1.0.0",
-            audit_id=audit_id,
+        tenant_id: str,
+        cell_id: str,
+        correlation_id: Optional[str] = None,
+        trace_id: Optional[str] = None
+    ):
+        self.intent_id = intent_id
+        self.event_type = event_type
+        self.outcome = outcome
+        self.details = details
+        self.tenant_id = tenant_id
+        self.cell_id = cell_id
+        self.correlation_id = correlation_id or intent_id
+        self.trace_id = trace_id or intent_id
+        self.timestamp = utc_now()
+
+
+class V2AuditEmitter:
+    """V2-native audit emitter that uses adapter for V1 compatibility."""
+    
+    def __init__(self):
+        self.audit_events: list[V2AuditEvent] = []
+        self.v1_records = []  # Store V1 records for backward compatibility
+    
+    def emit_audit_event(
+        self,
+        intent_id: str,
+        event_type: str,
+        outcome: str,
+        details: Dict[str, Any],
+        tenant_id: str,
+        cell_id: str,
+        correlation_id: Optional[str] = None,
+        trace_id: Optional[str] = None
+    ) -> V2AuditEvent:
+        """Emit a V2-native audit event."""
+        audit_event = V2AuditEvent(
+            intent_id=intent_id,
+            event_type=event_type,
+            outcome=outcome,
+            details=details,
             tenant_id=tenant_id,
             cell_id=cell_id,
-            idempotency_key=f"audit-{intent_id}",
-            recorded_at=recorded_at or utc_now(),
-            event_kind=event_type,
-            payload_ref={
-                "kind": "inline",
-                "ref": intent_id,
-                "outcome": outcome,
-                "details": details
-            },
-            hashes={
-                "sha256": _deterministic_audit_hash(intent_id, event_type, outcome, details)
-            },
-            correlation_id=intent_id,
-            trace_id=intent_id
+            correlation_id=correlation_id,
+            trace_id=trace_id
         )
         
-        self.audit_records.append(audit_record)
-        logger.info(f"Emitted audit record: {event_type} -> {outcome}")
-        return audit_record
+        self.audit_events.append(audit_event)
+        
+        # Convert to V1 record through adapter for compatibility
+        v1_record = v1_compatibility.create_v1_audit_record(
+            intent_id=intent_id,
+            event_type=event_type,
+            outcome=outcome,
+            details=details,
+            tenant_id=tenant_id,
+            cell_id=cell_id,
+            correlation_id=correlation_id,
+            trace_id=trace_id
+        )
+        self.v1_records.append(v1_record)
+        
+        logger.info(f"Emitted V2 audit event: {event_type} -> {outcome}")
+        return audit_event
+    
+    # Backward compatibility method
+    def emit_audit_record(self, *args, **kwargs):
+        """Legacy method for backward compatibility."""
+        return self.emit_audit_event(*args, **kwargs)
+
+
+class V2SafetyState:
+    """V2-native safety state structure."""
+    
+    def __init__(
+        self,
+        policy_verified: bool = True,
+        kill_switch_global: bool = False,
+        kill_switch_tenant: bool = False,
+        required_approval: str = "none",
+        emitter_trust_score: float = 0.8,
+        cell_load: float = 0.5,
+        network_health: float = 0.9,
+        resource_availability: float = 0.8
+    ):
+        self.policy_verified = policy_verified
+        self.kill_switch_global = kill_switch_global
+        self.kill_switch_tenant = kill_switch_tenant
+        self.required_approval = required_approval
+        self.emitter_trust_score = emitter_trust_score
+        self.cell_load = cell_load
+        self.network_health = network_health
+        self.resource_availability = resource_availability
 
 
 class ProxyPipeline:
-    """Proxy execution pipeline that orchestrates policy, safety, and execution."""
+    """V2-native proxy pipeline with clean V1/V2 separation.
+    
+    Orchestrates policy evaluation, safety gate enforcement, and executor dispatch
+    while maintaining strict separation of concerns and providing comprehensive
+    audit trails. All V1 compatibility is handled through the adapter layer.
+    """
     
     def __init__(
         self,
         pdp: PolicyDecisionPoint,
         safety_gate: SafetyGate,
         executor: ExecutorPlugin,
-        audit_emitter: AuditEmitter
+        audit_emitter: V2AuditEmitter
     ):
-        """Initialize the proxy pipeline with required components."""
+        """Initialize the V2-native proxy pipeline."""
         self.pdp = pdp
         self.safety_gate = safety_gate
         self.executor = executor
         self.audit_emitter = audit_emitter
-        logger.info("ProxyPipeline initialized")
+        logger.info("V2-native ProxyPipeline initialized with clean V1/V2 separation")
     
     def execute(self, intent: ActionIntent) -> Union[ExecutorResult, ExecutionDispatch]:
         """Execute an intent through governance pipeline (backward compatibility)."""
-        logger.info(f"Executing intent {intent.intent_id} through proxy pipeline (legacy method)")
+        logger.info(f"Executing intent {intent.intent_id} through V2-native proxy pipeline (legacy method)")
         result, trace = self.execute_with_trace(intent)
         return result
     
     def execute_with_trace(self, intent: ActionIntent) -> Tuple[Union[ExecutorResult, ExecutionDispatch], ExecutionTrace]:
-        """Execute an intent through governance pipeline and return trace."""
-        logger.info(f"Executing intent {intent.intent_id} through proxy pipeline with trace")
-        intent_timestamp = intent.timestamp
+        """Execute an intent through V2-native governance pipeline and return trace.
+        
+        Enhanced with deterministic verdict resolution between PDP and SafetyGate
+        according to strict precedence rules for consistent governance behavior.
+        Includes executor sandboxing with target validation and capability enforcement.
+        All V1 compatibility is handled through the adapter layer.
+        """
+        logger.info(f"Executing intent {intent.intent_id} through V2-native pipeline with clean V1/V2 separation")
         
         # Initialize execution trace
-        trace = ExecutionTrace(
+        trace = ExecutionTrace.create(
+            correlation_id=intent.intent_id,
             intent_id=intent.intent_id,
-            events=[],
-            final_status="",
-            evidence={}
+            final_verdict=FinalVerdict.ALLOW  # Will be updated later
         )
         
         # Step 1: Intent received
-        trace.events.append(TraceEvent(
+        trace.add_event(
             stage=TraceStage.INTENT_RECEIVED,
             ok=True,
             code="RECEIVED",
             details={"action_type": intent.action_type, "target": intent.target}
-        ))
+        )
         
         # Step 2: Policy evaluation
         policy_decision = self.pdp.evaluate(intent)
-        trace.events.append(TraceEvent(
+        trace.add_event(
             stage=TraceStage.POLICY_EVALUATED,
             ok=policy_decision.verdict in [PolicyVerdict.ALLOW, PolicyVerdict.REQUIRE_APPROVAL, PolicyVerdict.DEFER],
             code=policy_decision.verdict.value,
             details={
-                "rationale": policy_decision.rationale,
-                "policy_version": policy_decision.policy_version,
+                "decision_id": policy_decision.decision_id,
+                "confidence": policy_decision.confidence,
                 "approval_required": policy_decision.approval_required
             }
-        ))
+        )
         
-        # Step 3: Handle policy verdicts
-        if policy_decision.verdict == PolicyVerdict.DENY:
-            trace.final_status = "DENIED"
-            trace.evidence = {
-                "policy_decision": policy_decision.verdict.value,
-                "rationale": policy_decision.rationale
+        # Step 3: Safety gate evaluation with V2-native states
+        # Create V2-native safety state
+        v2_safety_state = V2SafetyState()
+        
+        # Create V2 execution intent through adapter
+        v1_execution_intent = v1_compatibility.create_v1_execution_intent(intent)
+        
+        # Create V1 local decision through adapter
+        v1_local_decision = v1_compatibility.create_v1_local_decision(intent, policy_decision)
+        
+        # Convert V2 safety state to V1 structures through adapter
+        v1_safety_states = v1_compatibility.create_v1_safety_states(
+            policy_verified=v2_safety_state.policy_verified,
+            kill_switch_global=v2_safety_state.kill_switch_global,
+            kill_switch_tenant=v2_safety_state.kill_switch_tenant,
+            required_approval=v2_safety_state.required_approval,
+            emitter_trust_score=v2_safety_state.emitter_trust_score,
+            cell_load=v2_safety_state.cell_load,
+            network_health=v2_safety_state.network_health,
+            resource_availability=v2_safety_state.resource_availability
+        )
+        
+        # Evaluate safety gate (still uses V1 structures internally)
+        from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState
+        
+        safety_verdict = self.safety_gate.evaluate_safety(
+            intent=v1_execution_intent,
+            local_decision=v1_local_decision,
+            policy_state=PolicyState(**v1_safety_states["policy_state"]),
+            trust_state=TrustState(**v1_safety_states["trust_state"]),
+            environment_state=EnvironmentState(**v1_safety_states["environment_state"])
+        )
+        
+        trace.add_event(
+            stage=TraceStage.SAFETY_EVALUATED,
+            ok=safety_verdict.verdict in ["allow", "warn"],
+            code=safety_verdict.verdict,
+            details={
+                "rule_ids": safety_verdict.rule_ids,
+                "rationale": safety_verdict.rationale,
+                "v2_safety_state": {
+                    "policy_verified": v2_safety_state.policy_verified,
+                    "emitter_trust_score": v2_safety_state.emitter_trust_score,
+                    "cell_load": v2_safety_state.cell_load
+                }
             }
+        )
+        
+        # Step 4: Resolve final verdict with precedence
+        resolution_id = create_verdict_resolution_id(
+            policy_decision_id=policy_decision.decision_id,
+            safety_verdict=safety_verdict,
+            intent_id=intent.intent_id
+        )
+        final_verdict, resolution_evidence = resolve_verdicts(
+            policy_decision=policy_decision,
+            safety_verdict=safety_verdict,
+            intent_id=intent.intent_id
+        )
+        
+        trace.add_event(
+            stage=TraceStage.VERDICT_RESOLVED,
+            ok=True,
+            code=final_verdict.value,
+            details={
+                "final_verdict": final_verdict.value,
+                "resolution_rules_applied": resolution_evidence.get("resolution_rules_applied", [])
+            }
+        )
+        
+        # Record comprehensive verdict information in trace
+        trace.record_verdicts(policy_decision, safety_verdict, final_verdict, resolution_evidence)
+        
+        # Step 5: Handle final verdict
+        if final_verdict == FinalVerdict.DENY:
+            trace.final_verdict = final_verdict
             
-            self.audit_emitter.emit_audit_record(
+            self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="policy_denial",
+                event_type="final_denial",
                 outcome="denied",
                 details={
-                    "rationale": policy_decision.rationale,
-                    "policy_version": policy_decision.policy_version
+                    "final_verdict": final_verdict.value,
+                    "policy_verdict": policy_decision.verdict.value,
+                    "safety_verdict": safety_verdict.verdict,
+                    "resolution_evidence": resolution_evidence
                 },
                 tenant_id=intent.tenant_id,
                 cell_id=intent.cell_id,
@@ -197,195 +304,92 @@ class ProxyPipeline:
                 success=False,
                 output={},
                 error="DENIED",
-                evidence={"policy_decision": policy_decision.verdict.value}
+                evidence={"final_verdict": final_verdict.value}
             ), trace
         
-        if policy_decision.verdict in [PolicyVerdict.REQUIRE_APPROVAL, PolicyVerdict.DEFER]:
-            status = DispatchStatus.APPROVAL_PENDING if policy_decision.verdict == PolicyVerdict.REQUIRE_APPROVAL else DispatchStatus.BLOCKED
-            trace.final_status = status.value
-            trace.evidence = {
-                "policy_decision": policy_decision.verdict.value,
-                "rationale": policy_decision.rationale,
-                "approval_required": policy_decision.approval_required
-            }
+        if final_verdict in [FinalVerdict.REQUIRE_APPROVAL]:
+            status = DispatchStatus.APPROVAL_PENDING
+            trace.final_verdict = final_verdict
             
-            self.audit_emitter.emit_audit_record(
+            self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="policy_deferral",
-                outcome=status.value,
+                event_type="approval_required",
+                outcome="pending",
                 details={
-                    "rationale": policy_decision.rationale,
-                    "policy_version": policy_decision.policy_version,
-                    "approval_required": policy_decision.approval_required
+                    "final_verdict": final_verdict.value,
+                    "policy_verdict": policy_decision.verdict.value,
+                    "safety_verdict": safety_verdict.verdict
                 },
                 tenant_id=intent.tenant_id,
                 cell_id=intent.cell_id,
             )
             
-            return ExecutionDispatch(
+            return ExecutionDispatch.create(
                 intent_id=intent.intent_id,
                 status=status,
-                created_at=intent_timestamp,
-                updated_at=intent_timestamp,
-                details={"policy_decision": policy_decision.verdict.value}
+                details={"final_verdict": final_verdict.value}
             ), trace
         
-        # Step 3: For ALLOW verdict, run safety gate evaluation
-        if policy_decision.verdict == PolicyVerdict.ALLOW:
-            safety_verdict = self._evaluate_safety_gate(intent)
-            trace.events.append(TraceEvent(
-                stage=TraceStage.SAFETY_EVALUATED,
-                ok=safety_verdict.verdict == "allow",
-                code=safety_verdict.verdict,
-                details={
-                    "safety_verdict": safety_verdict.verdict,
-                    "rationale": safety_verdict.rationale,
-                    "rule_ids": safety_verdict.rule_ids
-                }
-            ))
+        if final_verdict in [FinalVerdict.REQUIRE_QUORUM, FinalVerdict.REQUIRE_HUMAN]:
+            status = DispatchStatus.BLOCKED
+            trace.final_verdict = final_verdict
             
-            if safety_verdict.verdict != "allow":
-                trace.final_status = "SAFETY_BLOCKED"
-                trace.evidence = {
-                    "safety_verdict": safety_verdict.verdict,
-                    "rationale": safety_verdict.rationale
-                }
-                
-                self.audit_emitter.emit_audit_record(
-                    intent_id=intent.intent_id,
-                    event_type="safety_gate_block",
-                    outcome="blocked",
-                    details={
-                        "safety_verdict": safety_verdict.verdict,
-                        "rationale": safety_verdict.rationale,
-                        "rule_ids": safety_verdict.rule_ids
-                    },
-                    tenant_id=intent.tenant_id,
-                    cell_id=intent.cell_id,
-                )
-                
-                return ExecutorResult(
-                    success=False,
-                    output={},
-                    error="SAFETY_GATE_BLOCKED",
-                    evidence={"safety_verdict": safety_verdict.verdict}
-                ), trace
-            
-            # Step 4: Execute intent
-            execution_result = self.executor.execute(intent)
-            executor_capabilities = self.executor.capabilities() or {}
-            trace.events.append(TraceEvent(
-                stage=TraceStage.EXECUTOR_DISPATCHED,
-                ok=execution_result.success,
-                code="EXECUTED" if execution_result.success else "FAILED",
-                details={
-                    "executor_name": self.executor.name(),
-                    "executor_capabilities": executor_capabilities,
-                    "executor_version": executor_capabilities.get("version", "unknown") if isinstance(executor_capabilities, dict) else "unknown",
-                    "execution_success": execution_result.success,
-                    "execution_error": execution_result.error
-                }
-            ))
-            
-            # Step 5: Emit execution audit record
-            trace.final_status = "EXECUTED" if execution_result.success else "FAILED"
-            trace.evidence = {
-                "executor_name": self.executor.name(),
-                "execution_success": execution_result.success,
-                "execution_error": execution_result.error
-            }
-            
-            self.audit_emitter.emit_audit_record(
+            self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="execution",
-                outcome="success" if execution_result.success else "failed",
+                event_type="consensus_required",
+                outcome="blocked",
                 details={
-                    "execution_success": execution_result.success,
-                    "executor_name": self.executor.name(),
-                    "execution_error": execution_result.error
+                    "final_verdict": final_verdict.value,
+                    "policy_verdict": policy_decision.verdict.value,
+                    "safety_verdict": safety_verdict.verdict
                 },
                 tenant_id=intent.tenant_id,
                 cell_id=intent.cell_id,
             )
             
-            return execution_result, trace
-        
-        # Default case
-        trace.final_status = "FAILED"
-        trace.evidence = {
-            "policy_verdict": policy_decision.verdict.value,
-            "error": "Unknown policy verdict"
-        }
-        
-        return ExecutorResult(
-            success=False,
-            output={},
-            error="UNKNOWN_POLICY_VERDICT",
-            evidence={"policy_verdict": policy_decision.verdict.value}
-        ), trace
-    
-    def check_approval_and_execute(self, intent: ActionIntent) -> Union[ExecutorResult, ExecutionDispatch]:
-        """Check approval status and execute if approved.
-        
-        This method can be called explicitly in tests to re-check approval status
-        and proceed with execution if approved. No automatic polling or background checks.
-        """
-        logger.info(f"Checking approval status for intent {intent.intent_id}")
-        
-        # Initialize execution trace
-        trace = ExecutionTrace(
-            intent_id=intent.intent_id,
-            events=[],
-            final_status="",
-            evidence={}
-        )
-        
-        # Step 1: Intent received
-        trace.events.append(TraceEvent(
-            stage=TraceStage.INTENT_RECEIVED,
-            ok=True,
-            code="RECEIVED",
-            details={"action_type": intent.action_type, "target": intent.target}
-        ))
-        
-        # Step 2: Approval checked
-        approval_status = self.pdp.approval_status(intent.intent_id)
-        trace.events.append(TraceEvent(
-            stage=TraceStage.APPROVAL_CHECKED,
-            ok=approval_status in ["not_required", "approved"],
-            code=approval_status.upper(),
-            details={"approval_status": approval_status}
-        ))
-        
-        if approval_status == "not_required":
-            # No approval needed, proceed with normal execution
-            result, execution_trace = self.execute_with_trace(intent)
-            trace.events.extend(execution_trace.events)
-            return result
-        
-        elif approval_status == "pending":
-            # Still pending, return approval pending dispatch
-            trace.final_status = "APPROVAL_PENDING"
-            trace.evidence = {"approval_status": "pending"}
-            
-            return ExecutionDispatch(
+            return ExecutionDispatch.create(
                 intent_id=intent.intent_id,
-                status=DispatchStatus.APPROVAL_PENDING,
-                created_at=intent.timestamp,
-                updated_at=intent.timestamp,
-                details={"approval_status": "pending"}
+                status=status,
+                details={"final_verdict": final_verdict.value}
             ), trace
         
-        elif approval_status == "denied":
-            # Approval denied, return execution result with error
-            trace.final_status = "APPROVAL_DENIED"
-            trace.evidence = {"approval_status": "denied"}
+        # Step 6: Target validation (ALWAYS called before execution)
+        executor_capabilities = self.executor.capabilities()
+        validation_result = self.executor.validate_target(intent)
+        
+        trace.add_event(
+            stage=TraceStage.TARGET_VALIDATED,
+            ok=validation_result.result.value in ["valid"],
+            code=validation_result.result.value,
+            details={
+                "validation_result": validation_result.result.value,
+                "validation_evidence": validation_result.evidence
+            }
+        )
+        
+        # Record executor information in trace
+        trace.record_executor_info(
+            executor_name=executor_capabilities.get("executor_name", "unknown"),
+            executor_version=executor_capabilities.get("version", "unknown"),
+            executor_capabilities=executor_capabilities.get("capabilities", []),
+            target_validation_result=validation_result.result.value,
+            validation_evidence=validation_result.evidence,
+            executor_failure_evidence={}
+        )
+        
+        # Check if target validation failed
+        if validation_result.result.value in ["invalid", "unsupported", "violates_constraints"]:
+            trace.final_verdict = FinalVerdict.DENY
             
-            self.audit_emitter.emit_audit_record(
+            self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="approval_denied",
+                event_type="target_validation_failed",
                 outcome="denied",
-                details={"approval_status": "denied"},
+                details={
+                    "validation_result": validation_result.result.value,
+                    "validation_evidence": validation_result.evidence,
+                    "final_verdict": final_verdict.value
+                },
                 tenant_id=intent.tenant_id,
                 cell_id=intent.cell_id,
             )
@@ -393,168 +397,88 @@ class ProxyPipeline:
             return ExecutorResult(
                 success=False,
                 output={},
-                error="APPROVAL_DENIED",
-                evidence={"approval_status": "denied"}
+                error=f"Target validation failed: {validation_result.result.value}",
+                evidence={
+                    "validation_result": validation_result.result.value,
+                    "validation_evidence": validation_result.evidence
+                }
             ), trace
         
-        elif approval_status == "approved":
-            # Approval granted, proceed with execution
-            logger.info(f"Approval granted for intent {intent.intent_id}, proceeding with execution")
-            
-            # Use approval bypass evaluation to proceed with execution
-            from ..models.policy_decision import PolicyVerdict
-            policy_decision = self.pdp.evaluate_with_approval_bypass(intent)
-            
-            if policy_decision.verdict == PolicyVerdict.ALLOW:
-                # Proceed with safety gate and execution
-                safety_verdict = self._evaluate_safety_gate(intent)
-                trace.events.append(TraceEvent(
-                    stage=TraceStage.SAFETY_EVALUATED,
-                    ok=safety_verdict.verdict == "allow",
-                    code=safety_verdict.verdict,
-                    details={
-                        "safety_verdict": safety_verdict.verdict,
-                        "rationale": safety_verdict.rationale,
-                        "rule_ids": safety_verdict.rule_ids
-                    }
-                ))
-                
-                if safety_verdict.verdict != "allow":
-                    trace.final_status = "SAFETY_BLOCKED"
-                    trace.evidence = {
-                        "safety_verdict": safety_verdict.verdict,
-                        "rationale": safety_verdict.rationale
-                    }
-                    
-                    self.audit_emitter.emit_audit_record(
-                        intent_id=intent.intent_id,
-                        event_type="safety_gate_block",
-                        outcome="blocked",
-                        details={
-                            "safety_verdict": safety_verdict.verdict,
-                            "rationale": safety_verdict.rationale,
-                            "rule_ids": safety_verdict.rule_ids
-                        },
-                        tenant_id=intent.tenant_id,
-                        cell_id=intent.cell_id,
-                    )
-                    
-                    return ExecutorResult(
-                        success=False,
-                        output={},
-                        error="SAFETY_GATE_BLOCKED",
-                        evidence={"safety_verdict": safety_verdict.verdict}
-                    ), trace
-                
-                # Step 4: Execute intent
-                execution_result = self.executor.execute(intent)
-                executor_capabilities = self.executor.capabilities() or {}
-                trace.events.append(TraceEvent(
-                    stage=TraceStage.EXECUTOR_DISPATCHED,
-                    ok=execution_result.success,
-                    code="EXECUTED" if execution_result.success else "FAILED",
-                    details={
-                        "executor_name": self.executor.name(),
-                        "executor_capabilities": executor_capabilities,
-                        "executor_version": executor_capabilities.get("version", "unknown") if isinstance(executor_capabilities, dict) else "unknown",
-                        "execution_success": execution_result.success,
-                        "execution_error": execution_result.error
-                    }
-                ))
-                
-                # Step 5: Emit execution audit record
-                trace.final_status = "EXECUTED" if execution_result.success else "FAILED"
-                trace.evidence = {
-                    "executor_name": self.executor.name(),
-                    "execution_success": execution_result.success,
-                    "execution_error": execution_result.error
-                }
-                
-                self.audit_emitter.emit_audit_record(
-                    intent_id=intent.intent_id,
-                    event_type="execution",
-                    outcome="success" if execution_result.success else "failed",
-                    details={
-                        "execution_success": execution_result.success,
-                        "executor_name": self.executor.name(),
-                        "execution_error": execution_result.error
-                    },
-                    tenant_id=intent.tenant_id,
-                    cell_id=intent.cell_id,
-                )
-                
-                return execution_result, trace
-            else:
-                # Something went wrong with the bypass
-                trace.final_status = "FAILED"
-                trace.evidence = {
-                    "policy_verdict": policy_decision.verdict.value,
-                    "error": "Approval bypass failed"
-                }
-                
-                return ExecutorResult(
-                    success=False,
-                    output={},
-                    error="APPROVAL_BYPASS_FAILED",
-                    evidence={"policy_verdict": policy_decision.verdict.value}
-                ), trace
-        
-        else:
-            # Unknown status
-            trace.final_status = "FAILED"
-            trace.evidence = {
-                "approval_status": approval_status,
-                "error": "Unknown approval status"
+        # Step 7: Execute action (only for ALLOW with valid target)
+        try:
+            governance_context = {
+                "final_verdict": final_verdict,
+                "policy_decision": policy_decision,
+                "safety_verdict": safety_verdict,
+                "validation_result": validation_result,
+                "v2_safety_state": v2_safety_state.__dict__
             }
             
-            return ExecutorResult(
-                success=False,
-                output={},
-                error="UNKNOWN_APPROVAL_STATUS",
-                evidence={"approval_status": approval_status}
-            ), trace
-    
-    def _evaluate_safety_gate(self, intent: ActionIntent) -> SafetyVerdict:
-        """Evaluate safety gate using V1 SafetyGate with minimal context."""
-        # Create minimal V1 context for safety gate evaluation
-        policy_state = PolicyState(
-            policy_verified=True,
-            kill_switch_global=False,
-            kill_switch_tenant=False,
-            required_approval="none"
-        )
-        
-        trust_state = TrustState(emitter_trust_score=1.0)
-        environment_state = EnvironmentState(degraded_mode=False)
-        
-        # Create a minimal LocalDecisionV1 for compatibility
-        # Note: In a real implementation, this would be properly constructed
-        local_decision = LocalDecisionV1(
-            schema_version="1.0.0",
-            decision_id=_deterministic_local_decision_id(intent),
-            tenant_id=intent.tenant_id,
-            cell_id=intent.cell_id,
-            subject={
-                "subject_type": "agent",
-                "subject_id": intent.actor_id
-            },
-            classification="benign",
-            severity="low",
-            confidence=1.0,
-            recommended_intents=[],
-            evidence_refs={},
-            correlation_id=intent.intent_id,
-            trace_id=intent.intent_id
-        )
-        
-        # Evaluate safety gate
-        safety_verdict = self.safety_gate.evaluate_safety(
-            intent=intent,  # Pass intent for V2 safety evaluation
-            local_decision=local_decision,
-            collective_state=None,  # Not used in minimal implementation
-            policy_state=policy_state,
-            trust_state=trust_state,
-            environment_state=environment_state
-        )
-        
-        return safety_verdict
+            executor_result = self.executor.execute(intent, policy_decision, governance_context)
+            
+            trace.add_event(
+                stage=TraceStage.EXECUTOR_DISPATCHED,
+                ok=executor_result.success,
+                code="EXECUTED" if executor_result.success else "FAILED",
+                details={
+                    "success": executor_result.success,
+                    "error": executor_result.error,
+                    "execution_id": getattr(executor_result, 'execution_id', None)
+                }
+            )
+            
+            # Update executor failure evidence if execution failed
+            if not executor_result.success:
+                if trace.executor_trace:
+                    trace.executor_trace.executor_failure_evidence = {
+                        "execution_error": executor_result.error,
+                        "execution_id": getattr(executor_result, 'execution_id', None),
+                        "failure_timestamp": None  # Deterministic - no timestamp
+                    }
+            
+            # Emit execution audit event
+            self.audit_emitter.emit_audit_event(
+                intent_id=intent.intent_id,
+                event_type="intent_executed",
+                outcome="executed" if executor_result.success else "failed",
+                details={
+                    "success": executor_result.success,
+                    "error": executor_result.error,
+                    "output": executor_result.output,
+                    "final_verdict": final_verdict.value,
+                    "execution_id": getattr(executor_result, 'execution_id', None)
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+            )
+            
+            trace.final_verdict = FinalVerdict.ALLOW if executor_result.success else FinalVerdict.DENY
+            
+            return executor_result, trace
+            
+        except Exception as e:
+            # Record executor failure
+            if trace.executor_trace:
+                trace.executor_trace.executor_failure_evidence = {
+                    "execution_error": str(e),
+                    "exception_type": type(e).__name__,
+                    "failure_timestamp": None  # Deterministic - no timestamp
+                }
+            
+            trace.add_event(
+                stage=TraceStage.EXECUTOR_DISPATCHED,
+                ok=False,
+                code="ERROR",
+                details={"error": str(e), "exception_type": type(e).__name__}
+            )
+            
+            self.audit_emitter.emit_audit_event(
+                intent_id=intent.intent_id,
+                event_type="execution_error",
+                outcome="error",
+                details={"error": str(e), "exception_type": type(e).__name__},
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+            )
+            
+            trace.final_verdict = FinalVerdict.DENY
