@@ -64,9 +64,9 @@ class TestExecutionProofBundle:
         assert bundle1.replay_hash == bundle2.replay_hash
         assert bundle1.schema_version == "2.0"
         assert bundle1.intent == bundle2.intent
-        # Verify bundle_created_at is None for determinism
-        assert bundle1.bundle_created_at is None
-        assert bundle2.bundle_created_at is None
+        # bundle_created_at is populated at construction but excluded from hash computation
+        assert bundle1.bundle_created_at is not None
+        assert bundle2.bundle_created_at is not None
         
     def test_bundle_with_execution_trace(self, tmp_path):
         """Test bundle building with real execution trace."""
@@ -166,8 +166,8 @@ class TestExecutionProofBundle:
         # Verify hash is computed
         assert bundle.replay_hash is not None
         assert len(bundle.replay_hash) == 64  # SHA-256 hex length
-        # Verify bundle_created_at is None by default
-        assert bundle.bundle_created_at is None
+        # bundle_created_at is populated at construction but excluded from hash computation
+        assert bundle.bundle_created_at is not None
         
     def test_bundle_with_explicit_timestamp(self, tmp_path):
         """Test bundle building with explicit timestamp when needed."""
@@ -201,8 +201,8 @@ class TestExecutionProofBundle:
             executor_result=None
         )
         
-        # Verify default behavior
-        assert bundle_default.bundle_created_at is None
+        # bundle_created_at is populated at construction but excluded from hash computation
+        assert bundle_default.bundle_created_at is not None
         
         # Manually create bundle with explicit timestamp for comparison
         bundle_explicit = ExecutionProofBundle.create(
@@ -212,8 +212,8 @@ class TestExecutionProofBundle:
             final_verdict=bundle_default.final_verdict      # Use same final_verdict
         )
         
-        # Verify explicit timestamp is also None (we don't set it in create method)
-        assert bundle_explicit.bundle_created_at is None
+        # bundle_created_at is populated at construction (excluded from hash)
+        assert bundle_explicit.bundle_created_at is not None
         # Hash should be the same since bundle_created_at is excluded from hash computation
         assert bundle_explicit.replay_hash == bundle_default.replay_hash
         
