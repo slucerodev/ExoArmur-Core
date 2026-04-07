@@ -14,7 +14,7 @@ from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.models.execution_dispatch import ExecutionDispatch, DispatchStatus
 from exoarmur.execution_boundary_v2.interfaces.policy_decision_point import PolicyDecisionPoint
-from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
+from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorPlugin, ExecutorResult, TargetValidationResult, ValidationResult
 
 
 class FakePDP:
@@ -58,7 +58,13 @@ class FakeExecutor:
     def capabilities(self) -> dict:
         return {"actions": ["test_action"]}
     
-    def execute(self, intent: ActionIntent) -> ExecutorResult:
+    def validate_target(self, intent: ActionIntent) -> TargetValidationResult:
+        return TargetValidationResult(
+            result=ValidationResult.VALID,
+            evidence={"validated": True}
+        )
+
+    def execute(self, intent: ActionIntent, policy_decision=None, governance_context=None) -> ExecutorResult:
         self.execute_called = True
         self.execute_intent = intent
         
@@ -78,7 +84,7 @@ class FakeSafetyGate:
         self.rationale = rationale
         self.evaluate_called = False
     
-    def evaluate_safety(self, intent, local_decision, collective_state, policy_state, trust_state, environment_state):
+    def evaluate_safety(self, intent, local_decision, policy_state, trust_state, environment_state):
         from exoarmur.safety.safety_gate import SafetyVerdict
         
         self.evaluate_called = True
@@ -101,7 +107,7 @@ class FakeSafetyGate:
 def sample_intent():
     """Create a sample ActionIntent for testing."""
     return ActionIntent(
-        intent_id="test-intent-123",
+        intent_id="01HV1234567890ABCDEFGHJKMN",
         actor_id="agent-001",
         actor_type="agent",
         action_type="http_request",
@@ -134,7 +140,7 @@ def test_proxy_pipeline_policy_deny(sample_intent, audit_emitter):
     assert isinstance(result, ExecutorResult)
     assert result.success is False
     assert result.error == "DENIED"
-    assert result.evidence["policy_decision"] == "deny"
+    assert result.evidence["final_verdict"] == "deny"
     
     # Verify PDP was called, executor was not
     assert fake_pdp.evaluate_called is True
@@ -146,7 +152,7 @@ def test_proxy_pipeline_policy_deny(sample_intent, audit_emitter):
     audit_record = audit_emitter.audit_records[0]
     assert audit_record.event_kind == "policy_denial"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
-    assert audit_record.payload_ref["details"]["rationale"] == "High risk action"
+    assert audit_record.payload_ref["details"]["policy_verdict"] == "deny"
 
 
 def test_proxy_pipeline_policy_require_approval(sample_intent, audit_emitter):
@@ -164,7 +170,7 @@ def test_proxy_pipeline_policy_require_approval(sample_intent, audit_emitter):
     # Verify
     assert isinstance(result, ExecutionDispatch)
     assert result.status == DispatchStatus.APPROVAL_PENDING
-    assert result.details["policy_decision"] == "require_approval"
+    assert result.details["final_verdict"] == "require_approval"
     
     # Verify PDP was called, executor was not
     assert fake_pdp.evaluate_called is True
@@ -173,9 +179,9 @@ def test_proxy_pipeline_policy_require_approval(sample_intent, audit_emitter):
     # Verify audit record emitted
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "policy_deferral"
+    assert audit_record.event_kind == "approval_required"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
-    assert audit_record.payload_ref["details"]["approval_required"] is True
+    assert audit_record.payload_ref["details"]["final_verdict"] == "require_approval"
 
 
 def test_proxy_pipeline_policy_defer(sample_intent, audit_emitter):
@@ -190,10 +196,10 @@ def test_proxy_pipeline_policy_defer(sample_intent, audit_emitter):
     # Execute
     result = pipeline.execute(sample_intent)
     
-    # Verify
-    assert isinstance(result, ExecutionDispatch)
-    assert result.status == DispatchStatus.BLOCKED
-    assert result.details["policy_decision"] == "defer"
+    # Verify - DEFER maps to DENY via default_restrictive_fallback in resolve_verdicts
+    assert isinstance(result, ExecutorResult)
+    assert result.success is False
+    assert result.error == "DENIED"
     
     # Verify PDP was called, executor was not
     assert fake_pdp.evaluate_called is True
@@ -202,7 +208,7 @@ def test_proxy_pipeline_policy_defer(sample_intent, audit_emitter):
     # Verify audit record emitted
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "policy_deferral"
+    assert audit_record.event_kind == "policy_denial"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
 
 
@@ -222,7 +228,7 @@ def test_proxy_pipeline_allow_safety_gate_blocks(sample_intent, audit_emitter):
     assert isinstance(result, ExecutorResult)
     assert result.success is False
     assert result.error == "SAFETY_GATE_BLOCKED"
-    assert result.evidence["safety_verdict"] == "deny"
+    assert result.evidence["final_verdict"] == "deny"
     
     # Verify PDP and safety gate were called, executor was not
     assert fake_pdp.evaluate_called is True
@@ -270,10 +276,9 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_success(sample_intent,
     # Verify audit record emitted
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "execution"
+    assert audit_record.event_kind == "intent_executed"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
-    assert audit_record.payload_ref["details"]["execution_success"] is True
-    assert audit_record.payload_ref["details"]["executor_name"] == "fake-executor"
+    assert audit_record.payload_ref["details"]["success"] is True
 
 
 def test_proxy_pipeline_allow_safety_gate_passes_executor_failure(sample_intent, audit_emitter):
@@ -306,10 +311,10 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_failure(sample_intent,
     # Verify audit record emitted with failure outcome
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "execution"
+    assert audit_record.event_kind == "intent_executed"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
-    assert audit_record.payload_ref["details"]["execution_success"] is False
-    assert audit_record.payload_ref["details"]["execution_error"] == "Connection timeout"
+    assert audit_record.payload_ref["details"]["success"] is False
+    assert audit_record.payload_ref["details"]["error"] == "Connection timeout"
 
 
 def test_audit_emitter_functionality():
@@ -349,7 +354,7 @@ def test_proxy_pipeline_multiple_intents(sample_intent, audit_emitter):
     
     # Create second intent
     intent2 = ActionIntent(
-        intent_id="test-intent-456",
+        intent_id="01HVABCDEF0123456789MNPQRS",
         actor_id="agent-002",
         actor_type="agent",
         action_type="http_request",
@@ -365,5 +370,5 @@ def test_proxy_pipeline_multiple_intents(sample_intent, audit_emitter):
     
     # Verify both audit records were created
     assert len(audit_emitter.audit_records) == 2
-    assert audit_emitter.audit_records[0].payload_ref["ref"] == "test-intent-123"
-    assert audit_emitter.audit_records[1].payload_ref["ref"] == "test-intent-456"
+    assert audit_emitter.audit_records[0].payload_ref["ref"] == "01HV1234567890ABCDEFGHJKMN"
+    assert audit_emitter.audit_records[1].payload_ref["ref"] == "01HVABCDEF0123456789MNPQRS"

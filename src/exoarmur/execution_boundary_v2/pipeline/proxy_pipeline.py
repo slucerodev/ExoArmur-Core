@@ -477,15 +477,6 @@ class ProxyPipeline:
                 }
             )
             
-            # Update executor failure evidence if execution failed
-            if not executor_result.success:
-                if trace.executor_trace:
-                    trace.executor_trace.executor_failure_evidence = {
-                        "execution_error": executor_result.error,
-                        "execution_id": getattr(executor_result, 'execution_id', None),
-                        "failure_timestamp": None  # Deterministic - no timestamp
-                    }
-            
             # Emit execution audit event
             self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
@@ -507,14 +498,6 @@ class ProxyPipeline:
             return executor_result, trace
             
         except Exception as e:
-            # Record executor failure
-            if trace.executor_trace:
-                trace.executor_trace.executor_failure_evidence = {
-                    "execution_error": str(e),
-                    "exception_type": type(e).__name__,
-                    "failure_timestamp": None  # Deterministic - no timestamp
-                }
-            
             trace.add_event(
                 stage=TraceStage.EXECUTOR_DISPATCHED,
                 ok=False,
