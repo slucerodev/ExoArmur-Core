@@ -41,7 +41,7 @@ class TestICWAPI:
     def test_feature_flag_off_returns_404(self, client):
         """Test that feature flag OFF returns 404"""
         # Mock ICW API with feature flag disabled
-        with patch('main.get_icw_api') as mock_get_api:
+        with patch('exoarmur.main.get_icw_api') as mock_get_api:
             mock_api = Mock(spec=IdentityContainmentAPI)
             mock_api._check_feature_flag.side_effect = HTTPException(status_code=404, detail="Feature not enabled")
             # Configure async methods to avoid recursion
@@ -57,7 +57,7 @@ class TestICWAPI:
     
     def test_get_containment_status_not_contained(self, client, mock_icw_api):
         """Test getting containment status for non-contained subject"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.get_containment_status.return_value = {
                 "subject_id": "test_user",
                 "provider": "okta",
@@ -77,7 +77,7 @@ class TestICWAPI:
         """Test getting containment status for contained subject"""
         from datetime import datetime
         
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.get_containment_status.return_value = {
                 "subject_id": "test_user",
                 "provider": "okta",
@@ -99,7 +99,7 @@ class TestICWAPI:
     
     def test_create_recommendation(self, client, mock_icw_api):
         """Test creating containment recommendation"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.create_recommendation.return_value = {
                 "recommendation_id": "rec_123",
                 "subject_id": "test_user",
@@ -129,7 +129,7 @@ class TestICWAPI:
     
     def test_create_intent_from_recommendation(self, client, mock_icw_api):
         """Test creating intent from recommendation"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.create_intent_from_recommendation.return_value = {
                 "intent_id": "int_123",
                 "intent_hash": "hash_abc123",
@@ -151,7 +151,7 @@ class TestICWAPI:
     
     def test_get_intent(self, client, mock_icw_api):
         """Test getting intent details"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.get_intent.return_value = {
                 "intent_id": "int_123",
                 "correlation_id": "corr_123",
@@ -175,7 +175,7 @@ class TestICWAPI:
     
     def test_tick(self, client, mock_icw_api):
         """Test tick operation for processing expirations"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.tick.return_value = {
                 "processed_count": 2,
                 "reverted_records": [
@@ -206,7 +206,7 @@ class TestICWAPI:
     
     def test_execute_approval_success(self, client, mock_icw_api):
         """Test successful execution with approval"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             mock_icw_api.execute_approval.return_value = {
                 "success": True,
                 "intent_id": "int_123",
@@ -228,7 +228,7 @@ class TestICWAPI:
     
     def test_execute_approval_blocked(self, client, mock_icw_api):
         """Test execution blocked without approval"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             from fastapi import HTTPException
             mock_icw_api.execute_approval.side_effect = HTTPException(
                 status_code=403,
@@ -242,7 +242,7 @@ class TestICWAPI:
     
     def test_status_reflects_applied_then_reverted_after_tick(self, client, mock_icw_api):
         """Test that status reflects applied and then reverted after tick"""
-        with patch('main.get_icw_api', return_value=mock_icw_api):
+        with patch('exoarmur.main.get_icw_api', return_value=mock_icw_api):
             # Initial status - contained
             mock_icw_api.get_containment_status.return_value = {
                 "subject_id": "test_user",

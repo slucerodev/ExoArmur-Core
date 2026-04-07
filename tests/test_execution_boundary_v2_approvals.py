@@ -277,7 +277,7 @@ class TestApprovalIntegration:
     def test_pipeline_approval_pending_flow(self, sample_intent, approval_rule, approval_store):
         """Test pipeline returns approval pending when no record exists."""
         from exoarmur.execution_boundary_v2.policy.simple_pdp import SimplePolicyDecisionPoint
-        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
         from exoarmur.execution_boundary_v2.models.execution_dispatch import DispatchStatus
         
         # Setup pipeline with approval requirement
@@ -296,7 +296,7 @@ class TestApprovalIntegration:
             def execute(self, intent):
                 raise Exception("Should not be called")
         
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), V2AuditEmitter())
         
         # Execute intent - should return approval pending
         result = pipeline.execute(sample_intent)
@@ -308,7 +308,7 @@ class TestApprovalIntegration:
     def test_pipeline_approval_denied_flow(self, sample_intent, approval_rule, approval_store):
         """Test pipeline returns denied when approval record is DENY."""
         from exoarmur.execution_boundary_v2.policy.simple_pdp import SimplePolicyDecisionPoint
-        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
         
         # Setup pipeline with approval requirement
         pdp = SimplePolicyDecisionPoint(rules=[approval_rule], approval_store=approval_store)
@@ -326,7 +326,7 @@ class TestApprovalIntegration:
             def execute(self, intent):
                 raise Exception("Should not be called")
         
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), V2AuditEmitter())
         
         # Record denial
         denial_record = ApprovalRecord(
@@ -348,7 +348,7 @@ class TestApprovalIntegration:
     def test_pipeline_approval_approved_flow(self, sample_intent, approval_rule, approval_store):
         """Test pipeline proceeds when approval record is APPROVE."""
         from exoarmur.execution_boundary_v2.policy.simple_pdp import SimplePolicyDecisionPoint
-        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
         
         # Setup pipeline with approval requirement
         pdp = SimplePolicyDecisionPoint(rules=[approval_rule], approval_store=approval_store)
@@ -371,7 +371,7 @@ class TestApprovalIntegration:
                 return ExecutorResult(success=True, output={"status": "success"}, error=None, evidence={})
         
         fake_executor = FakeExecutor()
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), fake_executor, AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), fake_executor, V2AuditEmitter())
         
         # Record approval
         approval_record = ApprovalRecord(

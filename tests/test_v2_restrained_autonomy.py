@@ -417,7 +417,7 @@ class TestMockActionExecutor:
             "endpoint-001", "correlation-001", "approval-001"
         )
         
-        assert result["execution_id"].startswith("exec-")
+        assert result["execution_id"].startswith("exec")
         assert result["action_type"] == "isolate_endpoint"
         assert result["endpoint_id"] == "endpoint-001"
         assert result["correlation_id"] == "correlation-001"

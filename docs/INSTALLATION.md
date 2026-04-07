@@ -55,10 +55,15 @@ pip install exoarmur-core
 pip install exoarmur-core[dev]
 
 # With V2 capabilities
-pip install exoarmur-core[v2]
+# V2 capabilities require no additional pip extras.
+# They are activated via environment variables at runtime:
+# EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+# EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+# EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+pip install exoarmur-core
 
 # Everything
-pip install exoarmur-core[v2,dev]
+pip install exoarmur-core[dev]
 ```
 
 ### Method 2: Development Installation

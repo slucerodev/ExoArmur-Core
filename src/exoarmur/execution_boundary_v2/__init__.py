@@ -11,6 +11,9 @@ from .certification import *
 from .trust import *
 from .entry import *
 
+# V2 Execution Boundary is always enabled when this module can be imported
+EXECUTION_BOUNDARY_V2_ENABLED = True
+
 __version__ = "2.0.0"
 __all__ = [
     # Core types
@@ -142,5 +145,8 @@ __all__ = [
     "ExecutionRequest",
     "V2EntryGate",
     "get_v2_entry_gate",
-    "execute_module"
+    "execute_module",
+    
+    # Status constants
+    "EXECUTION_BOUNDARY_V2_ENABLED"
 ]

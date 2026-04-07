@@ -23,7 +23,7 @@ from exoarmur.reliability import (
 )
 
 
-class MockAuditEmitter:
+class MockV2AuditEmitter:
     """Mock audit emitter for testing"""
     
     def __init__(self):
@@ -198,7 +198,7 @@ async def test_circuit_breaker_manager():
     print("Testing circuit breaker manager...")
     
     manager = CircuitBreakerManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Create breakers for different services

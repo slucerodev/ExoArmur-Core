@@ -102,7 +102,7 @@ async def test_approval_gate():
     """Test approval gate enforcement"""
     print("Testing Approval Gate...")
     
-    from approval import ApprovalGate, ActionType
+    from exoarmur.approval.approval_gate import ApprovalGate, ActionType
     
     gate = ApprovalGate()
     

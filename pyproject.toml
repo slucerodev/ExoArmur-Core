@@ -54,6 +54,7 @@ dependencies = [
     "python-json-logger>=2.0.0",
     "cryptography>=46.0.4",
     "psutil>=5.9.0",
+    "Pygments>=2.20.0",
 ]
 
 [project.urls]

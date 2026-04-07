@@ -233,7 +233,7 @@ async def test_convenience_function():
     mock_nats = MockNATSClient()
     
     # Override global gate for testing
-    from approval import _approval_gate
+    from exoarmur.approval.approval_gate import _approval_gate
     _approval_gate = ApprovalGate(nats_client=mock_nats)
     
     # Test A0 (should be allowed)

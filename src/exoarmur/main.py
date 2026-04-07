@@ -56,6 +56,9 @@ from exoarmur.feature_flags.resolver import (
     load_v2_safety_models,
 )
 
+# Import V2 detection functions
+from exoarmur.execution_boundary_v2.detection.execution_violation_detector import check_domain_logic_access, ViolationSeverity
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
@@ -865,5 +868,24 @@ async def execute_approval(approval_id: str):
 
 if __name__ == "__main__":
     import uvicorn
+    import sys
+    
+    # Handle help/usage commands without starting server
+    if len(sys.argv) > 1 and sys.argv[1] in ["--help", "-h"]:
+        print("ExoArmur Core FastAPI service")
+        print("Usage: python -m exoarmur.main [options]")
+        print("Options:")
+        print("  --help, -h    Show this help message")
+        print("  --version     Show version information")
+        print("")
+        print("Environment variables:")
+        print("  EXOARMUR_HOST    Host to bind to (default: 127.0.0.1)")
+        print("  EXOARMUR_PORT    Port to bind to (default: 8000)")
+        sys.exit(0)
+    
+    if len(sys.argv) > 1 and sys.argv[1] in ["--version", "-v"]:
+        print("ExoArmur Core v2.0.0")
+        sys.exit(0)
+    
     logger.info("Starting ExoArmur FastAPI service")
-    uvicorn.run(app, host=os.getenv("EXOARMUR_HOST", "127.0.0.1"), port=8000)
+    uvicorn.run(app, host=os.getenv("EXOARMUR_HOST", "127.0.0.1"), port=int(os.getenv("EXOARMUR_PORT", "8000")))

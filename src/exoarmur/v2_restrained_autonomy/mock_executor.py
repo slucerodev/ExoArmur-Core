@@ -32,13 +32,13 @@ class MockActionExecutor:
         """
         try:
             # Create V2 ExecutionRequest for mock isolation
-            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext
+            from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
             
             execution_request = ExecutionRequest(
-                module_id=ModuleID("mock_isolate_endpoint"),
+                module_id=ModuleID(self._generate_module_ulid()),
                 execution_context=ModuleExecutionContext(
-                    execution_id=ExecutionID(str(uuid.uuid4())[:26]),
-                    module_id=ModuleID("mock_isolate_endpoint"),
+                    execution_id=ExecutionID(self._generate_execution_id()),
+                    module_id=ModuleID(self._generate_module_ulid()),
                     module_version=ModuleVersion(1, 0, 0),
                     deterministic_seed=DeterministicSeed(hash(endpoint_id + correlation_id) % (2**63)),
                     logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
@@ -111,3 +111,35 @@ class MockActionExecutor:
                     return True
         
         return False
+    
+    def _generate_module_ulid(self) -> str:
+        """Generate a deterministic 26-character ULID for module identification"""
+        import hashlib
+        import base64
+        from exoarmur.clock import utc_now
+        
+        # Use mock_executor as base with timestamp for uniqueness
+        base_string = f"mock_executor_{utc_now().isoformat()}"
+        hash_bytes = hashlib.sha256(base_string.encode()).digest()
+        # Take first 26 bytes and convert to base32 for ULID-like format
+        ulid_bytes = hash_bytes[:16]  # 16 bytes = 128 bits
+        ulid_b32 = base64.b32encode(ulid_bytes).decode('ascii').lower().replace('=', '')
+        return ulid_b32[:26]  # Ensure exactly 26 characters
+    
+    def _generate_execution_id(self) -> str:
+        """Generate a deterministic 26-character execution ID starting with 'exec'"""
+        import hashlib
+        import base64
+        from exoarmur.clock import utc_now
+        
+        # Generate base hash
+        base_string = f"exec_{utc_now().isoformat()}_{uuid.uuid4()}"
+        hash_bytes = hashlib.sha256(base_string.encode()).digest()
+        
+        # Convert to base32 and take first 22 chars (since 'exec' is 4 chars)
+        ulid_bytes = hash_bytes[:16]  # 16 bytes = 128 bits
+        ulid_b32 = base64.b32encode(ulid_bytes).decode('ascii').lower().replace('=', '')
+        
+        # Ensure exactly 26 characters starting with 'exec'
+        base_part = ulid_b32[:22]  # 22 chars + 'exec' = 26 chars
+        return f"exec{base_part}"

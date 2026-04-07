@@ -1,0 +1,343 @@
+# ExoArmur ADMO V2 Aegis Cryptographic Governance Contract
+# Alignment with Aegis Architecture for verifiable policy enforcement
+# Based on Freeman 2026 - Cryptographic Runtime Governance for Autonomous AI Systems
+
+aegis_v2:
+  purpose: "Cryptographic runtime governance with formally proven policy enforcement, intent canonicalization, and tamper-evident decision records"
+  version: "2.0.0"
+  compatibility: "additive_to_v1"
+  research_reference: "Freeman 2026 - Cryptographic Runtime Governance for Autonomous AI Systems: The Aegis Architecture for Verifiable Policy Enforcement (arXiv:2603.16938v1)"
+
+  # Agent Authorization Boundary (AAB)
+  agent_authorization_boundary:
+    description: "The single mandatory execution path - all side-effects flow through AAB"
+    core_principle: "Executors lack unmediated access paths"
+    
+    architecture:
+      components:
+        - name: "intent_submission"
+          description: "Canonical ActionIntent submission"
+        - name: "policy_decision_point"
+          description: "Policy evaluation ℬ(A,P,S)"
+        - name: "safety_gate"
+          description: "Safety verdict enforcement"
+        - name: "authorization_boundary"
+          description: "Final authorization check before execution"
+        - name: "executor_dispatch"
+          description: "Mediated executor invocation"
+        - name: "evidence_emission"
+          description: "Tamper-evident record generation"
+      
+      security_theorem: |
+        ∀ execution e: effectful(e) → 
+          ∃ r: decision(r) = PERMIT ∧ causal_upstream(r, e)
+        
+        (Every effectful execution has a PERMIT decision record as causal ancestor)
+
+  # Canonical Intent Representation
+  canonical_intent:
+    description: "Canonicalization prevents adversarial mutation of equivalent proposals"
+    fields:
+      - name: canonical_intent_id
+        type: string
+        format: "ulid"
+        required: true
+      
+      - name: raw_intent_hash
+        type: string
+        format: "sha256_hex"
+        description: "Hash of original uncanonicalized intent"
+        required: true
+      
+      - name: canonical_form
+        type: object
+        description: "Normalized, sorted, deterministic representation"
+        required: true
+      
+      - name: canonicalization_algorithm
+        type: enum
+        values: ["canonical_json_v1", "rfc8785", "exoarmur_canonical_v2"]
+        default: "exoarmur_canonical_v2"
+        required: true
+      
+      - name: canonicalization_timestamp
+        type: datetime
+        required: true
+    
+    canonicalization_properties:
+      - name: "determinism"
+        description: "Same raw intent always produces same canonical form"
+      
+      - name: "injectivity"
+        description: "Different raw intents produce different canonical forms (with high probability)"
+      
+      - name: "equivalence_preservation"
+        description: "Semantically equivalent intents produce identical canonical forms"
+        formal: "I₁ ≡ I₂ → Canon(I₁) = Canon(I₂) = A"
+
+  # Decision-Complete Records
+  decision_complete_records:
+    description: "Records sufficient for deterministic replay and tamper-evidence"
+    formal_definition: |
+      A record r is decision-complete iff:
+      1. Contains portable reference to intent (h_A = H(A))
+      2. Contains policy version identifier (v_P ↦ P)
+      3. Contains state commitment (h_S = H(S))
+      4. Contains decision verdict (d ∈ {PERMIT, DENY})
+      5. Contains hash-chain linkage (prev_hash)
+      6. Cryptographically signed
+    
+    record_structure:
+      fields:
+        - name: record_id
+          type: string
+          format: "ulid"
+          required: true
+        
+        - name: intent_hash
+          type: string
+          format: "sha256_hex"
+          description: "h_A = H(A) - canonical intent hash"
+          required: true
+        
+        - name: policy_version
+          type: string
+          description: "v_P - exact policy semantics identifier"
+          required: true
+        
+        - name: state_hash
+          type: string
+          format: "sha256_hex"
+          description: "h_S = H(S) - state commitment"
+          required: true
+        
+        - name: decision_verdict
+          type: enum
+          values: ["PERMIT", "DENY", "ESCALATE", "DEFER"]
+          required: true
+        
+        - name: prev_hash
+          type: string
+          format: "sha256_hex"
+          description: "Hash of previous record in chain"
+          required: false
+        
+        - name: signature
+          type: string
+          description: "Ed25519 signature over all fields"
+          required: true
+        
+        - name: timestamp
+          type: datetime
+          required: true
+        
+        - name: record_sequence
+          type: integer
+          description: "Monotonic sequence number for ordering"
+          required: true
+    
+    hash_chain_integrity:
+      description: "Tamper-evident linked list of decision records"
+      verification: |
+        ∀ record r_i:
+          r_i.prev_hash = H(serialized(r_{i-1}))
+        
+        Any mutation in chain detected by hash mismatch
+
+  # Replay Verification
+  replay_verification:
+    description: "Verify decision records for deterministic replay"
+    verification_steps:
+      - name: "resolve_policy"
+        description: "Resolve v_P ↦ P (version to policy)"
+        mechanism: "policy_version_registry"
+      
+      - name: "reconstruct_intent"
+        description: "Reconstruct A from h_A and stored intent data"
+        validation: "assert H(A) = h_A"
+      
+      - name: "reconstruct_state"
+        description: "Reconstruct S from h_S and state snapshot"
+        validation: "assert H(S) = h_S"
+      
+      - name: "reevaluate_policy"
+        description: "Re-run ℬ(A,P,S) and compare to stored verdict"
+        validation: "assert ℬ(A,P,S) = d"
+    
+    replay_result:
+      fields:
+        - name: valid
+          type: boolean
+          required: true
+        - name: failure_reason
+          type: enum
+          values: ["intent_hash_mismatch", "state_hash_mismatch", "policy_resolution_failed", "verdict_mismatch", "signature_invalid", "chain_broken"]
+          required: false
+        - name: reevaluated_verdict
+          type: enum
+          values: ["PERMIT", "DENY", "ESCALATE", "DEFER"]
+          required: false
+        - name: verification_timestamp
+          type: datetime
+          required: true
+
+  # Threat Model and Security Proofs
+  threat_model:
+    description: "Formal threat model aligned with Aegis Appendix E"
+    
+    threats:
+      - id: "E.1"
+        name: "Adversary Bypasses Authorization Boundary"
+        adversary_goal: "Cause Exec(A) without valid PERMIT decision record"
+        countermeasure: |
+          Executors lack unmediated access paths by architectural definition.
+          All effectful invocations are causally downstream of PERMIT artifact.
+          Formal proof: causal dependency enforced by ProxyPipeline.execute()
+      
+      - id: "E.2"
+        name: "Agent Mutates Proposals to Evade Rules"
+        adversary_goal: "Produce I₁, I₂ representing same operation but divergent decisions"
+        countermeasure: |
+          Canonicalization collapses equivalent forms: Canon(I₁) = Canon(I₂) = A
+          Policy evaluation operates over canonical A, not raw proposals
+          Hash-based canonicalization in to_canonical_dict() ensures consistency
+      
+      - id: "E.3"
+        name: "Forged or Tampered Provenance"
+        adversary_goal: "Fabricate, alter, or reorder decision records"
+        countermeasure: |
+          Records hash-chained: r_i.prev_hash = H(r_{i-1})
+          Cryptographic signatures prevent forgery
+          Record-to-semantics binding: v_P ↦ P, h_A = H(A), h_S = H(S)
+          Tamper detection via chain integrity verification
+
+  # Fail-Closed Guarantees
+  fail_closed_guarantees:
+    description: "System defaults to denial under partial failure"
+    
+    failure_modes:
+      - name: "policy_resolution_failure"
+        response: "DENY"
+        rationale: "Cannot verify policy without version resolution"
+      
+      - name: "intent_reconstruction_failure"
+        response: "DENY"
+        rationale: "Cannot verify intent hash match"
+      
+      - name: "state_reconstruction_failure"
+        response: "DENY"
+        rationale: "Cannot verify state hash match"
+      
+      - name: "signature_verification_failure"
+        response: "DENY"
+        rationale: "Record authenticity cannot be verified"
+      
+      - name: "chain_integrity_failure"
+        response: "DENY"
+        rationale: "Tampering detected in record chain"
+
+  # Integration with existing ExoArmur components
+  integration:
+    proxy_pipeline:
+      description: "AAB integrated into existing ProxyPipeline"
+      extension_points:
+        - "execute_with_aegis_tracing() - generate Aegis records"
+        - "verify_replay_with_aegis() - verify Aegis decision records"
+    
+    policy_decision_point:
+      description: "Policy versioning for Aegis record binding"
+      requirements:
+        - "All policies have version identifiers (v_P)"
+        - "Policy registry supports version-to-policy resolution"
+        - "Policy versions are immutable once published"
+    
+    execution_proof_bundle:
+      description: "Aegis records embedded in proof bundles"
+      fields:
+        - name: aegis_decision_chain
+          type: array[decision_complete_records]
+          description: "Complete chain of Aegis decision records"
+        - name: chain_root_hash
+          type: string
+          description: "Merkle root of decision chain"
+        - name: aegis_verification_proof
+          type: bytes
+          description: "Proof of chain integrity"
+
+  # Cryptographic mechanisms
+  cryptography:
+    hash_function:
+      algorithm: "SHA-256"
+      purpose: "Intent, state, and record hashing"
+    
+    signature_scheme:
+      algorithm: "Ed25519"
+      purpose: "Decision record signing"
+      key_management: "FederateIdentityV1 key pairs"
+    
+    canonicalization:
+      algorithm: "exoarmur_canonical_v2"
+      properties:
+        - "Deterministic key ordering (lexicographic)"
+        - "RFC 3339 datetime formatting"
+        - "Base64 encoding for binary data"
+        - "No whitespace variation"
+
+  # Metrics and observability
+  metrics:
+    - name: "aegis_record_generated_count"
+      type: "counter"
+      labels: ["verdict_type"]
+    
+    - name: "aegis_replay_verification_count"
+      type: "counter"
+      labels: ["result"]
+    
+    - name: "aegis_chain_integrity_violations"
+      type: "counter"
+      labels: ["violation_type"]
+      severity: "critical"
+    
+    - name: "aegis_verification_latency"
+      type: "histogram"
+      labels: ["verification_type"]
+      unit: "milliseconds"
+
+  # NATS subjects
+  nats_subjects:
+    decision_record_created: "exoarmur.aegis.decision.record.v2"
+    replay_verification_request: "exoarmur.aegis.replay.verify.v2"
+    chain_integrity_alert: "exoarmur.aegis.integrity.alert.v2"
+
+# Implementation notes
+implementation_notes:
+  research_alignment:
+    - Direct alignment with Aegis Architecture (Freeman 2026)
+    - Agent Authorization Boundary (AAB) as defined in Aegis
+    - Decision-complete records with cryptographic binding
+    - Formal threat model with security proofs
+  
+  architectural_consistency:
+    - Extends existing ProxyPipeline architecture
+    - Compatible with existing ActionIntent/PolicyDecision models
+    - Integrates with current ExecutionProofBundle format
+    - Uses existing FederateIdentityV1 for signing keys
+  
+  security_considerations:
+    - All decision records cryptographically signed
+    - Hash chain provides tamper-evidence
+    - Fail-closed under all partial failure modes
+    - Formal proofs for threat countermeasures
+  
+  performance_considerations:
+    - Hash chain verification is O(n) in chain length
+    - Signature verification per record
+    - Canonicalization is deterministic caching opportunity
+    - State snapshots may be large - consider differential snapshots
+  
+  integration_points:
+    - Plugin registry entry point: exoarmur.aegis
+    - Feature flag: v2_aegis_governance_enabled
+    - Integrates with ProxyPipeline, PolicyDecisionPoint
+    - Compatible with AUC composition proofs
+    - Generates records compatible with PoD anchoring

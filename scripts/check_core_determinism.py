@@ -16,6 +16,9 @@ import sys
 import subprocess
 from pathlib import Path
 
+# Ensure deterministic hashing
+os.environ['PYTHONHASHSEED'] = '0'
+
 def run_core_determinism_check():
     """Run determinism check only on core replay components"""
     core_paths = [
@@ -33,9 +36,12 @@ def run_core_determinism_check():
     for path in core_paths:
         if Path(path).exists():
             print(f"📁 Checking: {path}")
+            # Use current python executable instead of hardcoded .venv path
+            python_exe = sys.executable
             result = subprocess.run([
-                ".venv/bin/python", "scripts/check_determinism.py", path
-            ], capture_output=True, text=True, cwd=Path.cwd())
+                python_exe, "scripts/check_determinism.py", path
+            ], capture_output=True, text=True, cwd=Path.cwd(), 
+            env={**os.environ, 'PYTHONHASHSEED': '0'})
             
             if result.returncode != 0:
                 print(f"❌ VIOLATIONS FOUND in {path}")

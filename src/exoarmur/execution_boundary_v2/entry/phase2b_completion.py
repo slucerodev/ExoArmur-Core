@@ -16,6 +16,8 @@ PRINCIPLES:
 import logging
 from typing import Dict, Any, List
 import time
+from .execution_surface_audit import audit_execution_surfaces
+from .primitive_collapser import collapse_execution_primitives
 
 logger = logging.getLogger(__name__)
 

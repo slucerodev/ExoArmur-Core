@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.audit.audit_normalizer import AuditNormalizer, CanonicalAuditEnvelope
-from .event_envelope import CanonicalEvent, EventTypePriority
+from .event_envelope import CanonicalEvent, EventTypePriority, _canonical_replay_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ class ReplayEnvelopeBuilder:
     
     def _build_single_envelope(
         self,
-        record: Union[AuditRecordV1, CanonicalAuditEnvelope],
+        record: Union[AuditRecordV1, CanonicalAuditEnvelope, CanonicalEvent],
         preserve_ordering: bool
     ) -> ReplayEnvelope:
         """Build a single replay envelope from an audit record"""
@@ -153,6 +153,8 @@ class ReplayEnvelopeBuilder:
             return self._build_from_v1_record(record, preserve_ordering)
         elif isinstance(record, CanonicalAuditEnvelope):
             return self._build_from_canonical_envelope(record, preserve_ordering)
+        elif isinstance(record, CanonicalEvent):
+            return self._build_from_canonical_event(record, preserve_ordering)
         else:
             raise ValueError(f"Unsupported record type: {type(record)}")
     
@@ -238,6 +240,56 @@ class ReplayEnvelopeBuilder:
             sequence_number=None,
             parent_event_id=None
         )
+    
+    def _build_from_canonical_event(
+        self,
+        record: CanonicalEvent,
+        preserve_ordering: bool
+    ) -> ReplayEnvelope:
+        """Build replay envelope from CanonicalEvent"""
+        
+        # CanonicalEvent has no recorded_at - use canonical timestamp
+        event_timestamp = _canonical_replay_timestamp()
+        
+        # Generate ordering key
+        ordering_key = self._generate_ordering_key_from_event(record) if preserve_ordering else ""
+        
+        return ReplayEnvelope(
+            # Core identity
+            audit_id=record.event_id,
+            event_kind=record.event_type,
+            correlation_id=record.correlation_id,
+            trace_id=record.trace_id,
+            tenant_id=record.tenant_id,
+            cell_id=record.cell_id,
+            
+            # Temporal - use canonical timestamp for determinism
+            recorded_at=event_timestamp,
+            event_timestamp=event_timestamp,
+            
+            # Content
+            payload_ref=record.payload,
+            
+            # Enhanced metadata
+            source_format="canonical_event",
+            event_category="unknown",  # CanonicalEvent doesn't have category
+            event_severity="unknown",  # CanonicalEvent doesn't have severity
+            
+            # Ordering
+            ordering_key=ordering_key,
+            
+            # Replay-specific
+            priority=EventTypePriority.get_priority(record.event_type),
+            sequence_number=record.sequence_number,
+            parent_event_id=record.parent_event_id
+        )
+    
+    def _generate_ordering_key_from_event(self, record: CanonicalEvent) -> str:
+        """Generate deterministic ordering key for CanonicalEvent"""
+        # Use priority + event_id + sequence_number for deterministic ordering
+        priority = EventTypePriority.get_priority(record.event_type)
+        seq_num = record.sequence_number or 0
+        return f"{priority:03d}_{record.event_id}_{seq_num:06d}"
     
     def _extract_event_timestamp(self, payload_ref: Dict[str, Any]) -> Optional[datetime]:
         """Extract event timestamp from payload if available"""

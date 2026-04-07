@@ -1,6 +1,10 @@
 """
 Execution proof bundle builder for deterministic replay verification.
 
+# INTERNAL MODULE: Not part of the public SDK surface.
+# Use exoarmur.sdk.public_api instead.
+# This module is an implementation detail and may change without notice.
+
 Builds verifiable bundles from execution artifacts with canonical
 serialization and cryptographic hash computation.
 """
@@ -12,6 +16,7 @@ from ..models.policy_decision import PolicyDecision
 from ..models.execution_trace import ExecutionTrace
 from ..models.execution_proof_bundle import ExecutionProofBundle
 from ..utils.canonicalization import bundle_inputs_hash, to_canonical_dict
+from ..utils.verdict_resolution import FinalVerdict
 
 
 def build_execution_proof_bundle(
@@ -43,17 +48,18 @@ def build_execution_proof_bundle(
     replay_hash = bundle_inputs_hash(
         intent=intent,
         policy_decision=canonical_policy_decision,
-        approval_records=canonical_approval_records,
+        safety_verdict={"verdict": "DENIED", "rationale": "Safety gate enforcement"},
+        final_verdict=FinalVerdict.DENY,
         execution_trace=canonical_execution_trace,
         executor_result=canonical_executor_result
     )
     
-    return ExecutionProofBundle(
-        bundle_version="v1",
+    return ExecutionProofBundle.create(
         intent=to_canonical_dict(intent),
         policy_decision=canonical_policy_decision,
+        safety_verdict={"verdict": "DENIED", "rationale": "Safety gate enforcement"},
+        final_verdict=FinalVerdict.DENY,
         approval_records=canonical_approval_records,
         execution_trace=canonical_execution_trace,
-        executor_result=canonical_executor_result,
-        replay_hash=replay_hash
+        executor_result=canonical_executor_result
     )

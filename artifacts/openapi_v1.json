@@ -356,6 +356,13 @@
       },
       "ValidationError": {
         "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
           "loc": {
             "items": {
               "anyOf": [
@@ -398,7 +405,7 @@
   "paths": {
     "/": {
       "get": {
-        "description": "Root endpoint",
+        "description": "Root endpoint - READ-ONLY (No V2 routing required)",
         "operationId": "root__get",
         "responses": {
           "200": {
@@ -633,7 +640,7 @@
     },
     "/health": {
       "get": {
-        "description": "Health check endpoint",
+        "description": "Health check endpoint - READ-ONLY (No V2 routing required)",
         "operationId": "health_check_health_get",
         "responses": {
           "200": {
@@ -790,7 +797,7 @@
     },
     "/v1/audit/{correlation_id}": {
       "get": {
-        "description": "Get audit records for a correlation ID",
+        "description": "Get audit records for a correlation ID - READ-ONLY (No V2 routing required)",
         "operationId": "get_audit_records_v1_audit__correlation_id__get",
         "parameters": [
           {

@@ -134,10 +134,10 @@ class ExecutionKernel:
         v2_core_types = load_v2_core_types()
         
         execution_request = v2_entry_gate.ExecutionRequest(
-            module_id=v2_core_types.ModuleID("execution_kernel"),
+            module_id=v2_core_types.ModuleID(self._generate_module_ulid()),
             execution_context=v2_core_types.ModuleExecutionContext(
                 execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
-                module_id=v2_core_types.ModuleID("execution_kernel"),
+                module_id=v2_core_types.ModuleID(self._generate_module_ulid()),
                 module_version=v2_core_types.ModuleVersion(1, 0, 0),
                 deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
                 logical_timestamp=int(utc_now().timestamp()),
@@ -145,9 +145,9 @@ class ExecutionKernel:
             ),
             action_data={
                 'action_class': intent.action_class,
-                'action_type': intent.action_type,
+                'action_type': intent.intent_type,  # Fixed: use intent_type not action_type
                 'subject': intent.subject,
-                'parameters': intent.action_parameters,
+                'parameters': intent.parameters or {},  # Fixed: use parameters not action_parameters
                 'tenant_id': intent.tenant_id,
                 'correlation_id': intent.correlation_id,
                 'trace_id': intent.trace_id
@@ -160,6 +160,9 @@ class ExecutionKernel:
         
         if result.success:
             logger.info(f"Intent executed via V2 Entry Gate: {intent.intent_id}")
+            # Track idempotency for backward compatibility
+            if hasattr(intent, 'idempotency_key') and intent.idempotency_key:
+                self.executed_intents[intent.idempotency_key] = intent
             return True
         else:
             logger.error(f"V2 Entry Gate execution failed: {result.error}")
@@ -190,3 +193,14 @@ class ExecutionKernel:
         
         logger.info(f"Approval verification passed for intent {intent.intent_id}")
         return True
+    
+    def _generate_module_ulid(self) -> str:
+        """Generate a deterministic 26-character ULID for module identification"""
+        # Use execution_kernel as base with timestamp for uniqueness
+        base_string = f"execution_kernel_{utc_now().isoformat()}"
+        hash_bytes = hashlib.sha256(base_string.encode()).digest()
+        # Take first 26 bytes and convert to base32 for ULID-like format
+        import base64
+        ulid_bytes = hash_bytes[:16]  # 16 bytes = 128 bits
+        ulid_b32 = base64.b32encode(ulid_bytes).decode('ascii').lower().replace('=', '')
+        return ulid_b32[:26]  # Ensure exactly 26 characters

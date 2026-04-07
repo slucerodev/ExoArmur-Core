@@ -16,17 +16,17 @@ import os
 
 # Add src to path
 
-from exoarmur.federation.identity_audit_emitter import IdentityAuditEmitter
+from exoarmur.federation.identity_audit_emitter import IdentityV2AuditEmitter
 from exoarmur.federation.identity_handshake_state_machine import HandshakeEvent
 from exoarmur.audit import NoOpAuditInterface
 
 
-class TestIdentityAuditEmitter:
+class TestIdentityV2AuditEmitter:
     """Test identity audit emitter functionality"""
     
     def test_emitter_initialization(self):
         """Test audit emitter initialization"""
-        emitter = IdentityAuditEmitter()
+        emitter = IdentityV2AuditEmitter()
         
         assert emitter.audit_interface is None
         assert emitter.feature_flag_checker() is False
@@ -36,7 +36,7 @@ class TestIdentityAuditEmitter:
         mock_audit_interface = NoOpAuditInterface()
         mock_feature_checker = Mock(return_value=True)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -53,7 +53,7 @@ class TestIdentityAuditEmitter:
         mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=True)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -90,7 +90,7 @@ class TestIdentityAuditEmitter:
         mock_audit_interface = NoOpAuditInterface()
         mock_feature_checker = Mock(return_value=False)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -115,7 +115,7 @@ class TestIdentityAuditEmitter:
         mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=False)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -145,7 +145,7 @@ class TestIdentityAuditEmitter:
         """Test emitting event without audit logger (fallback logging)"""
         mock_feature_checker = Mock(return_value=True)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=NoOpAuditInterface(), # audit_interface=None,
             feature_flag_checker=mock_feature_checker
         )
@@ -168,7 +168,7 @@ class TestIdentityAuditEmitter:
         mock_audit_interface.log_event = Mock(return_value=True)
         mock_feature_checker = Mock(return_value=True)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -214,7 +214,7 @@ class TestIdentityAuditEmitter:
         ]
         mock_audit_interface.get_events = Mock(return_value=mock_events)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -232,7 +232,7 @@ class TestIdentityAuditEmitter:
         mock_audit_logger = Mock()
         mock_feature_checker = Mock(return_value=False)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger,
             feature_flag_checker=mock_feature_checker
         )
@@ -245,7 +245,7 @@ class TestIdentityAuditEmitter:
         """Test retrieving audit trail without audit logger"""
         mock_feature_checker = Mock(return_value=True)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=NoOpAuditInterface(),
             feature_flag_checker=mock_feature_checker
         )
@@ -277,7 +277,7 @@ class TestIdentityAuditEmitter:
         ]
         mock_audit_interface.get_events = Mock(return_value=mock_events)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -306,7 +306,7 @@ class TestIdentityAuditEmitter:
         ]
         mock_audit_interface.get_events = Mock(return_value=mock_events)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -337,7 +337,7 @@ class TestIdentityAuditEmitter:
         ]
         mock_audit_interface.get_events = Mock(return_value=mock_events)
             
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -368,7 +368,7 @@ class TestIdentityAuditEmitter:
         ]
         mock_audit_interface.get_events = Mock(return_value=mock_events)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -384,7 +384,7 @@ class TestIdentityAuditEmitter:
         mock_audit_logger = Mock()
         mock_feature_checker = Mock(return_value=False)
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=NoOpAuditInterface(), # audit_logger=mock_audit_logger,
             feature_flag_checker=mock_feature_checker
         )
@@ -402,7 +402,7 @@ class TestIdentityAuditEmitter:
         # Make audit interface raise exception
         mock_audit_interface.log_event = Mock(side_effect=Exception("Audit error"))
         
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface,
             feature_flag_checker=mock_feature_checker
         )
@@ -436,7 +436,7 @@ class TestFeatureFlagIsolation:
         # Test with feature flag disabled
         mock_audit_interface_disabled = Mock()
         mock_audit_interface_disabled.log_event = Mock(return_value=True)
-        emitter_disabled = IdentityAuditEmitter(
+        emitter_disabled = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface_disabled,
             feature_flag_checker=lambda: False
         )
@@ -449,7 +449,7 @@ class TestFeatureFlagIsolation:
         # Test with feature flag enabled
         mock_audit_interface_enabled = Mock()
         mock_audit_interface_enabled.log_event = Mock(return_value=True)
-        emitter_enabled = IdentityAuditEmitter(
+        emitter_enabled = IdentityV2AuditEmitter(
             audit_interface=mock_audit_interface_enabled,
             feature_flag_checker=lambda: True
         )
@@ -468,7 +468,7 @@ class TestFeatureFlagIsolation:
     
     def test_audit_trail_access_when_disabled(self):
         """Test audit trail access when V2 federation is disabled"""
-        emitter = IdentityAuditEmitter(
+        emitter = IdentityV2AuditEmitter(
             audit_interface=NoOpAuditInterface(), # audit_interface=None,
             feature_flag_checker=lambda: False
         )

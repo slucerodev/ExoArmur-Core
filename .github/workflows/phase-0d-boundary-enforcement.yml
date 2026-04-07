@@ -36,7 +36,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip==24.0
         python -m pip install -r requirements.lock
-        python -m pip install --no-deps -e ".[v2]"
+        # V2 capabilities require no additional pip extras.
+        # They are activated via environment variables at runtime:
+        # EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
+        # EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
+        # EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
+        python -m pip install --no-deps -e .
     
     - name: Run Boundary Gate
       run: |

@@ -8,7 +8,7 @@ ExoArmur Core v0.3.0 provides deterministic governance and replayable audit capa
 - Deterministic execution pipeline with ProxyPipeline boundary
 - V1 core cognition loop with locked contracts
 - Source installation via `pip install .`
-- Editable installation support for `pip install -e .` and `pip install -e ".[v2]"`
+- Editable installation support for `pip install -e .` and development extras with `pip install -e ".[dev]"`
 - Standalone governed deny/proof demonstration path
 - Feature-flagged V2 capabilities (disabled by default)
 

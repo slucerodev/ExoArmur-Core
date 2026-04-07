@@ -22,7 +22,7 @@ from exoarmur.reliability import (
 )
 
 
-class MockAuditEmitter:
+class MockV2AuditEmitter:
     """Mock audit emitter for testing"""
     
     def __init__(self):
@@ -87,7 +87,7 @@ async def test_retry_manager():
     print("Testing retry manager...")
     
     manager = RetryManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test policy retrieval
@@ -109,7 +109,7 @@ async def test_retry_success():
     print("Testing retry success case...")
     
     manager = RetryManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test successful operation (no retries)
@@ -136,7 +136,7 @@ async def test_retry_with_failures():
     print("Testing retry with failures...")
     
     manager = RetryManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Create a counter-based failing operation
@@ -181,7 +181,7 @@ async def test_retry_exhaustion():
     print("Testing retry exhaustion...")
     
     manager = RetryManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Create operation that always fails
@@ -220,7 +220,7 @@ async def test_retry_with_idempotency():
     print("Testing retry with idempotency...")
     
     manager = RetryManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Create a counter-based failing operation
