@@ -7,7 +7,7 @@ Tests that the PDP influences pipeline behavior correctly.
 import pytest
 from datetime import datetime, timezone
 
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyVerdict
 from exoarmur.execution_boundary_v2.policy.simple_pdp import SimplePolicyDecisionPoint
@@ -111,7 +111,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[allow_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -141,7 +141,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[deny_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -178,7 +178,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[approval_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -226,7 +226,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[read_only_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -268,7 +268,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[safe_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -307,7 +307,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[approval_rule, allow_rule])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         
@@ -330,7 +330,7 @@ class TestPolicyPipelineIntegration:
         pdp = SimplePolicyDecisionPoint(rules=[])
         safety_gate = FakeSafetyGate()
         executor = FakeExecutor()
-        audit_emitter = AuditEmitter()
+        audit_emitter = V2AuditEmitter()
         
         pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
         

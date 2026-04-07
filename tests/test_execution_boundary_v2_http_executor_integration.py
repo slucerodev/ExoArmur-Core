@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 import sys
 from pathlib import Path
 
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.interfaces.policy_decision_point import PolicyDecisionPoint
@@ -83,7 +83,7 @@ class TestHTTPExecutorIntegration:
     @pytest.fixture
     def audit_emitter(self):
         """Create audit emitter for testing."""
-        return AuditEmitter()
+        return V2AuditEmitter()
     
     @pytest.fixture
     def sample_http_intent(self):

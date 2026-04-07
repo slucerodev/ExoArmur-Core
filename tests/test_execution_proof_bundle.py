@@ -11,7 +11,7 @@ import pytest
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
-from exoarmur.execution_boundary_v2.utils.bundle_builder import create_bundle_from_execution, BundleBuilder
+from exoarmur.execution_boundary_v2.utils.bundle_builder import build_execution_proof_bundle
 from exoarmur.execution_boundary_v2.models.execution_proof_bundle import ExecutionProofBundle
 from exoarmur.execution_boundary_v2.utils.verdict_resolution import FinalVerdict
 from exoarmur.execution_boundary_v2.utils.canonicalization import bundle_inputs_hash
@@ -44,27 +44,25 @@ class TestExecutionProofBundle:
             policy_version="1.0"
         )
         
-        # Build bundle twice with same inputs (without verification for debugging)
-        builder1 = BundleBuilder().with_intent(intent)\
-                               .with_policy_decision(policy_decision)\
-                               .with_safety_verdict({"verdict": "ALLOW", "rationale": "Test safety verdict"})\
-                               .with_final_verdict(FinalVerdict.ALLOW)\
-                               .with_execution_trace(None)\
-                               .with_executor_result(None)
-        bundle1 = builder1.build_without_verification()
+        # Build bundle twice with same inputs using function-based interface
+        bundle1 = build_execution_proof_bundle(
+            intent=intent,
+            policy_decision=policy_decision,
+            execution_trace=None,
+            executor_result=None
+        )
         
-        # Use builder directly for second bundle to avoid verification
-        builder2 = BundleBuilder().with_intent(intent)\
-                               .with_policy_decision(policy_decision)\
-                               .with_safety_verdict({"verdict": "ALLOW", "rationale": "Test safety verdict"})\
-                               .with_final_verdict(FinalVerdict.ALLOW)\
-                               .with_execution_trace(None)\
-                               .with_executor_result(None)
-        bundle2 = builder2.build_without_verification()
+        # Use function interface for second bundle
+        bundle2 = build_execution_proof_bundle(
+            intent=intent,
+            policy_decision=policy_decision,
+            execution_trace=None,
+            executor_result=None
+        )
         
         # Assert deterministic behavior
         assert bundle1.replay_hash == bundle2.replay_hash
-        assert bundle1.bundle_version == "v1"
+        assert bundle1.schema_version == "2.0"
         assert bundle1.intent == bundle2.intent
         # Verify bundle_created_at is None for determinism
         assert bundle1.bundle_created_at is None
@@ -148,17 +146,16 @@ class TestExecutionProofBundle:
             "error": None
         }
         
-        # Build bundle with execution artifacts (without verification for debugging)
-        builder = BundleBuilder().with_intent(intent)\
-                              .with_policy_decision(policy_decision)\
-                              .with_safety_verdict({"verdict": "ALLOW", "rationale": "Test safety verdict"})\
-                              .with_final_verdict(FinalVerdict.ALLOW)\
-                              .with_execution_trace(execution_trace.model_dump())\
-                              .with_executor_result(executor_result)
-        bundle = builder.build_without_verification()
+        # Build bundle with execution artifacts using function-based interface
+        bundle = build_execution_proof_bundle(
+            intent=intent,
+            policy_decision=policy_decision,
+            execution_trace=execution_trace.model_dump(),
+            executor_result=executor_result
+        )
         
         # Verify bundle structure
-        assert bundle.bundle_version == "v1"
+        assert bundle.schema_version == "2.0"
         assert bundle.replay_hash is not None
         assert len(bundle.replay_hash) == 64  # SHA-256 hex length
         assert bundle.intent is not None
@@ -196,12 +193,13 @@ class TestExecutionProofBundle:
             policy_version="1.0"
         )
         
-        # Build bundle with default (None) timestamp
-        builder = BundleBuilder().with_intent(intent)\
-                              .with_policy_decision(policy_decision)\
-                              .with_safety_verdict({"verdict": "ALLOW", "rationale": "Test safety verdict"})\
-                              .with_final_verdict(FinalVerdict.ALLOW)
-        bundle_default = builder.build_without_verification()
+        # Build bundle with default (None) timestamp using function-based interface
+        bundle_default = build_execution_proof_bundle(
+            intent=intent,
+            policy_decision=policy_decision,
+            execution_trace=None,
+            executor_result=None
+        )
         
         # Verify default behavior
         assert bundle_default.bundle_created_at is None
@@ -210,8 +208,8 @@ class TestExecutionProofBundle:
         bundle_explicit = ExecutionProofBundle.create(
             intent=bundle_default.intent,
             policy_decision=bundle_default.policy_decision,
-            safety_verdict={"verdict": "ALLOW", "rationale": "Test safety verdict"},
-            final_verdict=FinalVerdict.ALLOW
+            safety_verdict=bundle_default.safety_verdict,  # Use same safety_verdict
+            final_verdict=bundle_default.final_verdict      # Use same final_verdict
         )
         
         # Verify explicit timestamp is also None (we don't set it in create method)

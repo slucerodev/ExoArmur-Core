@@ -77,7 +77,7 @@ def resolve_verdicts(
     }
     
     # Rule 8: SafetyGate verdict validation
-    valid_safety_verdicts = {"allow", "deny", "require_quorum", "require_human"}
+    valid_safety_verdicts = {"allow", "deny", "block", "warn", "require_quorum", "require_human"}
     if safety_verdict.verdict not in valid_safety_verdicts:
         evidence["resolution_rules_applied"].append("invalid_safety_verdict_treated_as_deny")
         return FinalVerdict.DENY, evidence
@@ -87,7 +87,7 @@ def resolve_verdicts(
         evidence["resolution_rules_applied"].append("policy_deny_overrides_all")
         return FinalVerdict.DENY, evidence
     
-    if safety_verdict.verdict == "deny":
+    if safety_verdict.verdict in ["deny", "block"]:
         evidence["resolution_rules_applied"].append("safety_deny_overrides_all")
         return FinalVerdict.DENY, evidence
     

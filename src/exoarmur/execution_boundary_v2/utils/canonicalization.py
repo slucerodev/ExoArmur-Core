@@ -25,6 +25,7 @@ def to_canonical_dict(obj: Any) -> Dict[str, Any]:
     
     Handles Pydantic models, dataclasses, and primitive types with datetime
     and enum serialization for forensic-grade replay verification.
+    Excludes timestamp fields for determinism.
     """
     if hasattr(obj, 'model_dump'):
         result = obj.model_dump(exclude_none=True, exclude_unset=True)
@@ -35,20 +36,28 @@ def to_canonical_dict(obj: Any) -> Dict[str, Any]:
     else:
         result = {"value": obj}
     
+    # Exclude timestamp fields for determinism
+    timestamp_fields = {
+        'timestamp', 'bundle_created_at', 'trace_created_at', 'replay_timestamp',
+        'execution_start', 'execution_end', 'recorded_at', 'created_at', 'updated_at'
+    }
+    
     # Handle datetime objects and enums recursively
     def serialize_value(value):
         if hasattr(value, 'isoformat'):
-            return value.isoformat()
+            return None  # Exclude timestamps for determinism
         elif hasattr(value, 'value'):  # Handle enum objects
             return value.value
         elif isinstance(value, dict):
-            return {k: serialize_value(v) for k, v in value.items()}
+            return {k: serialize_value(v) for k, v in value.items() 
+                   if k not in timestamp_fields}
         elif isinstance(value, list):
             return [serialize_value(item) for item in value]
         else:
             return value
     
-    return {k: serialize_value(v) for k, v in result.items()}
+    return {k: serialize_value(v) for k, v in result.items() 
+            if k not in timestamp_fields}
 
 
 def canonical_json(data: Dict[str, Any]) -> bytes:

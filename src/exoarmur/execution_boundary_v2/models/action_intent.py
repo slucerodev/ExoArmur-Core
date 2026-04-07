@@ -42,6 +42,7 @@ class ActionIntent(BaseModel):
         if safety_context is None:
             safety_context = {}
         
+        # Use deterministic timestamp for ID generation but exclude from canonicalization
         timestamp = utc_now()
         intent_id = make_intent_id(actor_id, action_type, target, timestamp)
         
@@ -53,7 +54,7 @@ class ActionIntent(BaseModel):
             target=target,
             parameters=parameters,
             safety_context=safety_context,
-            timestamp=timestamp,
+            timestamp=timestamp,  # Populated for audit trail; excluded from hash by canonicalization
             tenant_id=tenant_id,
             cell_id=cell_id
         )

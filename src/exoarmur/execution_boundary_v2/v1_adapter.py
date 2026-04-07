@@ -140,7 +140,7 @@ class V1PolicyAdapter:
             },
             classification="benign",  # Default classification for V1 compatibility
             severity="low",  # Default severity for V1 compatibility
-            confidence=policy_decision.confidence,
+            confidence=policy_decision.confidence if policy_decision.confidence is not None else 1.0,
             recommended_intents=[],  # Empty for V1 compatibility
             evidence_refs=policy_decision.evidence,
             correlation_id=intent.intent_id,

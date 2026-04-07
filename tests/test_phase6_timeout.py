@@ -21,7 +21,7 @@ from exoarmur.reliability import (
 )
 
 
-class MockAuditEmitter:
+class MockV2AuditEmitter:
     """Mock audit emitter for testing"""
     
     def __init__(self):
@@ -75,7 +75,7 @@ async def test_timeout_enforcement():
     print("Testing timeout enforcement (success case)...")
     
     manager = TimeoutManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test successful operation within timeout
@@ -103,7 +103,7 @@ async def test_timeout_failure():
     print("Testing timeout enforcement (timeout case)...")
     
     manager = TimeoutManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test operation that times out
@@ -145,7 +145,7 @@ async def test_timeout_decorator():
     print("Testing timeout decorator...")
     
     manager = get_timeout_manager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test successful decorated function
@@ -190,7 +190,7 @@ async def test_convenience_functions():
     print("Testing convenience timeout functions...")
     
     manager = TimeoutManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test NATS timeout convenience
@@ -231,7 +231,7 @@ async def test_timeout_audit_classification():
     print("Testing timeout audit classification...")
     
     manager = TimeoutManager()
-    mock_emitter = MockAuditEmitter()
+    mock_emitter = MockV2AuditEmitter()
     manager.set_audit_emitter(mock_emitter.emit)
     
     # Test different timeout categories produce different audit codes

@@ -9,7 +9,7 @@ import tempfile
 import os
 from datetime import datetime, timezone
 
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 # Note: Filesystem executor integration test requires exoarmur-executors-fs package
@@ -93,7 +93,7 @@ class TestFilesystemExecutorIntegration:
             # Create pipeline components
             pdp = FakePDP(PolicyVerdict.ALLOW)
             safety_gate = FakeSafetyGate(allow=True)
-            audit_emitter = AuditEmitter()
+            audit_emitter = V2AuditEmitter()
             
             # Create pipeline
             pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)
@@ -154,7 +154,7 @@ class TestFilesystemExecutorIntegration:
             # Create pipeline components
             pdp = FakePDP(PolicyVerdict.ALLOW)
             safety_gate = FakeSafetyGate(allow=True)
-            audit_emitter = AuditEmitter()
+            audit_emitter = V2AuditEmitter()
             
             # Create pipeline
             pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)
@@ -214,7 +214,7 @@ class TestFilesystemExecutorIntegration:
             # Create pipeline components
             pdp = FakePDP(PolicyVerdict.ALLOW)
             safety_gate = FakeSafetyGate(allow=True)
-            audit_emitter = AuditEmitter()
+            audit_emitter = V2AuditEmitter()
             
             # Create pipeline
             pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)

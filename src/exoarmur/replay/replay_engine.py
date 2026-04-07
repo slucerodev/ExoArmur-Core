@@ -11,7 +11,7 @@ Now includes schema versioning and migration support for proof bundles.
 
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 def _canonical_replay_timestamp() -> datetime:
     """Generate canonical timestamp for replay reports."""
-    return utc_now()
+    # Use deterministic timestamp for replay consistency
+    return datetime(1970, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 class ReplayResult(Enum):

@@ -40,3 +40,12 @@ myst_enable_extensions = [
 ]
 autodoc_typehints = "description"
 autoclass_content = "both"
+
+# Add SDK modules to autodoc
+autodoc_default_options = {
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__"
+}

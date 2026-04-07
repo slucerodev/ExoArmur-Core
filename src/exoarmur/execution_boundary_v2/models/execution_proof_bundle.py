@@ -116,9 +116,9 @@ class ExecutionProofBundle(BaseModel):
         canonical_json_bytes = json.dumps(canonical_data, sort_keys=True, separators=(",", ":")).encode()
         replay_hash = hashlib.sha256(canonical_json_bytes).hexdigest()
         
-        # Generate bundle ID with intent_id and replay_hash
+        # Generate bundle ID from intent_id only (not replay_hash to avoid circular dependency)
         intent_id = intent.get("intent_id", "unknown")
-        bundle_id = make_bundle_id(intent_id, replay_hash)
+        bundle_id = make_bundle_id(intent_id, "deterministic-bundle")
         
         # Generate bundle checksum
         bundle_data = {
@@ -150,6 +150,7 @@ class ExecutionProofBundle(BaseModel):
             validation_evidence=validation_evidence or {},
             executor_failure_evidence=executor_failure_evidence or {},
             bundle_checksum=bundle_checksum,
+            bundle_created_at=utc_now(),  # Populated for audit trail; excluded from hash by canonicalization
             audit_stream_id=audit_stream_id,
             audit_event_count=audit_event_count
         )

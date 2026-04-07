@@ -9,7 +9,7 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import Mock, MagicMock
 
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, AuditEmitter
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, V2AuditEmitter
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.models.execution_dispatch import ExecutionDispatch, DispatchStatus
@@ -114,8 +114,8 @@ def sample_intent():
 
 @pytest.fixture
 def audit_emitter():
-    """Create an AuditEmitter for testing."""
-    return AuditEmitter()
+    """Create an V2AuditEmitter for testing."""
+    return V2AuditEmitter()
 
 
 def test_proxy_pipeline_policy_deny(sample_intent, audit_emitter):
@@ -313,8 +313,8 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_failure(sample_intent,
 
 
 def test_audit_emitter_functionality():
-    """Test AuditEmitter functionality directly."""
-    emitter = AuditEmitter()
+    """Test V2AuditEmitter functionality directly."""
+    emitter = V2AuditEmitter()
     
     # Emit audit record
     audit_record = emitter.emit_audit_record(

@@ -69,9 +69,16 @@ class V2AuditEvent:
 class V2AuditEmitter:
     """V2-native audit emitter that uses adapter for V1 compatibility."""
     
-    def __init__(self):
+    def __init__(self, tenant_id: Optional[str] = None, cell_id: Optional[str] = None):
         self.audit_events: list[V2AuditEvent] = []
         self.v1_records = []  # Store V1 records for backward compatibility
+        self.tenant_id = tenant_id
+        self.cell_id = cell_id
+    
+    @property
+    def audit_records(self):
+        """Backward compatibility property for V1 records."""
+        return self.v1_records
     
     def emit_audit_event(
         self,
@@ -117,7 +124,37 @@ class V2AuditEmitter:
     # Backward compatibility method
     def emit_audit_record(self, *args, **kwargs):
         """Legacy method for backward compatibility."""
-        return self.emit_audit_event(*args, **kwargs)
+        # Handle both old 4-param and new 6+ param calls
+        if len(args) == 4:
+            intent_id, event_type, outcome, details = args
+            # Use instance defaults for tenant_id and cell_id
+            tenant_id = kwargs.get('tenant_id', self.tenant_id or 'default-tenant')
+            cell_id = kwargs.get('cell_id', self.cell_id or 'default-cell')
+            correlation_id = kwargs.get('correlation_id', None)
+            trace_id = kwargs.get('trace_id', None)
+            
+            # Create V2 event but return V1 record for compatibility
+            audit_event = self.emit_audit_event(
+                intent_id=intent_id,
+                event_type=event_type,
+                outcome=outcome,
+                details=details,
+                tenant_id=tenant_id,
+                cell_id=cell_id,
+                correlation_id=correlation_id,
+                trace_id=trace_id
+            )
+            # Return the V1 record for backward compatibility
+            return self.v1_records[-1] if self.v1_records else audit_event
+        else:
+            # For new-style calls, ensure tenant_id and cell_id are provided
+            if 'tenant_id' not in kwargs and len(args) < 6:
+                kwargs['tenant_id'] = self.tenant_id or 'default-tenant'
+            if 'cell_id' not in kwargs and len(args) < 6:
+                kwargs['cell_id'] = self.cell_id or 'default-cell'
+            audit_event = self.emit_audit_event(*args, **kwargs)
+            # Return the V1 record for backward compatibility
+            return self.v1_records[-1] if self.v1_records else audit_event
 
 
 class V2SafetyState:
@@ -287,10 +324,23 @@ class ProxyPipeline:
         if final_verdict == FinalVerdict.DENY:
             trace.final_verdict = final_verdict
             
+            # Distinguish safety gate block from policy denial for forensic audit trail
+            resolution_rules = resolution_evidence.get("resolution_rules_applied", [])
+            is_safety_block = "safety_deny_overrides_all" in resolution_rules
+            
+            if is_safety_block:
+                event_type = "safety_gate_block"
+                outcome = "blocked"
+                error_code = "SAFETY_GATE_BLOCKED"
+            else:
+                event_type = "policy_denial"
+                outcome = "denied"
+                error_code = "DENIED"
+            
             self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="final_denial",
-                outcome="denied",
+                event_type=event_type,
+                outcome=outcome,
                 details={
                     "final_verdict": final_verdict.value,
                     "policy_verdict": policy_decision.verdict.value,
@@ -303,7 +353,7 @@ class ProxyPipeline:
             return ExecutorResult(
                 success=False,
                 output={},
-                error="DENIED",
+                error=error_code,
                 evidence={"final_verdict": final_verdict.value}
             ), trace
         
@@ -371,9 +421,9 @@ class ProxyPipeline:
         trace.record_executor_info(
             executor_name=executor_capabilities.get("executor_name", "unknown"),
             executor_version=executor_capabilities.get("version", "unknown"),
-            executor_capabilities=executor_capabilities.get("capabilities", []),
-            target_validation_result=validation_result.result.value,
-            validation_evidence=validation_result.evidence,
+            executor_capabilities=executor_capabilities,
+            validation_result={"result": validation_result.result.value, "evidence": validation_result.evidence},
+            validation_evidence={},
             executor_failure_evidence={}
         )
         

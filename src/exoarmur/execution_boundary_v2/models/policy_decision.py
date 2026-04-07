@@ -40,7 +40,7 @@ class PolicyDecision(BaseModel):
     """Policy decision result for intent evaluation."""
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    decision_id: str = Field(description="Decision identifier (deterministic ULID)")
+    decision_id: str = Field(default_factory=lambda: make_decision_id("unknown", "unknown"), description="Decision identifier (deterministic ULID)")
     verdict: PolicyVerdict = Field(description="Policy verdict")
     rationale: Optional[str] = Field(default=None, description="Decision rationale")
     evidence: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Decision evidence")

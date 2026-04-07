@@ -189,6 +189,7 @@ class ExecutionTrace(BaseModel):
     @classmethod
     def create(cls, correlation_id: str, intent_id: str, final_verdict: FinalVerdict) -> "ExecutionTrace":
         """Create execution trace with deterministic ID."""
+        from exoarmur.clock import utc_now
         trace_id = make_trace_id(intent_id)
         
         return cls(
@@ -198,7 +199,9 @@ class ExecutionTrace(BaseModel):
             events=[],
             event_sequence=[],
             final_verdict=final_verdict,
-            audit_event_count=0
+            audit_event_count=0,
+            trace_created_at=utc_now().isoformat(),  # Populated for audit trail; excluded from hash by canonicalization
+            replay_timestamp=None   # Set during replay, not at creation
         )
     
     def add_event(self, stage: TraceStage, ok: bool, code: str,
@@ -350,6 +353,5 @@ class ExecutionTrace(BaseModel):
             executor_version=executor_version,
             capabilities=executor_capabilities,
             validation_result=validation_result,
-            validation_evidence=validation_evidence,
             resource_usage=executor_failure_evidence
         )

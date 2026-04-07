@@ -238,3 +238,7 @@ class IdentityAuditEmitter:
                 "Step index order violation" if not step_order_valid else None
             ] if not overall_valid else []
         }
+
+
+# Alias for backward compatibility with tests
+IdentityV2AuditEmitter = IdentityAuditEmitter
