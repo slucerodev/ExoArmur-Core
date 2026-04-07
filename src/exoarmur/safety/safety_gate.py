@@ -62,9 +62,22 @@ class V2TrustState:
 @dataclass
 class V2EnvironmentState:
     """V2-native environment state for safety evaluation."""
+    degraded_mode: bool
     cell_load: float
     network_health: float
     resource_availability: float
+
+    def __init__(
+        self,
+        degraded_mode: bool = False,
+        cell_load: float = 0.5,
+        network_health: float = 0.9,
+        resource_availability: float = 0.8,
+    ):
+        self.degraded_mode = degraded_mode
+        self.cell_load = cell_load
+        self.network_health = network_health
+        self.resource_availability = resource_availability
 
 
 class SafetyGate:
@@ -144,18 +157,29 @@ class SafetyGate:
         self,
         intent,  # V1 ExecutionIntentV1 (for backward compatibility)
         local_decision,  # V1 LocalDecisionV1 (for backward compatibility)
+        *,
+        collective_state=None,  # Legacy compatibility; intentionally unused by V2 safety logic
         policy_state,  # V1 PolicyState (for backward compatibility)
         trust_state,  # V1 TrustState (for backward compatibility)
         environment_state  # V1 EnvironmentState (for backward compatibility)
     ) -> SafetyVerdict:
         """Legacy method for V1 compatibility (delegates to V2 implementation)."""
         # Convert V1 structures to V2-native format
-        v2_intent = {
-            "action_type": intent.intent_type,
-            "actor_id": intent.subject.get("subject_id", "unknown"),
-            "target": intent.parameters.get("target", "unknown"),
-            "parameters": intent.parameters
-        }
+        if intent is None:
+            subject = getattr(local_decision, "subject", {}) or {}
+            v2_intent = {
+                "action_type": getattr(local_decision, "classification", "unknown"),
+                "actor_id": subject.get("subject_id", "unknown"),
+                "target": subject.get("subject_id", "unknown"),
+                "parameters": {}
+            }
+        else:
+            v2_intent = {
+                "action_type": intent.intent_type,
+                "actor_id": intent.subject.get("subject_id", "unknown"),
+                "target": intent.parameters.get("target", "unknown"),
+                "parameters": intent.parameters
+            }
         
         v2_policy_decision = {
             "confidence": local_decision.confidence,

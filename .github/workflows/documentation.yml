@@ -26,6 +26,8 @@ jobs:
   build-docs:
     name: Build Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -75,6 +77,8 @@ jobs:
   validate-examples:
     name: Validate Examples
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -115,6 +119,8 @@ jobs:
   check-links:
     name: Check Documentation Links
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -131,6 +137,10 @@ jobs:
   deploy-docs:
     name: Deploy Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     needs: [build-docs, validate-examples, check-links]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 

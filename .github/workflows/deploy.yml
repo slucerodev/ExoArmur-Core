@@ -25,6 +25,8 @@ jobs:
   validate:
     name: Validate Release Readiness
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
@@ -88,6 +90,8 @@ jobs:
   build:
     name: Build Distribution
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: validate
     outputs:
       wheel_name: ${{ steps.build.outputs.wheel_name }}
@@ -135,6 +139,9 @@ jobs:
   security-scan:
     name: Security Scan Before Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     needs: validate
 
     steps:

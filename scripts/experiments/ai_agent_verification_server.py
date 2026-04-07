@@ -69,8 +69,14 @@ class AIAgentVerificationHandler(SimpleHTTPRequestHandler):
     
     def serve_file(self, filename, content_type):
         """Serve a static file"""
-        file_path = Path(__file__).parent / filename
-        
+        base_dir = Path(__file__).parent.resolve()
+        file_path = (base_dir / filename).resolve()
+        try:
+            file_path.relative_to(base_dir)
+        except ValueError:
+            self.send_error(403, "Access denied")
+            return
+
         if not file_path.exists():
             self.send_error(404, f"File not found: {filename}")
             return
