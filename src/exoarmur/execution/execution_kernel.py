@@ -163,6 +163,21 @@ class ExecutionKernel:
             # Track idempotency for backward compatibility
             if hasattr(intent, 'idempotency_key') and intent.idempotency_key:
                 self.executed_intents[intent.idempotency_key] = intent
+            if self.audit_logger:
+                _payload = {"intent_id": intent.intent_id, "outcome": "executed"}
+                _ikey = compute_idempotency_key(
+                    intent.tenant_id, intent.correlation_id,
+                    "execution_intent_executed", _payload
+                )
+                self.audit_logger.record_audit(
+                    tenant_id=intent.tenant_id,
+                    cell_id=intent.cell_id,
+                    event_kind="execution_intent_executed",
+                    payload_ref=_payload,
+                    correlation_id=intent.correlation_id,
+                    trace_id=intent.trace_id,
+                    idempotency_key=_ikey,
+                )
             return True
         else:
             logger.error(f"V2 Entry Gate execution failed: {result.error}")

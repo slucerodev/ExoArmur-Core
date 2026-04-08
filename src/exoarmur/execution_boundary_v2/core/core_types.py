@@ -17,10 +17,10 @@ class ModuleID:
     value: str
     
     def __post_init__(self):
-        if len(self.value) != 26:
-            raise ValueError("ModuleID must be 26-character ULID")
-        if not self.value.isalnum():
-            raise ValueError("ModuleID must be alphanumeric")
+        if not self.value:
+            raise ValueError("ModuleID must not be empty")
+        if not all(c.isalnum() or c == "_" for c in self.value):
+            raise ValueError("ModuleID must be alphanumeric or underscore")
 
 @dataclass(frozen=True)
 class ModuleVersion:
@@ -46,10 +46,10 @@ class ExecutionID:
     value: str
     
     def __post_init__(self):
-        if len(self.value) != 26:
-            raise ValueError("ExecutionID must be 26-character ULID")
-        if not self.value.isalnum():
-            raise ValueError("ExecutionID must be alphanumeric")
+        if not self.value:
+            raise ValueError("ExecutionID must not be empty")
+        if not all(c.isalnum() or c in "-_" for c in self.value):
+            raise ValueError("ExecutionID must be alphanumeric or hyphen/underscore")
 
 @dataclass(frozen=True)
 class DeterministicSeed:

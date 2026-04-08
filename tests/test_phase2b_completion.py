@@ -15,12 +15,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from exoarmur.execution_boundary_v2.entry.phase2b_completion import (
     execute_complete_phase2b,
     verify_single_spine_reality,
-    get_phase2b_completion
+    get_phase2b_completion,
+    reset_phase2b_completion
 )
 
 class TestPhase2BCompletion:
     """Test Phase 2B execution surface audit and primitive collapse"""
-    
+
+    def setup_method(self):
+        """Reset global singleton before each test for isolation"""
+        reset_phase2b_completion()
+
     def test_phase2b_initialization(self):
         """Verify Phase 2B components can be initialized"""
         completion = get_phase2b_completion()

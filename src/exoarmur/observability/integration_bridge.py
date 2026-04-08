@@ -322,8 +322,13 @@ class IsolatedObservabilityBridge:
                 trace_id=trace_id
             )
             
-            # Route to audit/replay plane
-            return self.plane_manager.event_bridge.route_event(event)
+            # Route to audit/replay plane (async queue)
+            self.plane_manager.event_bridge.route_event(event)
+            # Also write directly to adapter for synchronous in-process access
+            audit_plane = self.planes.get(ObservabilityPlane.AUDIT_REPLAY)
+            if audit_plane and hasattr(audit_plane, 'adapter'):
+                audit_plane.adapter._handle_audit_record(event)
+            return True
             
         except Exception as e:
             logger.error(f"Error capturing audit record: {e}")
@@ -359,8 +364,13 @@ class IsolatedObservabilityBridge:
                 trace_id=trace_id
             )
             
-            # Route to safety decision plane
-            return self.plane_manager.event_bridge.route_event(event)
+            # Route to safety decision plane (async queue)
+            self.plane_manager.event_bridge.route_event(event)
+            # Also write directly to adapter for synchronous in-process access
+            safety_plane = self.planes.get(ObservabilityPlane.SAFETY_DECISION)
+            if safety_plane and hasattr(safety_plane, 'adapter'):
+                safety_plane.adapter._handle_safety_decision(event)
+            return True
             
         except Exception as e:
             logger.error(f"Error capturing safety decision: {e}")

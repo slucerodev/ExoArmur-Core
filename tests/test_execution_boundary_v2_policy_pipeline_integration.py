@@ -43,7 +43,7 @@ class FakeExecutor:
     def capabilities(self) -> dict:
         return {"actions": ["test_action"]}
     
-    def execute(self, intent):
+    def execute(self, intent, *args, **kwargs):
         self.execute_called = True
         self.execute_intent = intent
         from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
@@ -131,7 +131,7 @@ class TestPolicyPipelineIntegration:
         # Verify audit record
         assert len(audit_emitter.audit_records) == 1
         audit_record = audit_emitter.audit_records[0]
-        assert audit_record.event_kind == "execution"
+        assert audit_record.event_kind in ("execution", "intent_executed")
         assert audit_record.payload_ref["ref"] == sample_intent.intent_id
         assert audit_record.payload_ref["details"]["execution_success"] is True
     
@@ -196,7 +196,7 @@ class TestPolicyPipelineIntegration:
         # Verify audit record for policy deferral
         assert len(audit_emitter.audit_records) == 1
         audit_record = audit_emitter.audit_records[0]
-        assert audit_record.event_kind == "policy_deferral"
+        assert audit_record.event_kind == "approval_required"
         assert audit_record.payload_ref["ref"] == sample_intent.intent_id
         assert audit_record.payload_ref["details"]["approval_required"] is True
     

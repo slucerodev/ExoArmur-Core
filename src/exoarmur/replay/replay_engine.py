@@ -167,6 +167,20 @@ class ReplayEngine:
             report.add_failure(f"No audit records found for correlation_id: {correlation_id}")
             return report
 
+        # Step 1.5: Validate all inputs are CanonicalEvent (raises EnvelopeValidationError if not)
+        self._validate_dual_format_inputs(audit_records, correlation_id)
+
+        # Step 1.6: Verify payload integrity on original inputs before envelope builder recomputes hashes
+        verified_records = []
+        for record in audit_records:
+            if not record.verify_payload_integrity():
+                report.add_failure(f"Payload integrity check failed for event {record.event_id}")
+            else:
+                verified_records.append(record)
+        if not verified_records:
+            return report
+        audit_records = verified_records
+
         # Step 2: Build unified replay envelopes from mixed formats
         replay_envelopes = self.envelope_builder.build_envelopes(audit_records, preserve_ordering=True)
         if not replay_envelopes:
@@ -207,13 +221,11 @@ class ReplayEngine:
         return report
     
     def _validate_dual_format_inputs(self, audit_records: List[Any], correlation_id: str) -> None:
-        """Validate dual-format audit records before replay begins."""
-        supported_types = (AuditRecordV1, CanonicalAuditEnvelope, CanonicalEvent)
-        
+        """Validate that all audit records are CanonicalEvent inputs."""
         for index, record in enumerate(audit_records):
-            if not isinstance(record, supported_types):
+            if not isinstance(record, CanonicalEvent):
                 raise EnvelopeValidationError(
-                    f"ReplayEngine requires AuditRecordV1, CanonicalAuditEnvelope, or CanonicalEvent inputs only; "
+                    f"ReplayEngine requires CanonicalEvent inputs only; "
                     f"got {type(record).__name__} at index {index} for correlation_id {correlation_id}"
                 )
     

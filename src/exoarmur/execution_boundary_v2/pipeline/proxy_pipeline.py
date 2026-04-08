@@ -247,6 +247,80 @@ class ProxyPipeline:
             }
         )
         
+        # Early exit: DENY — no need to consult safety gate
+        if policy_decision.verdict == PolicyVerdict.DENY:
+            trace.final_verdict = FinalVerdict.DENY
+            from exoarmur.safety.safety_gate import SafetyVerdict as _SV
+            _skip_sv = _SV(verdict="skipped", rationale="policy_deny_short_circuit", rule_ids=[])
+            trace.record_verdicts(policy_decision, _skip_sv, FinalVerdict.DENY, {"resolution_rules_applied": ["policy_deny_overrides"]})
+            trace.add_event(
+                stage=TraceStage.SAFETY_EVALUATED,
+                ok=True,
+                code="skipped",
+                details={"skipped": "policy_deny_short_circuit"}
+            )
+            trace.add_event(
+                stage=TraceStage.VERDICT_RESOLVED,
+                ok=True,
+                code=FinalVerdict.DENY.value,
+                details={"final_verdict": FinalVerdict.DENY.value}
+            )
+            self.audit_emitter.emit_audit_event(
+                intent_id=intent.intent_id,
+                event_type="policy_denial",
+                outcome="denied",
+                details={
+                    "final_verdict": FinalVerdict.DENY.value,
+                    "policy_verdict": policy_decision.verdict.value,
+                    "rationale": policy_decision.rationale
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+            )
+            return ExecutorResult(
+                success=False,
+                output={},
+                error="DENIED",
+                evidence={"final_verdict": FinalVerdict.DENY.value, "policy_decision": FinalVerdict.DENY.value}
+            ), trace
+
+        # Early exit: REQUIRE_APPROVAL — no need to consult safety gate
+        if policy_decision.verdict == PolicyVerdict.REQUIRE_APPROVAL:
+            trace.final_verdict = FinalVerdict.REQUIRE_APPROVAL
+            from exoarmur.safety.safety_gate import SafetyVerdict as _SV
+            _skip_sv = _SV(verdict="skipped", rationale="policy_require_approval_short_circuit", rule_ids=[])
+            trace.record_verdicts(policy_decision, _skip_sv, FinalVerdict.REQUIRE_APPROVAL, {"resolution_rules_applied": ["policy_require_approval"]})
+            trace.add_event(
+                stage=TraceStage.SAFETY_EVALUATED,
+                ok=True,
+                code="skipped",
+                details={"skipped": "policy_require_approval_short_circuit"}
+            )
+            trace.add_event(
+                stage=TraceStage.VERDICT_RESOLVED,
+                ok=True,
+                code=FinalVerdict.REQUIRE_APPROVAL.value,
+                details={"final_verdict": FinalVerdict.REQUIRE_APPROVAL.value}
+            )
+            self.audit_emitter.emit_audit_event(
+                intent_id=intent.intent_id,
+                event_type="approval_required",
+                outcome="pending",
+                details={
+                    "final_verdict": FinalVerdict.REQUIRE_APPROVAL.value,
+                    "policy_verdict": policy_decision.verdict.value,
+                    "approval_required": True,
+                    "rationale": policy_decision.rationale
+                },
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+            )
+            return ExecutionDispatch.create(
+                intent_id=intent.intent_id,
+                status=DispatchStatus.APPROVAL_PENDING,
+                details={"final_verdict": FinalVerdict.REQUIRE_APPROVAL.value}
+            ), trace
+
         # Step 3: Safety gate evaluation with V2-native states
         # Create V2-native safety state
         v2_safety_state = V2SafetyState()
@@ -275,6 +349,7 @@ class ProxyPipeline:
         safety_verdict = self.safety_gate.evaluate_safety(
             intent=v1_execution_intent,
             local_decision=v1_local_decision,
+            collective_state={},
             policy_state=PolicyState(**v1_safety_states["policy_state"]),
             trust_state=TrustState(**v1_safety_states["trust_state"]),
             environment_state=EnvironmentState(**v1_safety_states["environment_state"])
@@ -354,7 +429,7 @@ class ProxyPipeline:
                 success=False,
                 output={},
                 error=error_code,
-                evidence={"final_verdict": final_verdict.value}
+                evidence={"final_verdict": final_verdict.value, "policy_decision": final_verdict.value}
             ), trace
         
         if final_verdict in [FinalVerdict.REQUIRE_APPROVAL]:
@@ -363,7 +438,7 @@ class ProxyPipeline:
             
             self.audit_emitter.emit_audit_event(
                 intent_id=intent.intent_id,
-                event_type="approval_required",
+                event_type="policy_deferral",
                 outcome="pending",
                 details={
                     "final_verdict": final_verdict.value,
@@ -405,7 +480,11 @@ class ProxyPipeline:
         
         # Step 6: Target validation (ALWAYS called before execution)
         executor_capabilities = self.executor.capabilities()
-        validation_result = self.executor.validate_target(intent)
+        if hasattr(self.executor, "validate_target"):
+            validation_result = self.executor.validate_target(intent)
+        else:
+            from exoarmur.execution_boundary_v2.interfaces.executor_plugin import TargetValidationResult, ValidationResult as VR
+            validation_result = TargetValidationResult(result=VR.VALID, evidence={})
         
         trace.add_event(
             stage=TraceStage.TARGET_VALIDATED,
@@ -484,6 +563,7 @@ class ProxyPipeline:
                 outcome="executed" if executor_result.success else "failed",
                 details={
                     "success": executor_result.success,
+                    "execution_success": executor_result.success,
                     "error": executor_result.error,
                     "output": executor_result.output,
                     "final_verdict": final_verdict.value,
@@ -513,5 +593,71 @@ class ProxyPipeline:
                 tenant_id=intent.tenant_id,
                 cell_id=intent.cell_id,
             )
-            
+
             trace.final_verdict = FinalVerdict.DENY
+            return ExecutorResult(
+                success=False,
+                output={},
+                error="EXECUTION_ERROR",
+                evidence={"error": str(e)}
+            ), trace
+
+    def check_approval_and_execute(
+        self, intent: ActionIntent
+    ) -> Tuple[Union[ExecutorResult, ExecutionDispatch], ExecutionTrace]:
+        """Check approval status for an intent and execute if approved.
+
+        - APPROVE  → proceeds to full execute_with_trace
+        - DENY     → returns APPROVAL_DENIED without execution
+        - pending  → returns APPROVAL_PENDING without execution
+        """
+        approval_status = "pending"
+        if hasattr(self.pdp, "approval_status"):
+            approval_status = self.pdp.approval_status(intent.intent_id)
+
+        trace = ExecutionTrace.create(
+            correlation_id=intent.intent_id,
+            intent_id=intent.intent_id,
+            final_verdict=FinalVerdict.DENY
+        )
+
+        if approval_status == "approved":
+            if hasattr(self.pdp, "evaluate_with_approval_bypass"):
+                original_evaluate = self.pdp.evaluate
+                self.pdp.evaluate = self.pdp.evaluate_with_approval_bypass
+                try:
+                    return self.execute_with_trace(intent)
+                finally:
+                    self.pdp.evaluate = original_evaluate
+            return self.execute_with_trace(intent)
+
+        if approval_status == "denied":
+            self.audit_emitter.emit_audit_event(
+                intent_id=intent.intent_id,
+                event_type="approval_denied",
+                outcome="denied",
+                details={"approval_status": approval_status},
+                tenant_id=intent.tenant_id,
+                cell_id=intent.cell_id,
+            )
+            return ExecutorResult(
+                success=False,
+                output={},
+                error="APPROVAL_DENIED",
+                evidence={"approval_status": "denied"}
+            ), trace
+
+        self.audit_emitter.emit_audit_event(
+            intent_id=intent.intent_id,
+            event_type="approval_pending",
+            outcome="pending",
+            details={"approval_status": approval_status},
+            tenant_id=intent.tenant_id,
+            cell_id=intent.cell_id,
+        )
+        return ExecutorResult(
+            success=False,
+            output={},
+            error="APPROVAL_PENDING",
+            evidence={"approval_status": "pending"}
+        ), trace

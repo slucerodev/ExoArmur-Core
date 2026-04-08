@@ -6,7 +6,7 @@ Execution dispatch tracking and status management.
 
 from enum import Enum
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 from exoarmur.clock import utc_now
 from exoarmur.ids import make_dispatch_id
@@ -28,12 +28,18 @@ class ExecutionDispatch(BaseModel):
     """Execution dispatch tracking record."""
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     
-    dispatch_id: str = Field(description="Dispatch identifier (deterministic ULID)")
+    dispatch_id: Optional[str] = Field(default=None, description="Dispatch identifier (deterministic ULID)")
     intent_id: str = Field(description="Associated intent identifier")
     status: DispatchStatus = Field(description="Current dispatch status")
     created_at: datetime = Field(description="Dispatch creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
     details: Optional[Dict[str, Any]] = Field(default=None, description="Additional dispatch details")
+
+    @model_validator(mode="after")
+    def _auto_dispatch_id(self) -> "ExecutionDispatch":
+        if self.dispatch_id is None:
+            object.__setattr__(self, "dispatch_id", make_dispatch_id(self.intent_id))
+        return self
 
     @classmethod
     def create(cls, intent_id: str, status: DispatchStatus = DispatchStatus.SUBMITTED,

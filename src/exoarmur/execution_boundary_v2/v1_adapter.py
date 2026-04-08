@@ -74,6 +74,16 @@ class V1AuditAdapter:
         )
         audit_hash = __import__('hashlib').sha256(canonical_json.encode()).hexdigest()
         
+        _event_kind_map = {
+            "action_executed": "execution",
+            "intent_executed": "execution",
+            "policy_denial": "policy_denial",
+            "policy_deferral": "policy_deferral",
+            "safety_gate_block": "safety_gate_block",
+            "approval_required": "approval_required",
+        }
+        normalized_event_kind = _event_kind_map.get(event_type, event_type)
+
         return AuditRecordV1(
             schema_version="1.0.0",
             audit_id=audit_id,
@@ -81,7 +91,7 @@ class V1AuditAdapter:
             cell_id=cell_id,
             idempotency_key=f"audit-{correlation_id}",
             recorded_at=utc_now(),
-            event_kind=event_type,
+            event_kind=normalized_event_kind,
             payload_ref={
                 "kind": "inline",
                 "ref": correlation_id,
@@ -158,7 +168,7 @@ class V1ExecutionIntentAdapter:
         
         return ExecutionIntentV1(
             schema_version="1.0.0",
-            intent_id=intent.intent_id,
+            intent_id=intent_id,
             tenant_id=intent.tenant_id or "default-tenant",
             cell_id=intent.cell_id or "default-cell",
             idempotency_key=f"intent-{intent.intent_id}",

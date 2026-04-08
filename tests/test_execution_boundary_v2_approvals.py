@@ -293,7 +293,7 @@ class TestApprovalIntegration:
                 return "fake-executor"
             def capabilities(self):
                 return {"actions": ["test"]}
-            def execute(self, intent):
+            def execute(self, intent, *args, **kwargs):
                 raise Exception("Should not be called")
         
         pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), V2AuditEmitter())
@@ -323,7 +323,7 @@ class TestApprovalIntegration:
                 return "fake-executor"
             def capabilities(self):
                 return {"actions": ["test"]}
-            def execute(self, intent):
+            def execute(self, intent, *args, **kwargs):
                 raise Exception("Should not be called")
         
         pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), V2AuditEmitter())
@@ -365,7 +365,7 @@ class TestApprovalIntegration:
                 return "fake-executor"
             def capabilities(self):
                 return {"actions": ["test"]}
-            def execute(self, intent):
+            def execute(self, intent, *args, **kwargs):
                 self.execute_called = True
                 from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
                 return ExecutorResult(success=True, output={"status": "success"}, error=None, evidence={})

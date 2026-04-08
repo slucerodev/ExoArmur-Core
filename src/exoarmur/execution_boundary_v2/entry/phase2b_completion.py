@@ -125,7 +125,11 @@ class Phase2BCompletion:
         assessment["bypass_paths_remain"] = (
             self._audit_results.get("bypass_surfaces", 0) > self._collapse_results.get("total_surfaces_collapsed", 0)
         )
-        
+
+        assessment["critical_bypasses_eliminated"] = (
+            assessment["critical_bypasses_before"] - critical_bypasses_remaining
+        )
+
         self._final_assessment = assessment
         
         logger.info(f"Single-spine assessment: {assessment['single_spine_achieved']}")
@@ -197,6 +201,11 @@ def get_phase2b_completion() -> Phase2BCompletion:
     if _phase2b_completion is None:
         _phase2b_completion = Phase2BCompletion()
     return _phase2b_completion
+
+def reset_phase2b_completion():
+    """Reset the global Phase 2B completion instance (for test isolation)"""
+    global _phase2b_completion
+    _phase2b_completion = None
 
 def execute_complete_phase2b() -> Dict[str, Any]:
     """

@@ -84,7 +84,7 @@ class FakeSafetyGate:
         self.rationale = rationale
         self.evaluate_called = False
     
-    def evaluate_safety(self, intent, local_decision, policy_state, trust_state, environment_state):
+    def evaluate_safety(self, intent, local_decision, collective_state, policy_state, trust_state, environment_state):
         from exoarmur.safety.safety_gate import SafetyVerdict
         
         self.evaluate_called = True
@@ -276,7 +276,7 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_success(sample_intent,
     # Verify audit record emitted
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "intent_executed"
+    assert audit_record.event_kind == "execution"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
     assert audit_record.payload_ref["details"]["success"] is True
 
@@ -311,7 +311,7 @@ def test_proxy_pipeline_allow_safety_gate_passes_executor_failure(sample_intent,
     # Verify audit record emitted with failure outcome
     assert len(audit_emitter.audit_records) == 1
     audit_record = audit_emitter.audit_records[0]
-    assert audit_record.event_kind == "intent_executed"
+    assert audit_record.event_kind == "execution"
     assert audit_record.payload_ref["ref"] == sample_intent.intent_id
     assert audit_record.payload_ref["details"]["success"] is False
     assert audit_record.payload_ref["details"]["error"] == "Connection timeout"

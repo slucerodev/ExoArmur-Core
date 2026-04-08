@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from exoarmur.replay.canonical_utils import canonical_json, stable_hash
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash, to_canonical_event
+from exoarmur.replay.event_envelope import CanonicalEvent
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayResult
 from exoarmur.spec.contracts.models_v1 import AuditRecordV1
 
@@ -67,7 +68,8 @@ def _sample_records() -> list[AuditRecordV1]:
 
 
 def _run_replay(records: list[AuditRecordV1]):
-    engine = ReplayEngine({CORRELATION_ID: records})
+    canonical = [CanonicalEvent(**to_canonical_event(r)) for r in records]
+    engine = ReplayEngine({CORRELATION_ID: canonical})
     return engine.replay_correlation(CORRELATION_ID)
 
 

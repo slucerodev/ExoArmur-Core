@@ -567,9 +567,13 @@ class ObservabilityPlaneManager:
             logger.info("Shutting down ObservabilityPlaneManager...")
             
             # Stop all planes
-            for plane_type, contexts in self._plane_contexts.items():
-                for context in contexts:
+            for plane_type, contexts in list(self._plane_contexts.items()):
+                for context in list(contexts):
                     self.destroy_plane(context)
+            
+            # Clear contexts to prevent accumulation across test runs
+            for plane_type in self._plane_contexts:
+                self._plane_contexts[plane_type].clear()
             
             logger.info("ObservabilityPlaneManager shutdown complete")
 

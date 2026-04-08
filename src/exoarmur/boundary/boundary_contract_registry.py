@@ -77,7 +77,7 @@ class SchemaFingerprint:
             is_mutable = not getattr(schema_obj, '__frozen__', False)
         
         # Generate fingerprint hash
-        fingerprint_data = f"{schema_name}:{domain.value}:{field_count}:{sorted(field_types.items())}:{is_mutable}"
+        fingerprint_data = f"{schema_name}:{field_count}:{sorted(field_types.items())}:{is_mutable}"
         fingerprint_hash = hashlib.sha256(fingerprint_data.encode()).hexdigest()
         
         return cls(
