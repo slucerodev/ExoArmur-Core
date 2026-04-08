@@ -71,7 +71,13 @@ class ExoArmurAPIHandler(SimpleHTTPRequestHandler):
     def serve_file(self, filename, content_type):
         """Serve a static file"""
         base_dir = Path(__file__).parent.resolve()
+        
+        # Sanitize filename to prevent path traversal
+        filename = Path(filename).name
+        
         file_path = (base_dir / filename).resolve()
+        
+        # Explicit containment check (Python 3.9+: is_relative_to, 3.8: try/except)
         try:
             file_path.relative_to(base_dir)
         except ValueError:
