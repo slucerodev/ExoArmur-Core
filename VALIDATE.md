@@ -35,7 +35,7 @@ Editable installs (`pip install -e .`) are supported for current development and
 exoarmur --version
 ```
 
-Expected result: `exoarmur, version 0.3.0`
+Expected result: `exoarmur, version 2.0.0`
 
 ## Step 4: Run Quickstart Replay Example
 
@@ -67,7 +67,7 @@ Expected output markers:
 - Import test passes: `python -c "import exoarmur"`
 
 ### CLI Functionality Success
-- `exoarmur --version` returns consistent version
+- `exoarmur --version` returns consistent version (2.0.0)
 - `exoarmur --help` shows all commands
 - Demo execution path produces the expected output markers
 
@@ -88,7 +88,7 @@ If all steps complete successfully:
 
 ```
 ✅ Installation: pip install . completed without errors
-✅ CLI Verification: exoarmur --version returns 0.3.0
+✅ CLI Verification: exoarmur --version returns 2.0.0
 ✅ Quickstart Replay: python examples/quickstart_replay.py succeeds
 ✅ Demo Execution: python examples/demo_standalone.py produces required markers and proof bundle
 ✅ Deterministic Output: All markers present and reproducible
