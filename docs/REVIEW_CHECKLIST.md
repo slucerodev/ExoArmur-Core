@@ -11,7 +11,7 @@ This checklist helps external reviewers efficiently evaluate ExoArmur Core for a
 - [ ] Import test passes: `python -c "import exoarmur"`
 
 ### CLI Functionality
-- [ ] `exoarmur --version` returns consistent version (0.3.0)
+- [ ] `exoarmur --version` returns consistent version (2.0.0)
 - [ ] `exoarmur --help` shows all expected commands
 - [ ] Demo command executes without errors
 - [ ] Health check completes successfully

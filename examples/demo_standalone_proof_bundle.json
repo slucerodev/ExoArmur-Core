@@ -6,9 +6,9 @@
     "approval_records": [],
     "audit_event_count": 0,
     "audit_stream_id": null,
-    "bundle_checksum": "4df318d131eba0a25cf221b719045d954a11092714bd1936fe64be000a678b67",
-    "bundle_created_at": "2026-04-08T16:47:55.451688+00:00",
-    "bundle_id": "6SYJCNR1BAH7Q714EF0MCXKYEN",
+    "bundle_checksum": "479a381f87d52b5723de78e8b4d1a8558a0d23afd79bc28ee3efbefc5388c813",
+    "bundle_created_at": "2026-04-09T10:26:05.915727+00:00",
+    "bundle_id": "2X8TWK5DASTXGZ5AR6A067YTEP",
     "bundle_version": "v1",
     "canonicalization_verified": false,
     "deterministic_ids": true,
@@ -17,12 +17,12 @@
       "audit_event_count": 0,
       "audit_stream_id": null,
       "bundle_id": null,
-      "correlation_id": "4JAAHEHEC6MXMBPE4BZ2WK4GXS",
+      "correlation_id": "2WDFZ69GT8G13M430KR6R5V2D1",
       "event_sequence": [
-        "2NPGETQ722R1FFYTPND6KPTAZH",
-        "7HT7F1D2TNQWPN63VQYEZQYR5S",
-        "4648ME9B5GK4XXBVJJQAPQM1D1",
-        "2QWXWYD0RZWRHTNJX960Z6NTPH"
+        "0YDMZYS6H27Q0Q2GH1R1SYC9GH",
+        "3BSMGXVZ5T447QS2W63GXK99XC",
+        "7WMPCJ9D1ZEDXCZP75MPCYXD5E",
+        "70EF013AMDPB851W5PJ36SPJXR"
       ],
       "events": [
         {
@@ -32,8 +32,8 @@
             "action_type": "file_delete",
             "target": "/tmp/exoarmur-demo-private/secret-exports/customer-records.csv"
           },
-          "event_hash": "727d0f282d2febef1c70e9a6a55803545e7a923ee6ca644db426ea1f3e11e547",
-          "event_id": "2NPGETQ722R1FFYTPND6KPTAZH",
+          "event_hash": "b9a773af8a32cfa4184fdc33d9cb78b29050221d7d8be22f4a52f152087b031a",
+          "event_id": "0YDMZYS6H27Q0Q2GH1R1SYC9GH",
           "ok": true,
           "parent_event_id": null,
           "sequence": 0,
@@ -45,10 +45,10 @@
           "details": {
             "approval_required": false,
             "confidence": 1.0,
-            "decision_id": "3AVT7QQ58DCM3V2XGBSBNJ5QZD"
+            "decision_id": "7RRH5CMJE5HJNVSBJ7Y1064JW6"
           },
-          "event_hash": "36058ff386d26bf86c0d21e1ed1e4f465c1a443a33a87def1bda42267880610e",
-          "event_id": "7HT7F1D2TNQWPN63VQYEZQYR5S",
+          "event_hash": "d6be0d5d438a57d9254aca10a5b8ec5a887812366731ecf1e6b1fb3a91260eae",
+          "event_id": "3BSMGXVZ5T447QS2W63GXK99XC",
           "ok": false,
           "parent_event_id": null,
           "sequence": 1,
@@ -60,8 +60,8 @@
           "details": {
             "skipped": "policy_deny_short_circuit"
           },
-          "event_hash": "68e565c08e0f86b532fac8ecb48871bfc91545038a94d15bdd7bf50cdcab358f",
-          "event_id": "4648ME9B5GK4XXBVJJQAPQM1D1",
+          "event_hash": "f7c40cdbde4176b82b8f259b6483bba6116bf96f238261ab023ad1891c50c724",
+          "event_id": "7WMPCJ9D1ZEDXCZP75MPCYXD5E",
           "ok": true,
           "parent_event_id": null,
           "sequence": 2,
@@ -73,8 +73,8 @@
           "details": {
             "final_verdict": "deny"
           },
-          "event_hash": "cdc41675f526880479b79782323a3e3d5f6f46702da283a961cd216446da16e8",
-          "event_id": "2QWXWYD0RZWRHTNJX960Z6NTPH",
+          "event_hash": "1ae8621819dad3b78326cf5b1593218d51bf184c55f60e5caa23e71a11edeb93",
+          "event_id": "70EF013AMDPB851W5PJ36SPJXR",
           "ok": true,
           "parent_event_id": null,
           "sequence": 3,
@@ -84,14 +84,14 @@
       "executor_trace": null,
       "final_verdict": "deny",
       "integrity_checksum": null,
-      "intent_id": "4JAAHEHEC6MXMBPE4BZ2WK4GXS",
+      "intent_id": "2WDFZ69GT8G13M430KR6R5V2D1",
       "policy_decision_id": null,
       "safety_verdict_id": null,
-      "trace_hash": "9d15221c37fcf26cf96731f766541b6430828d170a7b7a9c3d060d3047a768a6",
-      "trace_id": "1KAD4GC6SMPB3S1X8JJSRJ7AJJ",
+      "trace_hash": "08a167b92b43b6eec05fb8b35127ec3c8c6b3777c208844c705eadcac49fe158",
+      "trace_id": "30B6XGCNW0NKJ6VERZN3KNBBN3",
       "verdict_trace": {
         "final_verdict": "deny",
-        "policy_decision_id": "3AVT7QQ58DCM3V2XGBSBNJ5QZD",
+        "policy_decision_id": "7RRH5CMJE5HJNVSBJ7Y1064JW6",
         "policy_evidence": {},
         "policy_rationale": "SDK demonstration: All actions denied for safety",
         "policy_verdict": "deny",
@@ -127,7 +127,7 @@
       "actor_id": "demo-user",
       "actor_type": "human",
       "cell_id": "",
-      "intent_id": "4JAAHEHEC6MXMBPE4BZ2WK4GXS",
+      "intent_id": "2WDFZ69GT8G13M430KR6R5V2D1",
       "parameters": {
         "force": true
       },
@@ -138,13 +138,13 @@
     "policy_decision": {
       "approval_required": false,
       "confidence": 1.0,
-      "decision_id": "3AVT7QQ58DCM3V2XGBSBNJ5QZD",
+      "decision_id": "7RRH5CMJE5HJNVSBJ7Y1064JW6",
       "evidence": {},
       "metadata": {},
       "rationale": "SDK demonstration: All actions denied for safety",
       "verdict": "deny"
     },
-    "replay_hash": "b1ccc6209073d3f86a5317a58849b6eb69abe1f71e6523c3a8a013ad0870fa7d",
+    "replay_hash": "27d86c40b0102961c58ac7b9f65f62383e5f94693092b137fbcbf7ce03062a4f",
     "replay_verification_timestamp": null,
     "resolution_evidence": {},
     "safety_verdict": {
@@ -155,5 +155,5 @@
     "validation_evidence": {}
   },
   "final_verdict": "deny",
-  "written_at": "2026-04-08T16:47:55.452388+00:00"
+  "written_at": "2026-04-09T10:26:05.916402+00:00"
 }

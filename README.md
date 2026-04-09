@@ -69,7 +69,7 @@ python -m pytest tests/ \
   --ignore=tests/test_approval_wiring.py -q
 ```
 
-Current status: **967 passing core tests**
+Current status: **1026+ passing core tests**
 
 ## Guarantees / Invariants
 

@@ -3,7 +3,7 @@
 **Versioning**
 
 - Architecture / Contract: v1.0.0 (stable)
-- Package (pip): 0.3.0
+- Package (pip): 2.0.0
 
 ## 🚨 RUNTIME & ARTIFACTS POLICY
 
