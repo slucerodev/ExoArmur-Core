@@ -23,6 +23,22 @@ import inspect
 import os
 import random
 
+
+def _get_proxy_pipeline_execute():
+    try:
+        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+        return ProxyPipeline, getattr(ProxyPipeline, "execute", None)
+    except Exception:
+        return None, None
+
+
+@pytest.fixture(autouse=True)
+def _restore_proxy_pipeline_execute():
+    cls, original = _get_proxy_pipeline_execute()
+    yield
+    if cls is not None and original is not None:
+        cls.execute = original
+
 from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 # Sensitive test modules that require strict fixture scoping
