@@ -34,7 +34,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         # V2 capabilities require no additional pip extras.
         # They are activated via environment variables at runtime:
@@ -79,7 +79,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
     
@@ -117,7 +117,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 
@@ -153,7 +153,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 

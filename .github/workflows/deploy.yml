@@ -76,7 +76,7 @@ jobs:
 
     - name: Run full test suite
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
         pytest -q tests/test_v2_restrained_autonomy.py
@@ -108,7 +108,7 @@ jobs:
 
     - name: Install build dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 
@@ -155,13 +155,13 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 
     - name: Run dependency audit
       run: |
-        pip-audit --requirement requirements.lock --ignore-vuln CVE-2025-8869
+        pip-audit --requirement requirements.lock
 
     - name: Run SAST scan
       run: |
@@ -195,7 +195,7 @@ jobs:
 
     - name: Install twine
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 
@@ -226,7 +226,7 @@ jobs:
 
     - name: Install twine
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
 

@@ -44,7 +44,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install pytest==7.4.3 pytest-asyncio==0.21.1
         python -m pip install --no-deps -e .
@@ -84,7 +84,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install pytest==7.4.3 pytest-asyncio==0.21.1
         python -m pip install --no-deps -e .
@@ -118,7 +118,7 @@ jobs:
 
     - name: Build package
       run: |
-        python -m pip install --upgrade pip==24.0
+        python -m pip install --upgrade "pip>=26.0"
         python -m pip install -r requirements.lock
         python -m pip install --no-deps -e .
         python -m build
