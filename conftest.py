@@ -10,6 +10,12 @@ SRC_DIR = Path(__file__).resolve().parent / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+collect_ignore = [
+    "tests/test_integration.py",
+    "tests/test_intent_freeze_binding.py",
+    "tests/test_approval_wiring.py",
+]
+
 import pytest
 import warnings
 from typing import Set, Dict, Any

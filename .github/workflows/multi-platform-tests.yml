@@ -93,8 +93,9 @@ jobs:
         python -m pip install --no-deps -e .
 
     - name: Run API integration tests
+      continue-on-error: true
       run: |
-        python -m pytest -q tests/test_api_integration.py -v || echo "API integration tests not yet implemented"
+        python -m pytest -q tests/test_api_integration.py -v
 
     - name: Test plugin discovery
       run: |
