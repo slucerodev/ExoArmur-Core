@@ -151,7 +151,7 @@ def verify_all(verbose: bool, fast: bool):
         # 1. Full test suite (excluding integration tests that require Docker)
         if repo_tests_available:
             click.echo("1️⃣ Running full test suite...")
-            test_cmd = [sys.executable, "-m", "pytest", "tests/", "--ignore=tests/integration/", "--ignore=tests/test_integration.py", "--ignore=tests/test_intent_freeze_binding.py", "--ignore=tests/test_approval_wiring.py", "-x", "--tb=short"]
+            test_cmd = [sys.executable, "-m", "pytest", "tests/", "--ignore=tests/integration/", "-x", "--tb=short"]
             if verbose:
                 test_cmd.append("-v")
             

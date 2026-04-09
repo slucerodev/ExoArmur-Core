@@ -98,7 +98,7 @@ jobs:
 
     - name: Test plugin discovery
       run: |
-        python -c "from exoarmur.plugins.registry import PluginRegistry; registry = PluginRegistry(); providers = registry.discover_providers(); print(f'Plugin discovery works: {len(providers)} providers found')"
+        python -c "from exoarmur.plugins.registry import PluginRegistry; registry = PluginRegistry(); registry.discover_providers(); providers = registry.list_all_providers(); print(f'Plugin discovery works: {len(providers)} providers found')"
 
   build-and-package:
     name: Build & Package Test - ${{ matrix.os }}

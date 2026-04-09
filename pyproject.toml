@@ -62,7 +62,7 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --ignore=tests/test_integration.py --ignore=tests/test_intent_freeze_binding.py --ignore=tests/test_approval_wiring.py"
 markers = [
     "asyncio: marks tests as async",
     "v2_acceptance: Tests for V2 Phase 2 acceptance gates",

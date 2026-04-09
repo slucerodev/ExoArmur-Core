@@ -66,8 +66,7 @@ jobs:
           git status --porcelain || true
           python scripts/infra/stability_ci.py \
             --report-file "${{ runner.temp }}/stability-report.json" \
-            --run-report-dir "${{ runner.temp }}/stability-runs" \
-            --pytest-args --ignore=tests/test_integration.py --ignore=tests/test_intent_freeze_binding.py --ignore=tests/test_approval_wiring.py
+            --run-report-dir "${{ runner.temp }}/stability-runs"
           echo "=== AFTER PYTEST ==="
           git status --porcelain || true
 

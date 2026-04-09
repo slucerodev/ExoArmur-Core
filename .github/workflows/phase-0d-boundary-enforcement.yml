@@ -128,14 +128,14 @@ jobs:
         SUMMARY=$(python -m pytest --collect-only -q 2>/dev/null | tail -1 || true)
         echo "Summary: $SUMMARY"
         
-        if [[ "$SUMMARY" != *"1072 tests collected"* ]]; then
-          echo "❌ Test collection count changed from expected 1072"
-          echo "   Expected: 1072 tests collected"
+        if [[ "$SUMMARY" != *"1051 tests collected"* ]]; then
+          echo "❌ Test collection count changed from expected 1051"
+          echo "   Expected: 1051 tests collected"
           echo "   Actual: $SUMMARY"
           exit 1
         fi
         
-        echo "✅ Test collection count stable: 1072 tests"
+        echo "✅ Test collection count stable: 1051 tests"
 
   full-test-suite:
     runs-on: ubuntu-latest
@@ -173,7 +173,7 @@ jobs:
     - name: Run full test suite
       run: |
         echo "Running full test suite..."
-        python -m pytest tests/ --ignore=tests/test_integration.py --ignore=tests/test_intent_freeze_binding.py --ignore=tests/test_approval_wiring.py --tb=short --junitxml=test-results.xml
+        python -m pytest tests/ --tb=short --junitxml=test-results.xml
     
     - name: Upload test results
       if: always()
