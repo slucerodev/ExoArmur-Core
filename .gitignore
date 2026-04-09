@@ -116,6 +116,9 @@ snapshot_out/
 # OS / editor junk
 Thumbs.db
 
+# Generated demo artifacts (written by test_demo_standalone.py / demo_standalone.py)
+examples/demo_standalone_proof_bundle.json
+
 # Local development artifacts and backups
 restore_venv/
 mirror_test.py
