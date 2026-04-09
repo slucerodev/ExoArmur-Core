@@ -1,0 +1,18 @@
+name: ExoArmur CodeQL Config
+
+paths-ignore:
+  - scripts/experiments/**
+  - scripts/validation/**
+  - scripts/ai_agent_verification_server.py
+  - scripts/integrity_verification_server.py
+  - scripts/external_validation_server.py
+  - scripts/external_validation.py
+  - scripts/demo_web_server.py
+  - demos/**
+  - tools/**
+  - archive/**
+  - "**/_archive/**"
+  - venv_quickstart/**
+
+queries:
+  - uses: security-and-quality
