@@ -10,7 +10,7 @@ import sys
 import os
 import uuid
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path for imports
@@ -55,7 +55,7 @@ def main():
         
         # Step 2: Import existing public interfaces
         try:
-            from spec.contracts.models_v1 import AuditRecordV1
+            from exoarmur.replay.event_envelope import CanonicalEvent
             from exoarmur.replay.replay_engine import ReplayEngine
             print("✅ Core imports successful")
         except ImportError as e:
@@ -63,38 +63,40 @@ def main():
             print("Please ensure ExoArmur-Core is properly installed")
             return 1
         
-        # Step 3: Construct minimal valid telemetry input
+        # Step 3: Construct minimal valid canonical event
         try:
-            # Create minimal valid audit record with proper ULID
-            audit_id = generate_ulid()
+            event_id = generate_ulid()
             
-            audit_record = AuditRecordV1(
-                schema_version="1.0.0",
-                audit_id=audit_id,
+            import hashlib, json as _json
+            payload = {
+                "kind": "inline",
+                "ref": "quickstart_payload",
+                "tenant_id": tenant_id,
+                "cell_id": cell_id,
+            }
+            payload_json = _json.dumps(payload, sort_keys=True, separators=(",", ":"))
+            payload_hash = hashlib.sha256(payload_json.encode()).hexdigest()
+            
+            canonical_event = CanonicalEvent(
+                event_id=event_id,
+                event_type="quickstart_test",
+                actor="quickstart_runner",
+                correlation_id=correlation_id,
+                payload=payload,
+                payload_hash=payload_hash,
                 tenant_id=tenant_id,
                 cell_id=cell_id,
-                idempotency_key=f"quickstart_{correlation_id}",
-                recorded_at=datetime.now(),
-                event_kind="quickstart_test",
-                payload_ref={
-                    "kind": "inline",
-                    "ref": "quickstart_payload"
-                },
-                hashes={
-                    "sha256": "quickstart_hash_placeholder"
-                },
-                correlation_id=correlation_id,
-                trace_id=trace_id
+                trace_id=trace_id,
             )
-            print("✅ Audit record created")
+            print("✅ Canonical event created")
         except Exception as e:
-            print(f"❌ Audit record creation failed: {e}")
+            print(f"❌ Canonical event creation failed: {e}")
             return 1
         
         # Step 4: Execute through existing systems
         try:
             # Create replay engine with minimal store
-            audit_store = {correlation_id: [audit_record]}
+            audit_store = {correlation_id: [canonical_event]}
             intent_store = {}
             approval_service = None  # Not needed for quickstart
             

@@ -43,7 +43,7 @@ from exoarmur.execution_boundary_v2.models.policy_decision import (
     PolicyDecision,
     PolicyVerdict,
 )
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import AuditEmitter, ProxyPipeline
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import V2AuditEmitter, ProxyPipeline
 from exoarmur.execution_boundary_v2.utils.bundle_builder import build_execution_proof_bundle
 from exoarmur.safety.safety_gate import SafetyGate
 from exoarmur.replay.canonical_utils import to_canonical_event
@@ -171,6 +171,27 @@ class CanonicalAuditEmitter:
         
         return audit_record
 
+    def emit_audit_event(
+        self,
+        intent_id: str,
+        event_type: str,
+        outcome: str,
+        details: dict,
+        tenant_id: str,
+        cell_id: str,
+        correlation_id=None,
+        trace_id=None,
+    ):
+        """V2AuditEmitter-compatible interface used by ProxyPipeline."""
+        return self.emit_audit_record(
+            intent_id=intent_id,
+            event_type=event_type,
+            outcome=outcome,
+            details=details,
+            tenant_id=tenant_id,
+            cell_id=cell_id,
+        )
+
     def get_events(self) -> list:
         """Get all emitted events."""
         return self.events
@@ -228,7 +249,7 @@ def main():
         "intent_id": INTENT_ID,
         "action_type": malicious_intent.action_type,
         "target": malicious_intent.target,
-        "final_status": trace.final_status,
+        "final_status": trace.final_verdict.value,
         "events_count": len(trace.events),
     }
     canonical_json = json.dumps(bundle_data, sort_keys=True, separators=(",", ":"))
@@ -238,7 +259,7 @@ def main():
         "execution_proof": {
             "replay_hash": replay_hash,
             "intent": malicious_intent.model_dump(),
-            "trace_final_status": trace.final_status,
+            "trace_final_status": trace.final_verdict.value,
             "events_count": len(trace.events),
         },
         "audit_events": audit_events,
@@ -251,7 +272,7 @@ def main():
     
     # Extract key markers for verification
     replay_hash = proof_bundle.get("execution_proof", {}).get("replay_hash", "unknown")
-    demo_result = "DENIED" if trace.final_status in ["POLICY_DENIED", "DENIED"] else "ALLOWED"
+    demo_result = "DENIED" if trace.final_verdict.value in ["deny", "POLICY_DENIED", "DENIED"] else "ALLOWED"
     action_executed = "false"  # Policy denied, so no action executed
     
     print(f"Proof bundle replay hash: {replay_hash}")

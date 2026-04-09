@@ -26,7 +26,7 @@ class SystemClock:
     
     def now(self) -> datetime:
         """Get current time"""
-        return datetime.now()
+        return datetime.now(timezone.utc)
     
     def utc_now(self) -> datetime:
         """Get current UTC time"""

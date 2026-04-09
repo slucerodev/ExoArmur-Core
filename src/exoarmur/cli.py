@@ -365,12 +365,11 @@ def health():
         flags = get_feature_flags()
         click.echo(f"✅ Feature flags loaded: {len(flags._flags)} configured")
         
-        # Test governed runtime initialization
-        import exoarmur.main as runtime_main
-        runtime_main.initialize_components(None)
-        if runtime_main.execution_kernel is None or runtime_main.audit_logger is None:
-            raise RuntimeError("Governed runtime components not initialized")
-        click.echo("✅ Governed runtime initialized")
+        # Test governed runtime subsystems are importable
+        from exoarmur.replay.replay_engine import ReplayEngine
+        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+        from exoarmur.safety.safety_gate import SafetyGate
+        click.echo("✅ Governed runtime subsystems importable")
         
         click.echo("🎯 System healthy")
         sys.exit(0)

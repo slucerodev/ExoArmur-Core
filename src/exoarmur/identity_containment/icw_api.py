@@ -384,7 +384,7 @@ class IdentityContainmentAPI:
                     module_id=v2_core_types.ModuleID("icw_containment_executor"),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
                     deterministic_seed=v2_core_types.DeterministicSeed(hash(approval_id) % (2**63)),
-                    logical_timestamp=int(datetime.now().timestamp()),
+                    logical_timestamp=int(self.clock.now().timestamp()),
                     dependency_hash="icw_execution"
                 ),
                 action_data={
