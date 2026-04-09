@@ -33,10 +33,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12.3'
 
@@ -99,10 +99,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12.3'
 
@@ -146,10 +146,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12.3'
 
@@ -189,7 +189,7 @@ jobs:
         path: dist/
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12.3'
 
@@ -220,7 +220,7 @@ jobs:
         path: dist/
 
     - name: Set up Python 3.12
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12.3'
 
@@ -245,7 +245,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4

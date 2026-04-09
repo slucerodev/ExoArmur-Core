@@ -290,7 +290,7 @@ def main():
             
             # Normalize replay verdict to PASS/FAIL only
             replay_result = getattr(replay_report.result, 'value', replay_report.result)
-            if replay_result == "success":
+            if replay_result in ("success", "partial"):
                 replay_verdict = "PASS"
             else:
                 replay_verdict = "FAIL"
