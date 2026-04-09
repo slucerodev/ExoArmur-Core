@@ -7,6 +7,7 @@ Ensures the protocol enforcer failing set remains exactly bounded
 import subprocess
 import sys
 from pathlib import Path
+
 from typing import Set, Dict
 
 def load_known_failing() -> Set[str]:
@@ -44,7 +45,7 @@ def run_protocol_enforcer_tests() -> Dict[str, str]:
     print("🔍 Running protocol enforcer tests...")
     
     cmd = [
-        '.venv/bin/python', '-m', 'pytest',
+        sys.executable, '-m', 'pytest',
         'tests/test_protocol_enforcer.py',
         '--tb=no', '-q'
     ]

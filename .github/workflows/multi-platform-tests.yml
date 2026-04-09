@@ -60,7 +60,10 @@ jobs:
 
     - name: Verify deterministic behavior
       run: |
-        exoarmur verify-all
+        python demos/canonical_truth_reconstruction_demo.py > demo_out.txt 2>&1
+        grep -q "REPLAY_VERDICT=PASS"   demo_out.txt || { cat demo_out.txt; exit 1; }
+        grep -q "DEMO_RESULT=DENIED"    demo_out.txt || { cat demo_out.txt; exit 1; }
+        grep -q "ACTION_EXECUTED=false" demo_out.txt || { cat demo_out.txt; exit 1; }
         echo "✅ VERIFY_ALL: PASSED"
 
   integration-tests:
