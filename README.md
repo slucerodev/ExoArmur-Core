@@ -1,97 +1,148 @@
-# ExoArmur
+# ExoArmur Core
 
-**A deterministic execution governance substrate for AI systems that enforces verifiable causal integrity across decision and action pipelines.**
+[![CI](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml/badge.svg)](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml)
+[![PyPI](https://img.shields.io/pypi/v/exoarmur-core)](https://pypi.org/project/exoarmur-core/)
+[![Python](https://img.shields.io/pypi/pyversions/exoarmur-core)](https://pypi.org/project/exoarmur-core/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-green)](https://github.com/slucerodev/ExoArmur-Core/releases)
 
-## Problem Statement
+**Deterministic execution governance for AI agents.** Every action passes through a policy gate, produces a cryptographic audit trail, and is deterministically replayable.
 
-AI systems exhibit unpredictable execution behavior and lack auditable decision paths. The same input can produce different actions across runs, making it impossible to verify system behavior, debug failures, or prove compliance. This unpredictability creates fundamental trust issues in production environments where reproducible execution and audit trails are essential.
+---
 
-## What ExoArmur Is
+## 5-Minute Proof
 
-ExoArmur is a governance and execution control layer that creates deterministic, traceable AI system behavior. It enforces policy constraints, captures causal execution traces, and provides replayable execution logs for verification.
+```bash
+pip install exoarmur-core
+python examples/quickstart_replay.py
+```
 
-ExoArmur treats AI behavior as an executable, verifiable process rather than a black-box response system. Every action passes through a governed execution boundary that records intent, validates against constraints, and generates cryptographically verifiable audit trails.
+Or inline:
 
-## Core Capabilities
+```python
+from exoarmur import ReplayEngine
+from exoarmur.replay.event_envelope import CanonicalEvent
+import hashlib, json
 
-- **Controlled execution under policy constraints**: All AI actions validated against defined governance rules before execution
-- **Deterministic execution traces**: Causal ordering of system actions captured with cryptographic integrity
-- **Causal ordering of system actions**: Complete decision pipeline traceability from input to outcome
-- **Replayable execution for verification**: Exact reconstruction of execution behavior under identical conditions
-- **Audit-grade observability**: Complete decision pipeline visibility with tamper-evident records
+payload = {"kind": "quickstart", "ref": "demo"}
+event = CanonicalEvent(
+    event_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    event_type="quickstart_replay",
+    actor="demo",
+    correlation_id="corr-1",
+    payload=payload,
+    payload_hash=hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest(),
+)
+engine = ReplayEngine(audit_store={"corr-1": [event]})
+report = engine.replay_correlation("corr-1")
+print("Replay result:", getattr(report.result, "value", report.result))
+print("Failures:", report.failures or "none")
+```
 
-## Architecture
-
-### Core Engine (`src/exoarmur/`)
-Stable deterministic execution system with trace generation. Provides the foundation for governed execution, safety enforcement, and audit trail maintenance. All core functionality verified with comprehensive test coverage.
-
-### Experimental Layer (`src/exoarmur/execution_boundary_v2/`)
-Optional extensions strictly isolated behind feature flags. Tests advanced governance patterns including human approval gates and complex decision pipelines. Disabled by default.
-
-### Tooling Layer (`scripts/`, `demo/`)
-Demos, validation scripts, and test harnesses. Provides system validation, performance testing, and educational examples of governance patterns.
-
-## Quickstart
+Run the full suite (1033 tests, three-run stability gate):
 
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core.git
 cd ExoArmur-Core
-./scripts/quickstart.sh
+pip install ".[dev]"
+python -m pytest -q
 ```
+
+---
+
+## What It Does
+
+ExoArmur sits between your AI decision layer and execution targets. It enforces that every action:
+
+- Passes a **policy decision point** before it runs
+- Produces a **cryptographic audit trail** tied to the original intent
+- Is **deterministically replayable** — same inputs always reconstruct the same trace
+- Can be **vetoed or queued** for operator approval
+
+```
+Decision Source → ActionIntent → PolicyDecisionPoint → SafetyGate → [Approval?] → Executor → ExecutionProofBundle
+```
+
+## What It Is Not
+
+- Not an LLM or agent framework
+- Not a general workflow engine
+- Not a distributed systems platform
+
+ExoArmur is a **governance and accountability layer** that wraps whatever agent framework you already use.
+
+## Architecture
+
+| Layer | Path | Purpose |
+|---|---|---|
+| Core engine | `src/exoarmur/` | Deterministic replay, audit, policy enforcement |
+| V2 governance | `src/exoarmur/execution_boundary_v2/` | ProxyPipeline, approval workflow, executor boundary |
+| Contracts | `spec/contracts/` | Immutable V1 data shapes |
+| Examples | `examples/` | Quickstart and demo scripts |
+
+**Key invariants:**
+- ProxyPipeline is the sole execution boundary — all actions route through it
+- Executors are sandboxed, untrusted plugins
+- Determinism is enforced by CI — three-run stability gate on every push
+- V1 contracts are immutable — new capabilities are additive and feature-flag gated
+
+### Feature Flags
+
+V2 capabilities default to **off**:
+
+| Flag | Purpose |
+|---|---|
+| `EXOARMUR_FLAG_V2_FEDERATION_ENABLED` | Multi-cell coordination |
+| `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | Governance control plane |
+| `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | Human approval gate |
+
+## Governance Pipeline Demo
 
 ```bash
-exoarmur demo --scenario canonical
+EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
+EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
+EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
+python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
 ```
+
+Expected output:
+```
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=det-...
+```
+
+Replay the audit stream:
+```bash
+python scripts/demo_v2_restrained_autonomy.py --replay <AUDIT_STREAM_ID>
+```
+
+## CI
+
+Every push runs:
+- **Core Invariant Gates** — three deterministic test runs, boundary enforcement, repo cleanliness
+- **Multi-Platform Tests** — Python 3.8–3.12 on Linux, macOS, Windows
+- **Security Scan** — CodeQL + pip-audit
+- **V2 Demo Smoke Test** — full governance pipeline end-to-end
+
+Current: **1033 passing, 11 skipped, 11 xfailed**. No external infrastructure required for the core suite.
+
+## Live Demo (Requires NATS JetStream)
 
 ```bash
-exoarmur proof
+docker compose up -d
+EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 ```
 
-## Demo Flow
+## Documentation
 
-1. **Initialize system**: Load governance rules and establish execution boundary
-2. **Run canonical scenario**: Execute controlled AI actions under policy constraints
-3. **Inspect execution trace**: Review causal ordering and decision validation
-4. **Verify replay consistency**: Confirm deterministic behavior under identical conditions
-
-## Test Suite Status
-
-Core governance and replay tests run without any external infrastructure.
-
-Integration tests require a live NATS JetStream instance (Docker).
-
-Run core tests only:
-```bash
-python -m pytest tests/ \
-  --ignore=tests/integration/ \
-  --ignore=tests/test_integration.py \
-  --ignore=tests/test_intent_freeze_binding.py \
-  --ignore=tests/test_approval_wiring.py -q
-```
-
-Current status: **1026+ passing core tests**
-
-## Guarantees / Invariants
-
-- **Execution traces are reconstructible** under identical inputs and constraints
-- **System preserves causal ordering** of all actions and decisions
-- **Execution is fully auditable** after completion with cryptographic proofs
-- **Replay produces verifiable deterministic behavior** under defined conditions
-
-## Positioning / System Class
-
-ExoArmur is an execution governance substrate that provides deterministic control plane capabilities for AI systems. It operates as a causal trace and verification layer, ensuring that AI system behavior is reproducible, auditable, and verifiable under defined governance constraints.
-
-## System Positioning
-
-ExoArmur is a deterministic execution safety substrate that provides byte-for-byte reproducible execution guarantees for AI agent systems through causal traceability and safety gate enforcement.
-
-**Core Identity**: Deterministic layer that ensures identical execution across environments
-**Trust Primitive**: Proof Mode provides verifiable deterministic validation  
-**Boundaries**: Core engine (stable implementation) vs V2 experimental features
-**Guarantees**: Byte-for-byte execution, complete audit trails, safety gate enforcement
-
-[See detailed positioning](docs/POSITIONING.md)
+- [Architecture](docs/ARCHITECTURE_SIMPLE.md)
+- [Design Principles](docs/DESIGN_PRINCIPLES.md)
+- [Validation Guide](VALIDATE.md)
+- [Phase Status](docs/PHASE_STATUS.md)
+- [Whitepaper](docs/EXOARMUR_WHITEPAPER.md)
 
 ## License
 
@@ -109,4 +160,4 @@ limitations under the License.
 
 ## Contributing
 
-[Contributing guidelines]
+Issues and PRs welcome. All contributions must pass the full gate suite including the three-run stability check (`python scripts/infra/stability_ci.py`).
