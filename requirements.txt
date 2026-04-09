@@ -6,7 +6,7 @@ certifi==2026.2.25
 cffi==2.0.0
 click==8.3.1
 coverage==7.13.5
-cryptography==46.0.6
+cryptography==46.0.7
 # Editable Git install with no remote (exoarmur-bft==0.1.0)
 -e /home/oem/CascadeProjects/exoarmur-bft
 -e git+https://github.com/slucerodev/ExoArmur-Core.git@e41ce7bbbf20782ba2c12abd9c3187ddfcdd621b#egg=exoarmur_core
