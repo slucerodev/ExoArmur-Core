@@ -84,6 +84,7 @@ coverage.json
 GOVERNANCE_HEALTH_REPORT.md
 9159
 stability_report.json
+.stability-runs/
 
 # Documentation Build
 docs/_build/
