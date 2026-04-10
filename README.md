@@ -140,9 +140,9 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 
 - [Architecture](docs/ARCHITECTURE_SIMPLE.md)
 - [Design Principles](docs/DESIGN_PRINCIPLES.md)
-- [Validation Guide](VALIDATE.md)
+- [Validation Guide](docs/VALIDATE.md)
 - [Phase Status](docs/PHASE_STATUS.md)
-- [Whitepaper](docs/EXOARMUR_WHITEPAPER.md)
+- [Whitepaper](docs/EXOARMUR_SYSTEMS_PAPER.md)
 
 ## License
 
