@@ -23,7 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade "pip>=26.0"
           python -m pip install -r requirements.lock
-          python -m pip install --no-deps -e .
+          python -m pip install -e ".[dev]"
 
       - name: Check tag matches pyproject.toml version
         run: |
