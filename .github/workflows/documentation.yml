@@ -148,6 +148,10 @@ jobs:
     needs: [build-docs, validate-examples, check-links]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
     steps:
     - name: Download documentation artifacts
       uses: actions/download-artifact@v4
@@ -155,16 +159,18 @@ jobs:
         name: documentation
         path: docs/_build/html/
 
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/_build/html
-        destination_dir: docs
+        path: docs/_build/html/
+
+    - name: Deploy to GitHub Pages
+      id: deploy
+      uses: actions/deploy-pages@v4
 
     - name: Create documentation summary
       run: |
         echo "## 📚 Documentation Deployed Successfully" >> $GITHUB_STEP_SUMMARY
-        echo "- **URL**: https://slucerodev.github.io/ExoArmur-Core/docs/" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Version**: Latest from main branch" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: Production documentation" >> $GITHUB_STEP_SUMMARY
