@@ -28,6 +28,8 @@ class EventTypePriority(Enum):
     INTENT_EXECUTED = 6
     APPROVAL_APPROVED = 7
     APPROVAL_DENIED = 8
+    BELIEF_CREATION_STARTED = 9
+    BELIEF_CREATED = 10
     
     @classmethod
     def get_priority(cls, event_type: str) -> int:
