@@ -155,11 +155,16 @@ def verify_all(verbose: bool, fast: bool):
             if verbose:
                 test_cmd.append("-v")
             
-            result = subprocess.run(test_cmd, cwd=repo_root)
-            if result.returncode != 0:
+            try:
+                result = subprocess.run(test_cmd, cwd=repo_root, timeout=300)
+            except subprocess.TimeoutExpired:
+                click.echo("❌ Test suite timed out (300s limit)")
+                exit_code = 1
+                result = None
+            if result is not None and result.returncode != 0:
                 click.echo("❌ Test suite failed")
                 exit_code = 1
-            else:
+            elif result is not None:
                 click.echo("✅ Test suite passed")
         else:
             click.echo("1️⃣ Running installed-package import sanity check...")
@@ -194,11 +199,16 @@ def verify_all(verbose: bool, fast: bool):
             if verbose:
                 boundary_cmd.append("-v")
             
-            result = subprocess.run(boundary_cmd, cwd=repo_root)
-            if result.returncode != 0:
+            try:
+                result = subprocess.run(boundary_cmd, cwd=repo_root, timeout=120)
+            except subprocess.TimeoutExpired:
+                click.echo("❌ Boundary gate timed out (120s limit)")
+                exit_code = 1
+                result = None
+            if result is not None and result.returncode != 0:
                 click.echo("❌ Boundary gate failed")
                 exit_code = 1
-            else:
+            elif result is not None:
                 click.echo("✅ Boundary gate passed")
         elif not repo_tests_available:
             click.echo("\n2️⃣ Skipping boundary gate (repo-local tests are unavailable in installed package mode)")
