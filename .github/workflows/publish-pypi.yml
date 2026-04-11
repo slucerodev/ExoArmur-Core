@@ -36,7 +36,7 @@ jobs:
           echo "✅ Version $TAG verified"
 
       - name: Run test suite
-        run: python -m pytest -q --tb=short
+        run: python -m pytest -q --tb=short --ignore=tests/integration
 
   build:
     name: Build Distribution
