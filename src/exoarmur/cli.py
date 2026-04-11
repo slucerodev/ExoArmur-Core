@@ -171,7 +171,7 @@ def verify_all(verbose: bool, fast: bool):
             import_cmd = [
                 sys.executable,
                 "-c",
-                "import exoarmur; from exoarmur.demo_v2_restrained_autonomy import run_demo_scenario; print('✅ Installed package imports successful')",
+                "import exoarmur; from exoarmur.sdk import run_governed_execution, verify_governance_integrity, replay_governed_execution; print('✅ Installed package imports successful')",
             ]
             result = subprocess.run(
                 import_cmd,
