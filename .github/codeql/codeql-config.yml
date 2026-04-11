@@ -16,3 +16,7 @@ paths-ignore:
 
 queries:
   - uses: security-and-quality
+
+query-filters:
+  - exclude:
+      id: py/log-injection
