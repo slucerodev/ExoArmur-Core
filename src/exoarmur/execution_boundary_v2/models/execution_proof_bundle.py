@@ -161,21 +161,35 @@ class ExecutionProofBundle(BaseModel):
             import json
             import hashlib
             
-            # Create canonical representation
+            # Must match the serialization used by create()
+            def serialize_datetime(obj):
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                elif hasattr(obj, 'value'):
+                    return obj.value
+                elif isinstance(obj, dict):
+                    return {k: serialize_datetime(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [serialize_datetime(item) for item in obj]
+                else:
+                    return obj
+            
+            # Create canonical representation (must match create() exactly)
             canonical_data = {
+                "schema_version": self.schema_version,
                 "bundle_version": self.bundle_version,
-                "intent": self.intent,
-                "policy_decision": self.policy_decision,
-                "safety_verdict": self.safety_verdict,
+                "intent": serialize_datetime(self.intent),
+                "policy_decision": serialize_datetime(self.policy_decision),
+                "safety_verdict": serialize_datetime(self.safety_verdict),
                 "final_verdict": self.final_verdict.value,
-                "approval_records": self.approval_records,
-                "execution_trace": self.execution_trace,
-                "executor_result": self.executor_result,
-                "governance_evidence": self.governance_evidence,
-                "resolution_evidence": self.resolution_evidence,
-                "executor_capabilities": self.executor_capabilities,
-                "validation_evidence": self.validation_evidence,
-                "executor_failure_evidence": self.executor_failure_evidence,
+                "approval_records": serialize_datetime(self.approval_records),
+                "execution_trace": serialize_datetime(self.execution_trace),
+                "executor_result": serialize_datetime(self.executor_result),
+                "governance_evidence": serialize_datetime(self.governance_evidence),
+                "resolution_evidence": serialize_datetime(self.resolution_evidence),
+                "executor_capabilities": serialize_datetime(self.executor_capabilities),
+                "validation_evidence": serialize_datetime(self.validation_evidence),
+                "executor_failure_evidence": serialize_datetime(self.executor_failure_evidence),
             }
             
             # Generate canonical hash
