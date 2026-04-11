@@ -1,123 +1,198 @@
 # ExoArmur Phase Status
 
-This document is a historical implementation snapshot and should not be treated as the authoritative current-state status of `main`.
+**Last Updated**: April 11, 2026
+**Current Version**: 2.0.2 (published to PyPI)
+**Test Suite**: 1,027 passed · 10 skipped · 11 xfailed · 0 failures
 
-## Historical Implementation Status (Snapshot Date: 2025-01-25)
+---
 
-### ✅ Phase 2A: Threat Classification (COMPLETE)
-**Status**: Fully implemented and tested
-**Git SHA**: 722074d
+## ✅ Phase 1: V1 Core Pipeline (COMPLETE — LOCKED)
 
-**Implemented Capabilities**:
-- **Threat Classification Decision Engine**: Decision-only autonomous capability with three outcomes (IGNORE/SIMULATE/ESCALATE)
-- **Identity Session Containment**: All autonomous decisions scoped within strict session boundaries
-- **Feature Flag Isolation**: V2 features disabled by default, require explicit environment variable enablement
-- **Constitutional Compliance**: All decisions made under governance with complete deterministic transcripts
-- **Binary Green Test Lane**: 442 total tests passing with V1 immutability maintained
+**Status**: Fully implemented, tested, and permanently locked.
 
-**Test Results**:
-- **20/20** Phase 2A threat classification tests passing
-- **356/356** V1 tests remaining binary green (no regressions)
-- **66/66** integration and boundary tests passing
-- **Constitutional invariants** enforced across all components
+- Deterministic cognition pipeline: `TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1`
+- V1 contract models locked in `spec/contracts/models_v1.py` — immutable by policy
+- Cryptographic proof bundles (`ExecutionProofBundle`) with SHA-256 replay hash verification
+- SDK public API: `run_governed_execution`, `verify_governance_integrity`, `replay_governed_execution`
+- CLI: `exoarmur verify-all`, `exoarmur demo`, `exoarmur proof`, `exoarmur health`, `exoarmur evidence`
+- Published to PyPI: `pip install exoarmur-core`
 
-**Constitutional Constraints Enforced**:
-- Never modify V1 runtime behavior
-- Never weaken existing tests
-- Never expand autonomy beyond session containment
-- Always emit decision transcripts
-- Always preserve determinism
-- Always respect safety kernel supremacy
+**V1 is immutable. No changes to the V1 pipeline are permitted under any circumstances.**
 
-### 🚫 NOT IMPLEMENTED
-The following capabilities are explicitly **NOT** implemented in this snapshot:
+---
 
-**Federation Foundation (Phase 2)**:
-- Handshake protocol for multi-cell coordination
-- Cross-cell identity management
-- Federation message security
-- Multi-cell replay protection
+## ✅ Phase 2A: Threat Classification (COMPLETE)
 
-**Coordination Visibility (Phase 2B)**:
-- Observation ingestion across cells
-- Cross-cell belief aggregation
-- Federation visibility APIs
-- Conflict detection across cells
+**Status**: Fully implemented and tested.
 
-**Arbitration (Phase 2C)**:
-- Human-in-the-loop conflict resolution
-- Multi-cell arbitration workflows
-- Cross-cell belief reconciliation
+- Threat Classification Decision Engine — three outcomes: `IGNORE / SIMULATE / ESCALATE`
+- Identity Session Containment — all decisions scoped within strict session boundaries
+- Restrained autonomy pipeline (`v2_restrained_autonomy/`)
+- Feature flagged: `EXOARMUR_FLAG_V2_THREAT_CLASSIFICATION_ENABLED` (default `false`)
+- Constitutional compliance — all decisions under governance with deterministic transcripts
 
-**Execution & Enforcement (Phase 3)**:
-- Safety gate execution beyond V1
-- Control plane approval workflows
-- Policy engine beyond V1 constraints
-- Collective confidence across cells
+---
 
-**Advanced Capabilities (Phase 4)**:
-- Machine learning analysis
-- Advanced automation
+## ✅ Phase 2B: Federation Foundation & Coordination Visibility (COMPLETE)
+
+**Status**: Fully implemented and tested. Source verified April 2026.
+
+**Implemented** (30 source files in `federation/`):
+- Handshake protocol: `handshake_controller.py`, `handshake_state_machine.py`, `identity_handshake_state_machine.py`
+- Federation identity management: `federation_identity_manager.py`, `federate_identity_store.py`, `federation_identity_v2.py`
+- Message security (`federation/crypto.py`): signed messages, nonce reuse rejection, timestamp skew enforcement
+- Coordination state machine: `coordination/coordination_state_machine.py`
+- Federation coordination manager: `coordination/federation_coordination_manager.py`
+- Belief aggregation: `belief_aggregation.py` (481 lines) — deterministic observation-to-belief aggregation
+- Conflict detection: `conflict_detection.py` (371 lines)
+- Visibility API: `visibility_api.py` (438 lines)
+- Audit emitters: `coordination_audit_emitter.py`, `identity_audit_emitter.py`
+- Protocol enforcement: `protocol_enforcer.py`
+- Feature flagged: `EXOARMUR_FLAG_V2_FEDERATION_ENABLED` (default `false`)
+
+**One remaining gap**:
+- `CrossCellAggregator` class — cross-cell aggregation API descoped from Phase 2A, not yet promoted. Two tests skipped pending this: `test_cross_cell_belief_aggregation`, `test_federation_audit_trail`.
+
+**Test results**: 91 passed · 2 skipped · 1 xfailed (strict acceptance gate)
+
+---
+
+## ✅ Phase 2C: Arbitration (COMPLETE)
+
+**Status**: Fully implemented and tested.
+
+- Arbitration service: `federation/arbitration_service.py` (435 lines)
+- Arbitration store: `federation/arbitration_store.py`
+- Human-in-the-loop — resolution requires explicit human approval before applying
+- Post-approval belief state correctly updated and auditable
+- Replay verification — arbitration decisions reproducible via replay engine
+- V1 compatibility preserved — arbitration is fully additive
+- Feature flagged, disabled by default
+
+**Test results** (`test_arbitration.py`): 7/7 passing including conflict detection, approval gating, resolution, replay, and feature flag isolation.
+
+---
+
+## 🔄 Phase 3: Control Plane & Execution Enforcement (PARTIAL)
+
+**Status**: Infrastructure scaffolded. Acceptance gates are xfailed pending full implementation.
+
+**What exists**:
+- `control_plane/control_api.py` (200 lines) — federation-aware control API
+- `control_plane/approval_service.py` (316 lines) — approval workflow service
+- `control_plane/operator_interface.py` — operator interface
+- `control_plane/intent_store.py` — intent persistence
+- Feature flags: `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED`, `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED`
+
+**What is NOT yet implemented**:
+- Operator authentication (real, not stub)
+- Full A3 approval workflow end-to-end
+- Emergency override procedure
+- Control plane API fully wired and tested
+- Federation approval coordination across cells
+- Web UI / dashboard
+- REST API for external system integration
+- Interactive replay via HTTP
+
+**Acceptance gates** (xfailed — will be promoted when implemented):
+- `test_operator_authentication`
+- `test_a3_approval_workflow`
+- `test_operator_authorization_levels`
+- `test_emergency_override_procedure`
+- `test_control_plane_api_functionality`
+- `test_federation_approval_coordination`
+
+---
+
+## ⬜ Phase 4: Advanced Capabilities (NOT STARTED)
+
+**Status**: Not started. No implementation files exist.
+
+**Planned**:
+- Machine learning analysis for anomaly detection
+- Advanced automation beyond rule-based governance
 - Extended defensive measures
+- Cross-cell collective confidence with ML weighting
+
+---
 
 ## Feature Flag Matrix
 
 | Flag | Default | Purpose | Status |
 |------|---------|---------|--------|
-| `EXOARMUR_FLAG_V2_THREAT_CLASSIFICATION_ENABLED` | `false` | Enables Phase 2A threat classification | IMPLEMENTED |
-| `EXOARMUR_FLAG_V2_RESTRAINED_AUTONOMY_ENABLED` | `false` | Legacy compatibility flag for the restrained-autonomy path | IMPLEMENTED |
+| `EXOARMUR_FLAG_V2_THREAT_CLASSIFICATION_ENABLED` | `false` | Phase 2A threat classification | ✅ Complete |
+| `EXOARMUR_FLAG_V2_RESTRAINED_AUTONOMY_ENABLED` | `false` | Restrained autonomy path | ✅ Complete |
+| `EXOARMUR_FLAG_V2_FEDERATION_ENABLED` | `false` | Phase 2B federation layer | ✅ Complete |
+| `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | `false` | Phase 3 control plane | 🔄 Partial |
+| `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | `false` | Phase 3 operator approval | 🔄 Partial |
+
+---
 
 ## Architecture Boundaries
 
-### V1 Core (Locked)
-The V1 cognition pipeline remains locked by repository policy and regression gates:
+### V1 Core (Locked — Immutable)
 ```
 TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1
 ```
 
-### V2 Additive Layer (Phase 2A Only)
-V2 provides only threat classification decision capability:
-- **Decision-only**: No execution authority
-- **Session-contained**: Authority limited to session scope
-- **Feature-flagged**: Disabled by default
-- **Constitutional**: All decisions under governance
+### V2 Additive Layers (Feature-flagged, default OFF)
+```
+V1 Pipeline (unchanged)
+  └── Phase 2A: Threat Classification (decision-only, session-contained)
+  └── Phase 2B: Federation (handshake, identity, coordination, belief aggregation, conflict detection)
+  └── Phase 2C: Arbitration (human-in-the-loop resolution)
+  └── Phase 3: Control Plane (partial — approval service, operator interface)
+  └── Phase 4: Advanced Capabilities (not started)
+```
 
-## Test Coverage Summary
+---
 
-- **Total Tests**: 442
-- **Passing**: 442 (100%)
-- **Skipped**: 2
-- **Expected Failures**: 12
-- **V1 Binary Green**: 356/356 tests
-- **Phase 2A Specific**: 20/20 tests
-- **Integration/Boundary**: 66/66 tests
+## Test Coverage Summary (April 2026)
+
+| Metric | Count |
+|--------|-------|
+| Total passing | 1,027 |
+| Skipped (infra/env dependent) | 10 |
+| Expected failures (acceptance gates) | 11 |
+| Failures | 0 |
+
+**Skipped tests** (by reason):
+- `test_cross_cell_belief_aggregation`, `test_federation_audit_trail` — `CrossCellAggregator` not yet implemented
+- Filesystem executor integration — requires live filesystem sandbox
+- Golden demo JetStream — requires live NATS JetStream
+- Plugin registry pod provider — requires runtime plugin loading
+
+**xfailed tests** (acceptance gates, not regressions):
+- Federation formation strict acceptance gate
+- Operator approval workflow suite (Phase 3 gate)
+- Golden demo mock (requires live NATS, mock is not acceptance)
+
+---
 
 ## Safety Guarantees
 
-- **V1 Contract Locking**: Zero changes to V1 runtime behavior
+- **V1 Contract Locking**: Zero changes to V1 runtime behavior — enforced by CI
 - **Test Integrity**: No weakening or removal of existing tests
 - **Boundary Enforcement**: Strict isolation between V1 and V2 components
 - **Deterministic Behavior**: All decisions reproducible with complete audit trails
-- **Feature Flag Safety**: V2 features inert when disabled
+- **Feature Flag Safety**: All V2 features inert when disabled
 
-## What ExoArmur Is (Current Snapshot)
+---
 
-ExoArmur is a constitutional autonomous defense system with:
-- Locked V1 cognition pipeline
-- Decision-only threat classification (Phase 2A)
-- Strict feature flag controls
-- Complete audit trails
-- Deterministic replay capability
-- Binary green test compliance
+## What ExoArmur Is (April 2026)
 
-## What ExoArmur Is Not (Current Snapshot)
+- Locked V1 cognition pipeline — published, tested, immutable
+- Phase 2A threat classification — complete, feature-flagged
+- Phase 2B federation layer — complete, feature-flagged
+- Phase 2C human-in-the-loop arbitration — complete, feature-flagged
+- Phase 3 control plane — partial infrastructure, acceptance gates pending
+- Published on PyPI: `exoarmur-core 2.0.2`
+- Installable via `pipx install exoarmur-core`
 
-ExoArmur is **NOT**:
-- A multi-cell federation system
-- A distributed coordination platform  
-- An execution engine beyond V1
-- A learning or adaptive system
-- A production deployment platform
-- A complete autonomous defense solution
+## What ExoArmur Is Not (April 2026)
 
-This snapshot represents ExoArmur as implemented on the snapshot date above, with no speculative or future-facing capabilities.
+- Does **not** have a web UI or dashboard (Phase 3 gap)
+- Does **not** expose a REST API for external systems (Phase 3 gap)
+- Does **not** have a fully operational control plane (Phase 3 incomplete)
+- Does **not** implement ML-based analysis (Phase 4 not started)
+- Is **not** a consumer product — it is a developer governance library
