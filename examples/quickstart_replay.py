@@ -17,13 +17,13 @@ except ImportError:  # pragma: no cover - convenience for local example run
 
 def build_minimal_event() -> CanonicalEvent:
     """Construct the smallest valid CanonicalEvent instance."""
-    payload = {"kind": "quickstart", "ref": "replay-demo"}
+    payload = {"kind": "inline", "ref": {"event_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}}
     payload_hash = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     return CanonicalEvent(
         event_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
-        event_type="quickstart_replay",
+        event_type="belief_creation_started",
         actor="quickstart_runner",
         correlation_id="corr-1",
         payload=payload,

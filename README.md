@@ -24,10 +24,10 @@ from exoarmur import ReplayEngine
 from exoarmur.replay.event_envelope import CanonicalEvent
 import hashlib, json
 
-payload = {"kind": "quickstart", "ref": "demo"}
+payload = {"kind": "inline", "ref": {"event_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}}
 event = CanonicalEvent(
     event_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
-    event_type="quickstart_replay",
+    event_type="belief_creation_started",
     actor="demo",
     correlation_id="corr-1",
     payload=payload,
