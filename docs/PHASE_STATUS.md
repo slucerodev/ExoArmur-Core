@@ -1,8 +1,8 @@
 # ExoArmur Phase Status
 
-**Last Updated**: April 11, 2026
-**Current Version**: 2.0.2 (published to PyPI)
-**Test Suite**: 1,027 passed · 10 skipped · 11 xfailed · 0 failures
+**Last Updated**: April 12, 2026
+**Current Version**: 2.1.0 (published to PyPI)
+**Test Suite**: 1,039 passed · 11 skipped · 3 xfailed · 0 failures
 
 ---
 
@@ -73,34 +73,30 @@
 
 ---
 
-## 🔄 Phase 3: Control Plane & Execution Enforcement (PARTIAL)
+## ✅ Phase 3: Control Plane & Execution Enforcement (COMPLETE)
 
-**Status**: Infrastructure scaffolded. Acceptance gates are xfailed pending full implementation.
+**Status**: Fully implemented and tested. All 6 acceptance gates passing.
 
-**What exists**:
-- `control_plane/control_api.py` (200 lines) — federation-aware control API
-- `control_plane/approval_service.py` (316 lines) — approval workflow service
-- `control_plane/operator_interface.py` — operator interface
-- `control_plane/intent_store.py` — intent persistence
+**Implemented**:
+- `control_plane/operator_interface.py` — Operator authentication with certificate validation, deterministic session management, clearance hierarchy (`supervisor` < `admin` < `superuser`), permission checking, emergency access escalation, audit trail
+- `control_plane/approval_service.py` — A3 approval workflow (submit → pending → approve/deny), authorization enforcement with risk-clearance thresholds (0.7/0.9/1.0), emergency override requests, wired to operator interface for real authorization
+- `control_plane/control_api.py` — Federation-aware control plane API: federation status, pending approvals, health metrics, audit events, federation join/members, wired to backing services
+- `control_plane/intent_store.py` — Intent persistence with deterministic hashing
+- Phase Gate enforcement: `EXOARMUR_PHASE=2` required for enabled behavior; Phase 1 isolation fully preserved
 - Feature flags: `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED`, `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED`
 
-**What is NOT yet implemented**:
-- Operator authentication (real, not stub)
-- Full A3 approval workflow end-to-end
-- Emergency override procedure
-- Control plane API fully wired and tested
-- Federation approval coordination across cells
+**Acceptance gates** (all passing):
+- `test_operator_authentication` ✅
+- `test_a3_approval_workflow` ✅
+- `test_operator_authorization_levels` ✅
+- `test_emergency_override_procedure` ✅
+- `test_control_plane_api_functionality` ✅
+- `test_federation_approval_coordination` ✅
+
+**Remaining gaps** (not required for acceptance, future enhancement):
 - Web UI / dashboard
 - REST API for external system integration
 - Interactive replay via HTTP
-
-**Acceptance gates** (xfailed — will be promoted when implemented):
-- `test_operator_authentication`
-- `test_a3_approval_workflow`
-- `test_operator_authorization_levels`
-- `test_emergency_override_procedure`
-- `test_control_plane_api_functionality`
-- `test_federation_approval_coordination`
 
 ---
 
@@ -123,8 +119,8 @@
 | `EXOARMUR_FLAG_V2_THREAT_CLASSIFICATION_ENABLED` | `false` | Phase 2A threat classification | ✅ Complete |
 | `EXOARMUR_FLAG_V2_RESTRAINED_AUTONOMY_ENABLED` | `false` | Restrained autonomy path | ✅ Complete |
 | `EXOARMUR_FLAG_V2_FEDERATION_ENABLED` | `false` | Phase 2B federation layer | ✅ Complete |
-| `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | `false` | Phase 3 control plane | 🔄 Partial |
-| `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | `false` | Phase 3 operator approval | 🔄 Partial |
+| `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | `false` | Phase 3 control plane | ✅ Complete |
+| `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | `false` | Phase 3 operator approval | ✅ Complete |
 
 ---
 
@@ -141,7 +137,7 @@ V1 Pipeline (unchanged)
   └── Phase 2A: Threat Classification (decision-only, session-contained)
   └── Phase 2B: Federation (handshake, identity, coordination, belief aggregation, conflict detection)
   └── Phase 2C: Arbitration (human-in-the-loop resolution)
-  └── Phase 3: Control Plane (partial — approval service, operator interface)
+  └── Phase 3: Control Plane (operator auth, approval workflows, authorization, emergency override, federation API)
   └── Phase 4: Advanced Capabilities (not started)
 ```
 
@@ -151,9 +147,9 @@ V1 Pipeline (unchanged)
 
 | Metric | Count |
 |--------|-------|
-| Total passing | 1,027 |
-| Skipped (infra/env dependent) | 10 |
-| Expected failures (acceptance gates) | 11 |
+| Total passing | 1,039 |
+| Skipped (infra/env dependent) | 11 |
+| Expected failures (acceptance gates) | 3 |
 | Failures | 0 |
 
 **Skipped tests** (by reason):
@@ -164,7 +160,6 @@ V1 Pipeline (unchanged)
 
 **xfailed tests** (acceptance gates, not regressions):
 - Federation formation strict acceptance gate
-- Operator approval workflow suite (Phase 3 gate)
 - Golden demo mock (requires live NATS, mock is not acceptance)
 
 ---
@@ -185,14 +180,13 @@ V1 Pipeline (unchanged)
 - Phase 2A threat classification — complete, feature-flagged
 - Phase 2B federation layer — complete, feature-flagged
 - Phase 2C human-in-the-loop arbitration — complete, feature-flagged
-- Phase 3 control plane — partial infrastructure, acceptance gates pending
-- Published on PyPI: `exoarmur-core 2.0.2`
+- Phase 3 control plane — complete, operator auth + approval workflows + federation API
+- Published on PyPI: `exoarmur-core 2.1.0`
 - Installable via `pipx install exoarmur-core`
 
 ## What ExoArmur Is Not (April 2026)
 
-- Does **not** have a web UI or dashboard (Phase 3 gap)
-- Does **not** expose a REST API for external systems (Phase 3 gap)
-- Does **not** have a fully operational control plane (Phase 3 incomplete)
+- Does **not** have a web UI or dashboard (future enhancement)
+- Does **not** expose a REST API for external systems (future enhancement)
 - Does **not** implement ML-based analysis (Phase 4 not started)
 - Is **not** a consumer product — it is a developer governance library

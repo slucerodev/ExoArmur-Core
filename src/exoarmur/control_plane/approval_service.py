@@ -1,6 +1,6 @@
 """
 ExoArmur ADMO V2 Approval Service
-Human operator approval workflows - Phase 1 scaffolding only
+Human operator approval workflows
 """
 
 import logging
@@ -92,18 +92,32 @@ class ApprovalRequest:
     bound_intent_hash: Optional[str] = None
 
 
+# Risk thresholds for clearance levels
+_RISK_CLEARANCE_MAP = {
+    'supervisor': 0.7,   # can approve up to 0.7 risk
+    'admin': 0.9,        # can approve up to 0.9 risk
+    'superuser': 1.0,    # can approve anything
+}
+
+
 class ApprovalService:
-    """Human operator approval service - Minimum viable implementation"""
+    """Human operator approval service with authorization and emergency override"""
     
     def __init__(self, config: Optional[ApprovalConfig] = None):
         self.config = config or ApprovalConfig()
         self._initialized = False
         self._approvals: Dict[str, ApprovalRequest] = {}
+        self._operator_interface = None
+        self._audit_log: List[Dict[str, Any]] = []
         
         if self.config.enabled:
-            logger.warning("ApprovalService: enabled=True not yet implemented (Phase 2)")
+            logger.info("ApprovalService: Phase 2 enabled")
         else:
             logger.info("ApprovalService initialized (minimum viable implementation)")
+    
+    def set_operator_interface(self, operator_interface) -> None:
+        """Wire the operator interface for authorization checks"""
+        self._operator_interface = operator_interface
     
     def create_request(
         self,
@@ -217,48 +231,103 @@ class ApprovalService:
         approval = self._approvals.get(approval_id)
         return approval.bound_intent_hash if approval else None
     
-    # Legacy methods for compatibility (no-op)
     async def initialize(self) -> None:
         """Initialize approval service"""
         if not self.config.enabled:
-            return  # No-op when disabled
-        
-        # Check V2 feature flags
-        feature_flags = get_feature_flags()
-        if not feature_flags.is_v2_operator_approval_required():
-            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
-        
-        # V2 implementation would go here
+            return
+        from exoarmur.core.phase_gate import PhaseGate
+        PhaseGate.check_phase_2_eligibility("ApprovalService")
         self._initialized = True
+        logger.info("ApprovalService initialized (Phase 2)")
     
     async def submit_approval_request(self, request_data: Dict[str, Any]) -> str:
-        """Submit approval request"""
+        """Submit approval request and return approval ID"""
         if not self.config.enabled:
             return _deterministic_legacy_token("legacy", "submit_approval_request", request_data)
         
-        # Check V2 feature flags
-        feature_flags = get_feature_flags()
-        if not feature_flags.is_v2_operator_approval_required():
-            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        # Extract fields from request_data, using deterministic defaults
+        request_id = request_data.get("request_id", "unknown")
+        intent_type = request_data.get("intent_type", "unknown")
+        risk_score = request_data.get("risk_score", 0.0)
+        clearance_required = request_data.get("clearance_required", "supervisor")
+        target = request_data.get("target_entity", {})
         
-        # V2 implementation would go here
-        return _deterministic_legacy_token("v2", "submit_approval_request", request_data)
+        approval_id = _deterministic_approval_id(
+            correlation_id=request_id,
+            trace_id=request_id,
+            tenant_id="default",
+            cell_id="local",
+            idempotency_key=request_id,
+            requested_action_class=intent_type,
+            payload_ref=target,
+        )
+        
+        approval = ApprovalRequest(
+            approval_id=approval_id,
+            correlation_id=request_id,
+            trace_id=request_id,
+            tenant_id="default",
+            cell_id="local",
+            idempotency_key=request_id,
+            requested_action_class=intent_type,
+            payload_ref={"target": target, "risk_score": risk_score,
+                         "clearance_required": clearance_required},
+            created_at=_deterministic_approval_created_at(approval_id),
+            status="PENDING",
+        )
+        self._approvals[approval_id] = approval
+        self._emit_audit("approval_submitted", {"approval_id": approval_id,
+                                                  "intent_type": intent_type,
+                                                  "risk_score": risk_score})
+        
+        logger.info(f"Submitted approval request {approval_id} for {intent_type} (risk={risk_score})")
+        return approval_id
     
     async def get_approval_status(self, request_id: str) -> Dict[str, Any]:
-        """Get approval request status (legacy - no-op)"""
+        """Get approval request status"""
+        approval = self._approvals.get(request_id)
+        if approval:
+            return {
+                "request_id": request_id,
+                "status": approval.status,
+                "created_at": approval.created_at.isoformat(),
+                "approval_required": True,
+            }
         return {
             "request_id": request_id,
-            "status": "legacy",
+            "status": "NOT_FOUND",
             "created_at": deterministic_timestamp(request_id, "legacy_status").isoformat(),
-            "approval_required": False
+            "approval_required": False,
         }
     
     async def approve_request(self, request_id: str, operator_id: str, reason: str) -> bool:
-        """Approve a request (legacy - no-op)"""
+        """Approve a request by operator"""
+        if not self.config.enabled:
+            return True
+        approval = self._approvals.get(request_id)
+        if approval is None:
+            return False
+        if approval.status != "PENDING":
+            return False
+        self.approve(request_id, operator_id)
+        self._emit_audit("approval_granted", {"approval_id": request_id,
+                                                "operator_id": operator_id,
+                                                "reason": reason})
         return True
     
     async def deny_request(self, request_id: str, operator_id: str, reason: str) -> bool:
-        """Deny a request (legacy - no-op)"""
+        """Deny a request by operator"""
+        if not self.config.enabled:
+            return True
+        approval = self._approvals.get(request_id)
+        if approval is None:
+            return False
+        if approval.status != "PENDING":
+            return False
+        self.deny(request_id, operator_id, reason)
+        self._emit_audit("approval_denied", {"approval_id": request_id,
+                                               "operator_id": operator_id,
+                                               "reason": reason})
         return True
     
     async def get_pending_approvals(self, operator_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -266,51 +335,103 @@ class ApprovalService:
         if not self.config.enabled:
             return []
         
-        # Check V2 feature flags
-        feature_flags = get_feature_flags()
-        if not feature_flags.is_v2_operator_approval_required():
-            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
-        
-        # V2 implementation would go here
-        return []
+        results = []
+        for approval in self._approvals.values():
+            if approval.status != "PENDING":
+                continue
+            results.append({
+                "approval_id": approval.approval_id,
+                "requested_action_class": approval.requested_action_class,
+                "payload_ref": approval.payload_ref,
+                "created_at": approval.created_at.isoformat(),
+                "status": approval.status,
+            })
+        return results
     
     async def check_authorization(self, operator_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Check operator authorization for request"""
         if not self.config.enabled:
-            return {
-                "authorized": False,
-                "reason": "V2 approval service disabled"
-            }
+            return {"authorized": False, "reason": "V2 approval service disabled"}
         
-        # Check V2 feature flags
-        feature_flags = get_feature_flags()
-        if not feature_flags.is_v2_operator_approval_required():
-            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        risk_score = request_data.get("risk_score", 0.0)
+        clearance_required = request_data.get("clearance_required", "supervisor")
         
-        # V2 implementation would go here
+        # Check via operator interface if wired
+        if self._operator_interface is not None:
+            if not self._operator_interface.clearance_at_least(operator_id, clearance_required):
+                return {
+                    "authorized": False,
+                    "operator_id": operator_id,
+                    "reason": f"Insufficient clearance (requires {clearance_required})",
+                }
+            # Check risk threshold for clearance level
+            registered = self._operator_interface._registered_operators.get(operator_id)
+            if registered:
+                max_risk = _RISK_CLEARANCE_MAP.get(registered.clearance_level, 0.0)
+                if risk_score > max_risk:
+                    return {
+                        "authorized": False,
+                        "operator_id": operator_id,
+                        "reason": f"Risk {risk_score} exceeds clearance threshold {max_risk}",
+                    }
+        
+        self._emit_audit("authorization_check", {"operator_id": operator_id,
+                                                   "authorized": True,
+                                                   "risk_score": risk_score})
         return {
             "authorized": True,
             "operator_id": operator_id,
-            "clearance_level": "admin"
+            "clearance_required": clearance_required,
         }
     
     async def request_emergency_override(self, emergency_data: Dict[str, Any]) -> str:
-        """Request emergency override"""
+        """Request emergency override — creates high-priority approval"""
         if not self.config.enabled:
             return _deterministic_legacy_token("legacy-emergency", "request_emergency_override", emergency_data)
         
-        # Check V2 feature flags
-        feature_flags = get_feature_flags()
-        if not feature_flags.is_v2_operator_approval_required():
-            raise NotImplementedError("V2 operator approval not yet implemented (Phase 2)")
+        emergency_type = emergency_data.get("emergency_type", "unknown")
+        override_id = _deterministic_legacy_token("emergency", emergency_type, emergency_data)
         
-        # V2 implementation would go here
-        return _deterministic_legacy_token("v2-emergency", "request_emergency_override", emergency_data)
+        approval = ApprovalRequest(
+            approval_id=override_id,
+            correlation_id=f"emergency-{emergency_type}",
+            trace_id=f"emergency-{emergency_type}",
+            tenant_id="default",
+            cell_id="local",
+            idempotency_key=override_id,
+            requested_action_class=f"emergency_override:{emergency_type}",
+            payload_ref=emergency_data,
+            created_at=_deterministic_approval_created_at(override_id),
+            status="PENDING",
+        )
+        self._approvals[override_id] = approval
+        self._emit_audit("emergency_override_requested", {
+            "override_id": override_id,
+            "emergency_type": emergency_type,
+        })
+        
+        logger.warning(f"Emergency override requested: {override_id} ({emergency_type})")
+        return override_id
     
     def is_approval_required(self, request_type: str, risk_score: float) -> bool:
-        """Check if approval is required for request (legacy - no-op)"""
-        return False
-
+        """Check if approval is required for request"""
+        if not self.config.enabled:
+            return False
+        # Any action with risk > 0.5 requires approval
+        return risk_score > 0.5
+    
     async def shutdown(self) -> None:
-        """Shutdown approval service (no-op)"""
-        pass
+        """Shutdown approval service"""
+        self._approvals.clear()
+        self._audit_log.clear()
+        self._operator_interface = None
+    
+    def _emit_audit(self, event_type: str, details: Dict[str, Any]) -> None:
+        """Emit audit event"""
+        entry = {
+            "event_type": event_type,
+            "timestamp": deterministic_timestamp(event_type, "approval_audit").isoformat(),
+            "details": details,
+        }
+        self._audit_log.append(entry)
+        logger.debug(f"Approval audit: {event_type}")

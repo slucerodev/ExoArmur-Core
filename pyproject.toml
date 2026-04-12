@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exoarmur-core"
-version = "2.0.2"
+version = "2.1.0"
 description = "ExoArmur Core – deterministic governance and replayable audit layer for execution"
 authors = [
     {name = "ExoArmur Team", email = "team@exoarmur.dev"}
