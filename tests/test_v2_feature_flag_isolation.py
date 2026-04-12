@@ -21,7 +21,7 @@ from typing import Dict, Any
 from exoarmur.feature_flags import get_feature_flags
 from exoarmur.feature_flags.feature_flags import FeatureFlagContext
 from exoarmur.federation.federation_manager import FederationManager, FederationConfig
-# from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
+from exoarmur.federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalConfig
 from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
 from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
@@ -39,9 +39,8 @@ class TestV2FeatureFlagIsolation:
         fed_config = FederationConfig(enabled=False)
         objects['federation_manager'] = FederationManager(fed_config)
         
-        # agg_config = AggregationConfig(enabled=False)
-        # objects['cross_cell_aggregator'] = CrossCellAggregator(agg_config)
-        objects['cross_cell_aggregator'] = None  # Phase 2A scope - removed
+        agg_config = AggregationConfig(enabled=False)
+        objects['cross_cell_aggregator'] = CrossCellAggregator(agg_config)
         
         # Control plane objects
         approval_config = ApprovalConfig(enabled=False)
@@ -65,7 +64,7 @@ class TestV2FeatureFlagIsolation:
         
         # Verify all objects can be created
         assert FederationManager is not None, "FederationManager should be importable"
-        # assert CrossCellAggregator is not None, "CrossCellAggregator should be importable"  # Phase 2A scope - removed
+        assert CrossCellAggregator is not None, "CrossCellAggregator should be importable"
         assert ApprovalService is not None, "ApprovalService should be importable"
         assert ControlAPI is not None, "ControlAPI should be importable"
         assert OperatorInterface is not None, "OperatorInterface should be importable"
@@ -79,8 +78,7 @@ class TestV2FeatureFlagIsolation:
         
         # Verify all objects have enabled=False
         assert v2_objects_disabled['federation_manager'].config.enabled == False
-        # assert v2_objects_disabled['cross_cell_aggregator'].config.enabled == False  # Phase 2A scope - removed
-        assert v2_objects_disabled['cross_cell_aggregator'] is None  # Phase 2A scope - removed
+        assert v2_objects_disabled['cross_cell_aggregator'].config.enabled == False
         assert v2_objects_disabled['approval_service'].config.enabled == False
         assert v2_objects_disabled['control_api'].config.enabled == False
         assert v2_objects_disabled['operator_interface'].config.enabled == False
@@ -91,14 +89,14 @@ class TestV2FeatureFlagIsolation:
         
         # Call various V2 methods - all should be no-op
         await v2_objects_disabled['federation_manager'].initialize()
-        # await v2_objects_disabled['cross_cell_aggregator'].initialize()  # Phase 2A scope - removed
+        await v2_objects_disabled['cross_cell_aggregator'].initialize()
         await v2_objects_disabled['approval_service'].initialize()
         await v2_objects_disabled['control_api'].startup()
         await v2_objects_disabled['operator_interface'].initialize()
         
         # Call some additional methods
         await v2_objects_disabled['federation_manager'].get_federation_status()
-        # await v2_objects_disabled['cross_cell_aggregator'].get_aggregation_status()  # Phase 2A scope - removed
+        await v2_objects_disabled['cross_cell_aggregator'].get_aggregation_status()
         await v2_objects_disabled['approval_service'].get_pending_approvals()
         await v2_objects_disabled['control_api'].get_federation_status()
         v2_objects_disabled['operator_interface'].is_operator_authenticated("test-session")
@@ -129,7 +127,7 @@ class TestV2FeatureFlagIsolation:
         
         # Call shutdown methods
         await v2_objects_disabled['federation_manager'].shutdown()
-        # await v2_objects_disabled['cross_cell_aggregator'].shutdown()  # Phase 2A scope - removed
+        await v2_objects_disabled['cross_cell_aggregator'].shutdown()
         await v2_objects_disabled['approval_service'].shutdown()
         await v2_objects_disabled['control_api'].shutdown()
         await v2_objects_disabled['operator_interface'].shutdown()
@@ -141,8 +139,7 @@ class TestV2FeatureFlagIsolation:
         """Test that V2 objects clean up properly"""
         # Create and immediately destroy V2 objects
         fed_manager = FederationManager(FederationConfig(enabled=False))
-        # aggregator = CrossCellAggregator(AggregationConfig(enabled=False))  # Phase 2A scope - removed
-        aggregator = None
+        aggregator = CrossCellAggregator(AggregationConfig(enabled=False))
         approval_service = ApprovalService(ApprovalConfig(enabled=False))
         control_api = ControlAPI(ControlAPIConfig(enabled=False))
         operator_interface = OperatorInterface(OperatorConfig(enabled=False))
@@ -158,9 +155,7 @@ class TestV2FeatureFlagIsolation:
         """Test that enabled=True triggers NotImplementedError as expected"""
         # Create V2 objects with enabled=True (construction should succeed)
         fed_manager = FederationManager(FederationConfig(enabled=True))
-        # agg_config = AggregationConfig(enabled=True)
-        # aggregator = CrossCellAggregator(agg_config)  # Phase 2A scope - removed
-        aggregator = None
+        aggregator = CrossCellAggregator(AggregationConfig(enabled=True))
         approval_service = ApprovalService(ApprovalConfig(enabled=True))
         control_api = ControlAPI(ControlAPIConfig(enabled=True))
         operator_interface = OperatorInterface(OperatorConfig(enabled=True))
@@ -169,8 +164,8 @@ class TestV2FeatureFlagIsolation:
         with pytest.raises(NotImplementedError):
             await fed_manager.initialize()
         
-        # with pytest.raises(NotImplementedError):
-        #     await aggregator.initialize()  # Phase 2A scope - removed
+        with pytest.raises(NotImplementedError):
+            await aggregator.initialize()
         
         with pytest.raises(NotImplementedError):
             await approval_service.initialize()

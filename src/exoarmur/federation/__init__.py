@@ -10,6 +10,7 @@ from .protocol_enforcer import ProtocolEnforcer
 from .crypto import verify_message_integrity, sign_message
 from .observation_ingest import ObservationIngestService
 from .visibility_api import VisibilityAPI
+from .cross_cell_aggregator import CrossCellAggregator, AggregationConfig
 
 __all__ = [
     'FederateIdentityStore',
@@ -20,5 +21,7 @@ __all__ = [
     'verify_message_integrity',
     'sign_message',
     'ObservationIngestService',
-    'VisibilityAPI'
+    'VisibilityAPI',
+    'CrossCellAggregator',
+    'AggregationConfig',
 ]

@@ -25,7 +25,7 @@ from typing import Dict, Any
 from exoarmur.feature_flags import get_feature_flags
 from exoarmur.feature_flags.feature_flags import FeatureFlagContext
 from exoarmur.federation.federation_manager import FederationManager, FederationConfig
-# from federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig  # Removed in Phase 2A scope
+from exoarmur.federation.cross_cell_aggregator import CrossCellAggregator, AggregationConfig
 
 # V1 imports (should work)
 from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1
@@ -164,10 +164,8 @@ class TestFederationV2Acceptance:
             fed_config = FederationConfig(enabled=True, cell_id=cell_id)
             federation_manager = FederationManager(fed_config)
             
-            # Create aggregator with enabled=True (Phase 2A scope - removed)
-            # agg_config = AggregationConfig(enabled=True)
-            # aggregator = CrossCellAggregator(agg_config)
-            aggregator = None  # Placeholder for Phase 2A
+            agg_config = AggregationConfig(enabled=True)
+            aggregator = CrossCellAggregator(agg_config)
             
             cells[cell_id] = {
                 'cell_id': cell_id,
@@ -249,17 +247,13 @@ class TestFederationV2Acceptance:
         
         print("\n🎯 STEP 2: Cross-Cell Belief Aggregation")
         
-        # Trigger NotImplementedError by calling enabled=True methods
+        # CrossCellAggregator.initialize() requires EXOARMUR_PHASE=2 when enabled
         aggregator = federation_cells["test-cell-01"]["aggregator"]
-        
-        # Phase 2A scope - aggregator removed
-        if aggregator is not None:
-            with pytest.raises(NotImplementedError):
-                await aggregator.initialize()  # This will raise NotImplementedError
-        else:
-            # Phase 2A: aggregator is None, skip this test
-            pytest.skip("CrossCellAggregator not implemented in Phase 2A")
-        
+        assert aggregator is not None, "CrossCellAggregator should be instantiated"
+
+        with pytest.raises(NotImplementedError):
+            await aggregator.initialize()  # Phase Gate blocks without EXOARMUR_PHASE=2
+
         print("✅ STEP 2 PASSED: Cross-cell belief aggregation blocked (NotImplementedError raised as expected)")
     
     async def test_federation_quorum_computation(self, feature_flags, federation_cells):
@@ -332,18 +326,17 @@ class TestFederationV2Acceptance:
         
         print("\n🎯 STEP 6: Federation Audit Trail")
         
-        # Trigger NotImplementedError by calling enabled=True methods
+        # CrossCellAggregator status is available even without initialize (returns scaffolding-like response)
         aggregator = federation_cells["test-cell-01"]["aggregator"]
-        
-        # Phase 2A scope - aggregator removed
-        if aggregator is not None:
-            with pytest.raises(NotImplementedError):
-                await aggregator.get_aggregation_status()  # This will raise NotImplementedError
-        else:
-            # Phase 2A: aggregator is None, skip this test
-            pytest.skip("CrossCellAggregator not implemented in Phase 2A")
-        
-        print("✅ STEP 6 PASSED: Federation audit trail (NotImplementedError raised as expected)")
+        assert aggregator is not None, "CrossCellAggregator should be instantiated"
+
+        # get_aggregation_status does NOT require Phase Gate — it reports current state
+        status = await aggregator.get_aggregation_status()
+        assert status["status"] == "not_initialized"
+        assert status["cells_tracked"] == 0
+        assert status["initialized"] is False
+
+        print("✅ STEP 6 PASSED: Federation audit trail — aggregator status reports correctly")
         
 
 if __name__ == "__main__":
@@ -380,10 +373,8 @@ class TestFederationV2Compatibility:
             fed_config = FederationConfig(enabled=False, cell_id=cell_id)
             federation_manager = FederationManager(fed_config)
             
-            # Create aggregator with enabled=False (Phase 2A scope - removed)
-            # agg_config = AggregationConfig(enabled=False)
-            # aggregator = CrossCellAggregator(agg_config)
-            aggregator = None  # Placeholder for Phase 2A
+            agg_config = AggregationConfig(enabled=False)
+            aggregator = CrossCellAggregator(agg_config)
             
             cells[cell_id] = {
                 'cell_id': cell_id,
@@ -411,13 +402,12 @@ class TestFederationV2Compatibility:
         fed_config = FederationConfig(enabled=False)
         federation_manager = FederationManager(fed_config)
         
-        # agg_config = AggregationConfig(enabled=False)
-        # aggregator = CrossCellAggregator(agg_config)
-        aggregator = None  # Placeholder for Phase 2A
-        
+        agg_config = AggregationConfig(enabled=False)
+        aggregator = CrossCellAggregator(agg_config)
+
         # These should be no-op and not raise exceptions
         await federation_manager.initialize()
-        # await aggregator.initialize()  # Phase 2A scope - removed
+        await aggregator.initialize()
         
         # Verify V1 functionality is preserved
         assert feature_flags is not None, "Feature flags should be available"
