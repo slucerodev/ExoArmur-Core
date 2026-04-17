@@ -1,3 +1,21 @@
+# ExoArmur Core — pinned development environment
+#
+# This file lists exact versions used by the CI-resolved development
+# environment. It mirrors the contents of requirements.lock.
+#
+# PRIMARY INSTALL PATH (recommended):
+#   pip install -e ".[dev]"
+#
+# This requirements.txt exists for tools and CI steps that expect a
+# plain requirements file. For reproducible locked installs, prefer:
+#   pip install -r requirements.lock
+#
+# Sibling repositories (exoarmur-bft, exoarmur-dpo, exoarmur-pod) are
+# NOT pinned here. Install them separately if you need multi-cell
+# development:
+#   pip install -e git+https://github.com/slucerodev/ExoArmur-DPO.git#egg=exoarmur_dpo
+#   pip install -e git+https://github.com/slucerodev/ExoArmur-PoD.git#egg=exoarmur_pod
+
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.12.1
@@ -7,11 +25,6 @@ cffi==2.0.0
 click==8.3.1
 coverage==7.13.5
 cryptography==46.0.7
-# Editable Git install with no remote (exoarmur-bft==0.1.0)
--e /home/oem/CascadeProjects/exoarmur-bft
--e git+https://github.com/slucerodev/ExoArmur-Core.git@e41ce7bbbf20782ba2c12abd9c3187ddfcdd621b#egg=exoarmur_core
--e git+https://github.com/slucerodev/ExoArmur-DPO.git@e42a355d84bda11525164387cda18d6f20b2cab3#egg=exoarmur_dpo
--e git+https://github.com/slucerodev/ExoArmur-PoD.git@fda2f8bd0fd77193a9e5445e01526d321117e4e1#egg=exoarmur_pod
 fastapi==0.127.1
 h11==0.16.0
 httpcore==1.0.9

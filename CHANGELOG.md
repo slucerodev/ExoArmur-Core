@@ -5,6 +5,46 @@ All notable changes to ExoArmur Core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-12
+
+### 🎯 Phase 2 + Phase 3 Consolidation
+
+Consolidated milestone covering module-boundary enforcement, determinism gates,
+V2 Control Plane, and federation coherence work. Test suite expanded from the
+focused ~177-test v0.3.0 suite to **1033+ passing tests** with a three-run
+deterministic stability gate.
+
+This entry also documents a version-numbering reset: work between v0.3.0 and
+v2.1.0 was developed on `main` under the semantic-versioning bump from 0.x
+(experimental) to 2.x (contract-stable); individual intermediate phase merges
+are captured in git history rather than as separate releases.
+
+### ✅ Added
+- **Core Invariant Gates** CI workflow — three-run deterministic stability
+- **Module Boundary Enforcement** CI workflow — architectural invariants
+- **CodeQL** security analysis + **pip-audit** dependency scanning
+- **Multi-Platform Tests** CI — Python 3.8–3.12 × Linux/macOS/Windows
+- **V2 Demo Smoke** CI — end-to-end governance pipeline
+- **V2 Visibility API** — additive, graceful-empty router for dashboard
+- `CrossCellAggregator` for federation control-plane coherence
+- Feature-flag gates for V2 federation / control plane / operator approval
+- Dashboard UI (Next.js) wired to live backend
+
+### 🔧 Changed
+- Contract maturity: V1 data shapes (`spec/contracts/`) declared LOCKED
+- ProxyPipeline enforced as sole execution boundary
+- Test posture: hard gate on three-run determinism
+
+### 🔒 Security
+- Deterministic enforcement verified across all core paths
+- Immutable audit trail generation
+- PyPI publishing via OIDC Trusted Publisher (no long-lived API tokens)
+
+### Contract Invariants (documented in this release)
+- V1 contracts immutable — new capabilities are additive and feature-flag gated
+- ProxyPipeline is the sole execution boundary
+- Determinism is a first-class CI gate
+
 ## [0.3.0] - 2026-03-28
 
 ### 🎯 Production-Ready Release

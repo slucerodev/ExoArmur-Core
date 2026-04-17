@@ -45,8 +45,20 @@ exoarmur-stability = "exoarmur.stability.classifier"
 [project.optional-dependencies]
 v2 = []
 dev = [
-  "pytest",
-  "pytest-asyncio",
+  # Test runner + async
+  "pytest>=7.4,<10",
+  "pytest-asyncio>=0.21",
+  "pytest-cov>=4.0",
+  "pytest-timeout>=2.0",
+  "pytest-randomly>=3.15",
+  "pytest-json-report>=1.5",
+  "pytest-metadata>=3.0",
+  # HTTP client for FastAPI test client
+  "httpx>=0.25",
+  # Linting / typing / formatting
+  "black>=24.0",
+  "isort>=5.0",
+  "mypy>=1.0",
 ]
 
 [tool.setuptools]
