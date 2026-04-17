@@ -138,3 +138,9 @@ test-results.xml
 test-results.*.xml
 pytest-report.xml
 junit.xml
+
+# Local operational tools (NATS binary, agent pack, etc.)
+.tools/
+
+# Dashboard UI lives in its own repository (slucerodev/ExoArmur-Dashboard)
+dashboard/
