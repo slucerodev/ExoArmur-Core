@@ -12,6 +12,10 @@ from urllib.parse import urlparse
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 
+EXCLUDED_PATH_SUBSTRINGS: tuple[str, ...] = (
+    "/history/archive-",
+)
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -24,12 +28,23 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _is_excluded(path: Path) -> bool:
+    posix = path.as_posix()
+    return any(fragment in posix for fragment in EXCLUDED_PATH_SUBSTRINGS)
+
+
 def _iter_markdown_files(paths: list[Path]) -> list[Path]:
     files: list[Path] = []
     for path in paths:
         if path.is_dir():
-            files.extend(sorted(path.rglob("*.md")))
-        elif path.suffix.lower() == ".md":
+            files.extend(
+                sorted(
+                    candidate
+                    for candidate in path.rglob("*.md")
+                    if not _is_excluded(candidate)
+                )
+            )
+        elif path.suffix.lower() == ".md" and not _is_excluded(path):
             files.append(path)
     return files
 
