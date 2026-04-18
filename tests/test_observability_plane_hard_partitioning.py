@@ -24,6 +24,62 @@ from exoarmur.observability.integration_bridge import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _reset_observability_plane_singletons():
+    """
+    Reset the process-wide observability plane singletons around every test
+    in this module.
+
+    Why this is necessary
+    ---------------------
+    `ObservabilityPlaneManager` and `IsolatedObservabilityBridge` are both
+    exposed as module-level singletons (see `_observability_plane_manager`
+    in `plane_manager.py` and `_isolated_observability_bridge` in
+    `integration_bridge.py`). Every `IsolatedObservabilityBridge()`
+    constructor registers 5 new plane contexts on the shared manager; if
+    any earlier test in the session leaves even one plane registered
+    (including tests in other modules that touch these adapters), the
+    assertions here that expect `total_planes == 5` see accumulated state
+    and fail non-deterministically — the exact flake class
+    `test_plane_status_through_bridge` was hitting under certain
+    `pytest-randomly` seeds (e.g. `PYTHONHASHSEED=0`).
+
+    Scope and invariants
+    --------------------
+    - This fixture ONLY resets the two observability singletons. It does
+      not touch any V1 contract, replay engine, or audit path state.
+    - It runs with `autouse=True` but is confined to this test module, so
+      it cannot affect other test files' lifecycles.
+    - The fixture is idempotent: repeated calls produce identical empty
+      state.
+    - `configure_observability_plane_manager` internally calls `shutdown()`
+      on the prior singleton, so any planes left registered by a prior
+      test are destroyed before the next test starts.
+    """
+    configure_observability_plane_manager(ThreadIsolationStrategy())
+    # Also reset the integration-bridge singleton so tests that call
+    # get_isolated_observability_bridge() observe a fresh instance.
+    import exoarmur.observability.integration_bridge as _bridge_module
+    if _bridge_module._isolated_observability_bridge is not None:
+        try:
+            _bridge_module._isolated_observability_bridge.shutdown()
+        except Exception:
+            pass
+        _bridge_module._isolated_observability_bridge = None
+
+    yield
+
+    # Post-test cleanup: shut down whatever the test may have spun up so the
+    # next test (inside or outside this module) starts from a clean slate.
+    configure_observability_plane_manager(ThreadIsolationStrategy())
+    if _bridge_module._isolated_observability_bridge is not None:
+        try:
+            _bridge_module._isolated_observability_bridge.shutdown()
+        except Exception:
+            pass
+        _bridge_module._isolated_observability_bridge = None
+
+
 class TestPlaneIdentityToken:
     """Test plane identity token functionality"""
     
