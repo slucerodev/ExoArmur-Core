@@ -24,9 +24,17 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "fastapi>=0.104.0",
+    # fastapi + pydantic are OpenAPI-snapshot-sensitive: their schema
+    # generators change between minor versions (e.g. ValidationError.ctx/input
+    # fields emitted on >=0.128 / >=2.13). The committed artifacts/openapi_v1.json
+    # snapshot is regenerated and verified against the versions below, which
+    # exactly match requirements.lock. Loosening these bounds will break
+    # tests/test_schema_snapshots.py::test_openapi_snapshot_unchanged for any
+    # consumer. Bump requires a coordinated snapshot regeneration — see
+    # scripts/export_openapi_and_schemas.py.
+    "fastapi>=0.127,<0.128",
     "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.5.0",
+    "pydantic>=2.12,<2.13",
     "python-ulid>=2.0.0",
     "click>=8.1.0",
     "httpx>=0.25.0",
