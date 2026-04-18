@@ -1,7 +1,7 @@
 # Federation Coordination v2 Safety Invariants
 # 
 # These invariants define the absolute safety boundaries of coordination.
-# Any violation compromises the safety guarantees of ExoArmur ADMO.
+# Any violation compromises the safety guarantees of ExoArmur.
 
 # GLOBAL SAFETY INVARIANTS (Apply to ALL messages)
 global_safety_invariants:

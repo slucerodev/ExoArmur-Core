@@ -4,7 +4,7 @@
 
 ### Golden Demo Supremacy Principle
 
-The Golden Demo is the **SOLE ACCEPTANCE TEST** for ExoArmur v1. It represents the complete end-to-end scenario that validates the entire ADMO organism functions correctly. This is not just another test - it is the definition of "done" for the entire system.
+The Golden Demo is the **SOLE ACCEPTANCE TEST** for ExoArmur v1. It represents the complete end-to-end scenario that validates the entire ExoArmur v1 governance runtime functions correctly. This is not just another test - it is the definition of "done" for the current v1 system.
 
 ### Governance Integrity Requirements
 
@@ -65,9 +65,9 @@ The Golden Demo is the **SOLE ACCEPTANCE TEST** for ExoArmur v1. It represents t
 - It means real JetStream persistence works
 - Actual belief replay functions correctly
 - Genuine audit reconstruction succeeds
-- Complete end-to-end ADMO loop is validated
+- Complete end-to-end ExoArmur v1 cognition loop is validated
 
-### ADMO Organism Law Compliance
+### Organism Law Compliance
 
 **LAW-06: Evidence-Backed Decisions**
 - Golden Demo requires real evidence from JetStream, not mock data

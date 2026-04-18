@@ -1,6 +1,6 @@
 # ExoArmur Build and Test Guide
 
-This guide covers how to build, test, and validate ExoArmur ADMO V2.
+This guide covers how to build, test, and validate ExoArmur V2.
 
 ## Quick Start
 

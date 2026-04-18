@@ -1,10 +1,10 @@
-# ADMO Phase Gate Implementation
+# ExoArmur Phase Gate Implementation
 
 ## Purpose and Governance Compliance
 
 This Phase Gate mechanism resolves the governance contradiction where V2 functionality exists at the ragged edge without violating Phase 1 isolation.
 
-### ADMO Organism Law Compliance
+### Organism Law Compliance
 
 **LAW-01: No Central Brain** - Phase gate is a local decision mechanism, not a centralized controller.
 
@@ -76,4 +76,4 @@ export EXOARMUR_PHASE=2
 python -m pytest tests/test_federation_v2_acceptance.py  # Can pass
 ```
 
-This mechanism ensures Phase 1 isolation while allowing prototype development at the ragged edge, maintaining strict ADMO governance principles.
+This mechanism ensures Phase 1 isolation while allowing prototype development at the ragged edge, maintaining strict ExoArmur governance principles (the same principles that will anchor the project as it evolves toward the broader ADMO vision).

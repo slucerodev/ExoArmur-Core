@@ -1,4 +1,4 @@
-# ExoArmur ADMO - Baseline Validation Report
+# ExoArmur - Baseline Validation Report
 
 **Generated**: 2026-01-23T02:06:00Z  
 **Purpose**: Workflow 0 Baseline Safety Check for Phase 0→Phase 3 Autonomous Build Plan

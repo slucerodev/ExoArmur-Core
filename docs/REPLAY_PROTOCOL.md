@@ -1,4 +1,4 @@
-# ExoArmur ADMO - Deterministic Audit Replay Protocol
+# ExoArmur - Deterministic Audit Replay Protocol
 
 **Purpose**: Ensure deterministic reconstruction and verification of recorded governance behavior from audit logs and supporting stores.
 

@@ -1,6 +1,6 @@
-# ExoArmur ADMO Documentation
+# ExoArmur Core Documentation
 
-ExoArmur Autonomous Defense Mesh Organism (ADMO) is an enterprise-grade autonomous defense platform that ingests telemetry, correlates threats, evaluates policy, decides actions, and executes responses with safety rails, auditability, and optional human approval gates.
+ExoArmur Core is a deterministic governance runtime that sits between an AI decision layer and execution targets. Every action passes through a policy gate, produces a cryptographic audit trail, and is deterministically replayable. The project is evolving toward the broader ADMO (Autonomous Defense Mesh Organism) vision — an enterprise-grade autonomous defense platform that ingests telemetry, correlates threats, evaluates policy, decides actions, and executes responses with safety rails, auditability, and optional human approval gates.
 
 ## Current Status Snapshot
 
@@ -57,4 +57,4 @@ ExoArmur follows strict governance with binary outcomes:
 - **V2 Additive**: New features are external layers only
 - **Feature Flags**: Default OFF, require explicit enablement
 
-This ensures the autonomous defense mesh remains reliable, auditable, and safe while enabling controlled evolution through external layers.
+This ensures the governance runtime remains reliable, auditable, and safe while enabling controlled evolution — through external layers today, and toward the broader ADMO (Autonomous Defense Mesh Organism) vision over time.

@@ -1,4 +1,4 @@
-# ExoArmur ADMO Governance
+# ExoArmur Governance
 
 ## Binary Green Definition
 

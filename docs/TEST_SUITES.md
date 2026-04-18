@@ -1,6 +1,6 @@
 # ExoArmur Test Suites
 
-This document defines the explicit test suites for ExoArmur ADMO V2.
+This document defines the explicit test suites for ExoArmur V2.
 
 ## Test Suite Definitions
 

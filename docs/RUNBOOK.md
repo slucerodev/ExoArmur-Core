@@ -1,4 +1,4 @@
-# ExoArmur ADMO Runbook
+# ExoArmur Runbook
 
 ## Local Setup Prerequisites
 
@@ -243,4 +243,4 @@ pytest tests/test_golden_demo_live.py::test_golden_demo_flow_live_jetstream -v
 - V2 isolation test failure
 - Spec validation failure
 
-This runbook ensures ExoArmur ADMO operates reliably and safely while maintaining strict governance compliance.
+This runbook ensures ExoArmur operates reliably and safely while maintaining strict governance compliance.

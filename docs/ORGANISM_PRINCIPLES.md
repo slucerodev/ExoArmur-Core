@@ -1,6 +1,6 @@
-# ExoArmur ADMO Organism Principles
+# ExoArmur Organism Principles
 
-These are the invariant axioms that govern ExoArmur ADMO's behavior, evolution, and authority boundaries. These principles are constitutional, not aspirational, and must never be violated.
+These are the invariant axioms that govern ExoArmur's behavior, evolution, and authority boundaries. They apply to ExoArmur Core today (the deterministic governance runtime) and are intended to continue governing the project as it evolves toward the broader ADMO (Autonomous Defense Mesh Organism) vision. These principles are constitutional, not aspirational, and must never be violated.
 
 ## Core Principles
 
@@ -106,4 +106,4 @@ This does NOT mean:
 - Audit trail reduction or elimination
 - Feature flag default state changes
 
-These principles ensure ExoArmur remains a reliable, auditable, and safe autonomous defense system while enabling controlled evolution through external layers that never compromise core safety or reliability.
+These principles ensure ExoArmur remains a reliable, auditable, and safe governance runtime today — and, as it evolves toward the broader ADMO (Autonomous Defense Mesh Organism) vision, that evolution proceeds through external layers that never compromise core safety or reliability.

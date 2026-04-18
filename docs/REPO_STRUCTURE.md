@@ -130,7 +130,7 @@ ExoArmur/
 ### Contracts (`spec/contracts/`)
 
 **V1 Contracts (Locked)**:
-- `models_v1.py`: Core ADMO data models
+- `models_v1.py`: Core ExoArmur v1 data models
 - `arbitration_precedence_v1.yaml`: Safety gate precedence rules
 
 **V2 Contracts**:

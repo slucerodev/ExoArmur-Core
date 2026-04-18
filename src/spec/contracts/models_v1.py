@@ -1,8 +1,11 @@
 """
-ADMO v1 Pydantic Models
+ExoArmur Core v1 Pydantic Models
 
-Canonical contract models for ExoArmur Autonomous Defense Mesh Organism v1.
-All models use strict validation and enforce field constraints.
+Canonical contract models for ExoArmur Core v1, the deterministic governance
+runtime. These models anchor the current V1 cognition pipeline and are intended
+to be built upon by the project's broader ADMO (Autonomous Defense Mesh
+Organism) vision in future phases. All models use strict validation and enforce
+field constraints.
 """
 
 from datetime import datetime
@@ -825,7 +828,7 @@ class IdentityContainmentStatusV1(str, Enum):
 
 # Export all models
 __all__ = [
-    # Core ADMO Models (V1)
+    # Core ExoArmur V1 Models
     'TelemetryEventV1',
     'SignalFactsV1',
     'BeliefV1',

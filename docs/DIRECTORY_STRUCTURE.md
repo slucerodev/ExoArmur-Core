@@ -1,6 +1,6 @@
 # ExoArmur Project Directory Structure
 
-This document provides the complete directory structure of the ExoArmur ADMO project, broken into manageable sections for clarity.
+This document provides the complete directory structure of the ExoArmur project, broken into manageable sections for clarity.
 
 ## Root Level Structure
 
@@ -279,4 +279,4 @@ nats-server-v2.10.9-linux-amd64/
 6. **Safety Focus**: Multiple safety and governance documents
 7. **Workflow-Driven**: Development workflow definitions and skills
 
-This structure supports the ADMO (Autonomous Defense Mesh Organism) architecture with clear boundaries between different system components and comprehensive governance documentation.
+This structure supports ExoArmur Core — the current deterministic governance runtime that the project's broader ADMO (Autonomous Defense Mesh Organism) vision is intended to build on — with clear boundaries between different system components and comprehensive governance documentation.

@@ -1,6 +1,6 @@
 # ExoArmur Development Setup
 
-This guide covers setting up a clean development environment for ExoArmur ADMO V2.
+This guide covers setting up a clean development environment for ExoArmur V2.
 
 ## Prerequisites
 

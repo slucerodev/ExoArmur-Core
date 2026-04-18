@@ -388,6 +388,6 @@ The federation coordination protocol v2.0 provides useful coordination capabilit
 4. **Local Autonomy**: All decisions remain local
 5. **No Learning**: No mechanisms for learning or adaptation
 
-The protocol enables cells to coordinate timing, share information, and increase visibility without compromising the core ADMO principles of cell autonomy and distributed intelligence.
+The protocol enables cells to coordinate timing, share information, and increase visibility without compromising the core ExoArmur organism principles of cell autonomy and distributed intelligence.
 
 **This coordination feels boring - and that's exactly the point.**

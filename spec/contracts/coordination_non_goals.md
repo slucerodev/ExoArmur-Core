@@ -175,7 +175,7 @@ state_persistence:
 
 federation_brain:
   description: "Central federation intelligence"
-  reason: "Creates single point of failure, breaks ADMO principles"
+  reason: "Creates single point of failure, breaks ExoArmur organism principles"
   examples:
     - "No central coordination controller"
     - "No federation-wide intelligence"
@@ -297,7 +297,7 @@ compliance_checking:
 
 violation_consequences:
   critical_violations:
-    description: "Critical violations that compromise ADMO principles"
+    description: "Critical violations that compromise ExoArmur organism principles"
     examples:
       - "Implementation of decision-making authority"
       - "Creation of consensus mechanisms"
@@ -343,7 +343,7 @@ exception_policy:
   appeal_process:
     description: "Process for appealing non-goal classification"
     availability: "No appeal process - non-goals are absolute"
-    authority: "ADMO governance principles"
+    authority: "ExoArmur governance principles"
     finality: "Non-goal decisions are final"
 
 # FUTURE EXTENSIONS
@@ -360,7 +360,7 @@ future_non_goals:
   extension_policy:
     description: "Policy for extending non-goals"
     requirement: "Explicit definition before implementation"
-    approval: "ADMO governance approval required"
+    approval: "ExoArmur governance approval required"
     documentation: "Must be documented with rationale"
 
 # SUMMARY

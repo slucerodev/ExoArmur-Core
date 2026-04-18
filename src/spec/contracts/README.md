@@ -1,11 +1,11 @@
-# ADMO v1 Contract Files
+# ExoArmur Core v1 Contract Files
 
-This directory contains the canonical contract files for ExoArmur Autonomous Defense Mesh Organism v1.
+This directory contains the canonical contract files for ExoArmur Core v1, the deterministic governance runtime. These contracts define the data models, messaging, policy, and safety boundaries that anchor ExoArmur today and that the project's broader ADMO (Autonomous Defense Mesh Organism) vision is intended to build on.
 
 ## Files Overview
 
 ### models_v1.py
-Pydantic v2 models with strict validation for all ADMO data types.
+Pydantic v2 models with strict validation for all ExoArmur v1 contract data types.
 - **Usage:** Import in cell implementations for data validation
 - **Models:** TelemetryEventV1, SignalFactsV1, BeliefV1, LocalDecisionV1, ExecutionIntentV1, AuditRecordV1
 - **Validation:** Strict field validation, ULID format checking, enum constraints
@@ -58,4 +58,4 @@ python3 scripts/validate_spec_refs.py
 
 ## Integration
 
-These contracts are referenced from `EXOARMUR_MASTER_SPEC.yaml` and must be used consistently across all ADMO implementations. Any changes to contract schemas should be coordinated across the organism to ensure compatibility.
+These contracts are referenced from `EXOARMUR_MASTER_SPEC.yaml` and must be used consistently across all ExoArmur v1 implementations (and any future ADMO components that build on them). Any changes to contract schemas should be coordinated across the system to ensure compatibility.

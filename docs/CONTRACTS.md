@@ -1,14 +1,14 @@
-# ExoArmur ADMO Contracts
+# ExoArmur Contracts
 
 ## Contract Index
 
 ### V1 Contracts (Locked)
 
-V1 contracts are locked in this repository and protected by contract tests and the Golden Demo regression gate. They define the core autonomous defense mesh functionality.
+V1 contracts are locked in this repository and protected by contract tests and the Golden Demo regression gate. They define the core deterministic governance functionality of ExoArmur v1, which the project's broader ADMO (Autonomous Defense Mesh Organism) vision is intended to build on.
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `models_v1.py` | Pydantic v2 data models for all ADMO data types | ✅ Locked |
+| `models_v1.py` | Pydantic v2 data models for all ExoArmur v1 data types | ✅ Locked |
 | `nats_jetstream_v1.yaml` | NATS JetStream configuration for mesh communication | ✅ Locked |
 | `policy_bundle_v1.yaml` | Signed tenant policy bundle format and enforcement | ✅ Locked |
 | `safety_gate_v1.yaml` | Deterministic safety gate rules and verdict contract | ✅ Locked |
