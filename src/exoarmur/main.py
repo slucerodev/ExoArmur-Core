@@ -6,6 +6,7 @@ Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → Collect
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
@@ -59,6 +60,18 @@ from exoarmur.feature_flags.resolver import (
 # Import V2 detection functions
 from exoarmur.execution_boundary_v2.detection.execution_violation_detector import check_domain_logic_access, ViolationSeverity
 
+# V2 Visibility services (additive, read-only; no V1 cognition impact)
+from exoarmur.feature_flags.feature_flags import get_feature_flags
+from exoarmur.federation.clock import SystemClock
+from exoarmur.federation.observation_store import ObservationStore
+from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.belief_aggregation import BeliefAggregationService
+from exoarmur.federation.observation_ingest import ObservationIngestService
+from exoarmur.federation.arbitration_store import ArbitrationStore
+from exoarmur.federation.arbitration_service import ArbitrationService
+from exoarmur.federation.audit import AuditService
+from exoarmur.federation.visibility_api import VisibilityAPI
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
@@ -83,6 +96,203 @@ audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
 background_tasks = set()  # Track background tasks for deterministic shutdown
+
+# ============================================================================
+# V2 Visibility services (additive, module-level, in-memory, read-only)
+# ----------------------------------------------------------------------------
+# Exposes observation/belief/federate state to the dashboard via
+# /api/v2/visibility/*. These do NOT modify V1 cognition. All mutating paths
+# remain feature-flag gated: FederateIdentityStore.store_identity requires
+# v2_federation_enabled=true. For the dashboard: opt in with
+# EXOARMUR_DASHBOARD_MODE=true (Organism Principle #8 compliant).
+# ============================================================================
+_LOCAL_FEDERATE_ID = "cell-local-core-node0"  # cell-[region]-[cluster]-[node]
+_v2_clock = SystemClock()
+_feature_flags = get_feature_flags()
+observation_store = ObservationStore(clock=_v2_clock)
+federate_identity_store = FederateIdentityStore(feature_flags=_feature_flags)
+belief_aggregation_service = BeliefAggregationService(
+    observation_store=observation_store,
+    clock=_v2_clock,
+)
+observation_ingest_service = ObservationIngestService(
+    observation_store=observation_store,
+    identity_store=federate_identity_store,
+    clock=_v2_clock,
+)
+arbitration_store = ArbitrationStore(clock=_v2_clock)
+arbitration_service = ArbitrationService(
+    arbitration_store=arbitration_store,
+    audit_service=AuditService(),
+    clock=_v2_clock,
+    observation_store=observation_store,
+    feature_flag_enabled=_feature_flags.is_enabled("v2_federation_enabled"),
+)
+visibility_api = VisibilityAPI(
+    observation_store=observation_store,
+    identity_store=federate_identity_store,
+    belief_service=belief_aggregation_service,
+    ingest_service=observation_ingest_service,
+    clock=_v2_clock,
+    arbitration_service=arbitration_service,
+)
+
+
+def _register_local_federate_identity() -> None:
+    """
+    Register this cell as a self-federate so the dashboard can show the
+    local cell card under /api/v2/visibility/federates.
+
+    Uses a persistent Ed25519 keypair at ~/.exoarmur/local_keypair.json (or
+    $EXOARMUR_LOCAL_KEYPAIR_PATH), so the local cell identity is stable
+    across restarts. Silently skipped when v2_federation_enabled is False
+    (e.g., default deployment without dashboard mode). Failures are logged
+    but non-fatal: the V1 pipeline is unaffected.
+    """
+    try:
+        if not _feature_flags.is_enabled("v2_federation_enabled"):
+            logger.info(
+                "Local federate self-registration skipped: v2_federation_enabled=False "
+                "(set EXOARMUR_DASHBOARD_MODE=true to opt in)."
+            )
+            return
+
+        import base64
+        import hashlib
+        import json as _json
+        from pathlib import Path
+        from cryptography.hazmat.primitives.asymmetric import ed25519
+        from cryptography.hazmat.primitives import serialization
+        from spec.contracts.models_v1 import (
+            FederateIdentityV1,
+            FederationRole,
+            CellStatus,
+        )
+
+        keypair_path = Path(os.getenv(
+            "EXOARMUR_LOCAL_KEYPAIR_PATH",
+            str(Path.home() / ".exoarmur" / "local_keypair.json"),
+        ))
+        private_key = None
+        if keypair_path.exists():
+            try:
+                data = _json.loads(keypair_path.read_text())
+                priv_bytes = base64.b64decode(data["private_key_b64"])
+                private_key = ed25519.Ed25519PrivateKey.from_private_bytes(priv_bytes)
+            except Exception as exc:
+                logger.warning(
+                    f"Could not load existing keypair at {keypair_path} ({exc}); regenerating."
+                )
+                private_key = None
+
+        if private_key is None:
+            private_key = ed25519.Ed25519PrivateKey.generate()
+            try:
+                keypair_path.parent.mkdir(parents=True, exist_ok=True)
+                priv_bytes = private_key.private_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PrivateFormat.Raw,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+                keypair_path.write_text(_json.dumps({
+                    "private_key_b64": base64.b64encode(priv_bytes).decode("ascii"),
+                    "federate_id": _LOCAL_FEDERATE_ID,
+                }))
+                logger.info(f"Generated and persisted local federate keypair at {keypair_path}")
+            except OSError as e:
+                logger.warning(f"Could not persist local keypair ({e}); using ephemeral key.")
+
+        public_key = private_key.public_key()
+        pub_bytes = public_key.public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        public_key_b64 = base64.b64encode(pub_bytes).decode("ascii")
+        key_id = hashlib.sha256(pub_bytes).hexdigest()[:32]
+
+        now = _v2_clock.now()
+        identity = FederateIdentityV1(
+            federate_id=_LOCAL_FEDERATE_ID,
+            public_key=public_key_b64,
+            key_id=key_id,
+            certificate_chain=[],
+            federation_role=FederationRole.MEMBER,
+            capabilities=["v1_cognition", "v2_visibility"],
+            trust_score=1.0,
+            last_seen=now,
+            status=CellStatus.ACTIVE,
+            created_at=now,
+            updated_at=now,
+        )
+        federate_identity_store.store_identity(identity)
+        logger.info(f"Registered local federate identity: {_LOCAL_FEDERATE_ID}")
+    except Exception as exc:
+        logger.warning(f"Local federate self-registration failed (non-fatal): {exc}")
+
+
+def _bridge_v1_to_v2_visibility(event, belief) -> None:
+    """
+    Mirror a V1 TelemetryEventV1 + BeliefTelemetryV1 into the V2
+    ObservationStore as (ObservationV1, BeliefV1) so the dashboard can
+    surface the live pipeline under /api/v2/visibility/*.
+
+    Contract-safe: does not alter the V1 event or V1 belief. Writes are
+    into an in-memory additive store only. The canonical V1 response
+    path is unaffected.
+
+    Deterministic: observation_id and belief_id are derived from V1
+    event.event_id / belief.belief_id (no new randomness introduced).
+    """
+    from spec.contracts.models_v1 import (
+        ObservationV1,
+        ObservationType,
+        TelemetrySummaryPayloadV1,
+        BeliefV1,
+    )
+
+    obs_id = f"obs_{event.event_id}"
+    severity_str = str(event.severity) if event.severity is not None else "unknown"
+    event_ts = event.timestamp
+    sensor_id = (event.source or {}).get("sensor_id", "unknown") if isinstance(event.source, dict) else "unknown"
+    event_type_str = str(event.event_type)
+
+    observation = ObservationV1(
+        observation_id=obs_id,
+        source_federate_id=_LOCAL_FEDERATE_ID,
+        timestamp_utc=event_ts,
+        correlation_id=event.correlation_id,
+        observation_type=ObservationType.TELEMETRY_SUMMARY,
+        confidence=float(belief.confidence),
+        evidence_refs=[event.event_id],
+        payload=TelemetrySummaryPayloadV1(
+            payload_type="telemetry_summary",
+            data={
+                "event_type": event_type_str,
+                "severity": severity_str,
+                "sensor_id": sensor_id,
+                "cell_id": event.cell_id,
+                "tenant_id": event.tenant_id,
+            },
+            event_count=1,
+            time_window_seconds=0,
+            event_types=[event_type_str],
+            severity_distribution={severity_str: 1},
+        ),
+    )
+    observation_store.store_observation(observation)
+
+    belief_v2 = BeliefV1(
+        belief_id=belief.belief_id,
+        belief_type=getattr(belief, "claim_type", "telemetry_belief"),
+        confidence=float(belief.confidence),
+        source_observations=[obs_id],
+        derived_at=getattr(belief, "first_seen", event_ts),
+        correlation_id=event.correlation_id,
+        evidence_summary=f"Telemetry {event.event_type} from {event.cell_id}",
+        conflicts=[],
+        metadata={"v1_bridge": True, "severity": severity_str},
+    )
+    observation_store.store_belief(belief_v2)
 
 
 class _AllowPolicyDecisionPoint:
@@ -252,6 +462,18 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
     PolicyDecision = v2_safety_models.PolicyDecision
     PolicyVerdict = v2_safety_models.PolicyVerdict
     ExecutorResult = v2_safety_models.ExecutorResult
+
+    # Load V2 entry-gate and core types through resolver
+    v2_entry_gate = load_v2_entry_gate()
+    v2_core_types = load_v2_core_types()
+    execute_module = v2_entry_gate.execute_module
+    ExecutionRequest = v2_entry_gate.ExecutionRequest
+    ModuleID = v2_core_types.ModuleID
+    ExecutionID = v2_core_types.ExecutionID
+    DeterministicSeed = v2_core_types.DeterministicSeed
+    ModuleExecutionContext = v2_core_types.ModuleExecutionContext
+    ModuleVersion = v2_core_types.ModuleVersion
+
     from exoarmur.clock import utc_now
     import hashlib
     import ulid
@@ -368,6 +590,10 @@ async def lifespan(app: FastAPI):
     if not bootstrap_success:
         raise RuntimeError("System bootstrap failed through V2EntryGate")
 
+    # Register local cell as self-federate so the dashboard's federation view
+    # shows the running cell. Gated by v2_federation_enabled; no-op otherwise.
+    _register_local_federate_identity()
+
     # Start background consumers with tracking
     if collective_aggregator:
         task1 = asyncio.create_task(collective_aggregator.start_consumer())
@@ -415,12 +641,47 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS configuration for browser clients (e.g., ExoArmur Dashboard).
+# Configure allowed origins via EXOARMUR_CORS_ORIGINS (comma-separated).
+# Defaults to dashboard dev servers on localhost:3000 / 127.0.0.1:3000.
+_cors_origins_env = os.getenv("EXOARMUR_CORS_ORIGINS", "").strip()
+_cors_origins: List[str] = (
+    [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    if _cors_origins_env
+    else ["http://localhost:3000", "http://127.0.0.1:3000"]
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+# V2 Visibility API (read-only): /api/v2/visibility/{federates,observations,
+# beliefs,timeline/{id},statistics,arbitrations}. All endpoints are read-only
+# over in-memory stores; writes happen only via the V1 pipeline bridge and
+# are gated by v2_federation_enabled where applicable.
+app.include_router(visibility_api.get_router())
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint - READ-ONLY (No V2 routing required)"""
     logger.info("Health check accessed")
-    return {"status": "healthy", "service": "ExoArmur Core"}
+    try:
+        from importlib.metadata import version as _pkg_version, PackageNotFoundError
+        try:
+            _version = _pkg_version("exoarmur-core")
+        except PackageNotFoundError:
+            _version = "unknown"
+    except Exception:  # pragma: no cover - defensive
+        _version = "unknown"
+    return {
+        "status": "healthy",
+        "service": "ExoArmur Core",
+        "version": _version,
+    }
 
 
 @app.get("/")
@@ -474,7 +735,16 @@ async def ingest_telemetry(event: TelemetryEventV1):
         
         # Add belief to collective aggregator
         collective_aggregator.add_belief(belief)
-        
+
+        # V2 Visibility Bridge (non-disruptive): mirror the V1 belief as a
+        # V2 ObservationV1 + BeliefV1 in the in-memory observation store so
+        # the dashboard can show live federation/pipeline state. Any failure
+        # here is logged and swallowed — the V1 pipeline is not affected.
+        try:
+            _bridge_v1_to_v2_visibility(event, belief)
+        except Exception as _bridge_exc:  # pragma: no cover - defensive
+            logger.warning(f"V1->V2 visibility bridge skipped: {_bridge_exc}")
+
         # Step 5: Collective confidence - compute collective state
         collective_state = collective_aggregator.compute_collective_state(belief)
         
