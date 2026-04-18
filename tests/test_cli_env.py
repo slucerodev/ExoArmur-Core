@@ -55,7 +55,7 @@ def test_demo_uses_sys_executable_and_prepends_src(monkeypatch, tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli.main,
-        ["demo", "--scenario", "canonical"],
+        ["demo"],
         env={"PYTHONPATH": "priorpath"},
     )
 
