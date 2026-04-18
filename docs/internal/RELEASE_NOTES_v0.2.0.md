@@ -37,10 +37,12 @@ ExoArmur Core v0.2.0 is a deterministic governance runtime for autonomous and AI
 python -m venv .venv
 source .venv/bin/activate
 pip install exoarmur-core
-
-# With V2 capabilities
-pip install "exoarmur-core[v2]"
 ```
+
+V2 capabilities ship as separate installable packages (e.g.
+`exoarmur-pod`, `exoarmur-bft`, `exoarmur-counterfactual`) that
+register themselves via plugin entry points. There is no `[v2]` extras
+group on `exoarmur-core` itself.
 
 ## Quick Start
 

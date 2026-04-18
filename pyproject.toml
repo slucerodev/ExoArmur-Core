@@ -50,7 +50,12 @@ exoarmur = "exoarmur.cli:main"
 exoarmur-stability = "exoarmur.stability.classifier"
 
 [project.optional-dependencies]
-v2 = []
+# No runtime-only "v2" extras group exists today: V2 modules ship as
+# separate installable packages that register themselves via the
+# `exoarmur.*` entry-point groups (see `src/exoarmur/plugins/registry.py`).
+# If/when a runtime dep is ever required by a V2 feature inside this
+# repository, add it under a new, explicit group name — do not reintroduce
+# an empty placeholder.
 dev = [
   # Test runner + async
   "pytest>=7.4,<10",
