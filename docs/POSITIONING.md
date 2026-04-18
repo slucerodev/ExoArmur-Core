@@ -108,7 +108,7 @@ Provides deterministic system validation with structured output:
 
 ### Canonical Demo
 ```bash
-exoarmur demo --scenario canonical
+exoarmur demo
 ```
 Demonstrates full system capabilities with policy enforcement and replay verification.
 

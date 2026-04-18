@@ -556,7 +556,7 @@ The command-line interface provides validation of core functionality:
 
 ```bash
 exoarmur --version  # Returns consistent version information
-exoarmur demo --operator-decision deny  # Demonstrates governance pipeline
+exoarmur demo  # Demonstrates governance pipeline (canonical truth-reconstruction demo)
 ```
 
 #### Demo Validation

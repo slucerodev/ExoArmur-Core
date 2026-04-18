@@ -11,11 +11,7 @@ Provides unified access to ExoArmur Core deterministic governance functions incl
 import sys
 import os
 import subprocess
-import asyncio
 import json
-import io
-import importlib.util
-from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from typing import Optional
 import click
@@ -57,17 +53,6 @@ def _discover_repo_root() -> Optional[Path]:
     return None
 
 
-def _load_demo_module():
-    repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
-    spec = importlib.util.spec_from_file_location("exoarmur_cli_demo", module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load demo module from {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def _ensure_windows_utf8_output() -> None:
     """Ensure Windows consoles can render CLI status output safely."""
     if sys.platform != "win32":
@@ -85,32 +70,6 @@ def _ensure_windows_utf8_output() -> None:
 
 ensure_default_event_loop_policy()
 
-
-def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optional[str] = None, env: Optional[dict] = None):
-    module = _load_demo_module()
-    buffer = io.StringIO()
-    original_env: dict[str, Optional[str]] = {}
-    for key, value in (env or {}).items():
-        original_env[key] = os.environ.get(key)
-        os.environ[key] = value
-
-    try:
-        with redirect_stdout(buffer), redirect_stderr(buffer):
-            if replay:
-                module.replay_audit_stream(replay)
-            else:
-                result = asyncio.run(module.run_demo_scenario(operator_decision))
-                if result.get("status") == "completed" and "outcome" in result:
-                    module.DEMO_AUDIT_PATH.write_text(json.dumps(result["audit_records"], indent=2, sort_keys=True))
-        return 0, buffer.getvalue()
-    except Exception:
-        return 1, buffer.getvalue()
-    finally:
-        for key, prior in original_env.items():
-            if prior is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = prior
 
 @click.group()
 @click.version_option(version=__version__, prog_name="exoarmur")
@@ -307,41 +266,45 @@ def verify_all(verbose: bool, fast: bool):
         sys.exit(1)
 
 @main.command()
-@click.option('--scenario', default='canonical', type=click.Choice(['canonical', 'v2_restrained_autonomy']),
-              help='Demo scenario to run (canonical is the canonical proof path)')
-@click.option('--operator-decision', type=click.Choice(['approve', 'deny']), 
-              default='deny', help='Operator decision for the legacy V2 demo scenario')
-@click.option('--replay', help='Audit stream ID to replay for the legacy V2 demo scenario')
-def demo(scenario: str, operator_decision: str, replay: Optional[str]):
-    """Run demonstration scenarios"""
-    click.echo(f"🚀 ExoArmur Demo: {scenario}")
-    repo_root = Path(__file__).resolve().parents[2]
+def demo():
+    """Run the canonical governance demo (requires a cloned source repository).
 
-    if scenario == 'canonical' and replay is None:
-        script_path = repo_root / "demos" / "canonical_truth_reconstruction_demo.py"
-        result = subprocess.run(
-            [sys.executable, str(script_path)],
-            cwd=repo_root,
-            env=_script_env(os.environ.copy()),
+    The demo script lives under the repository's top-level ``demos/`` directory,
+    which is intentionally not shipped inside the installed wheel (see
+    ``[tool.setuptools.packages.find]`` in ``pyproject.toml``). When this
+    command is invoked from a cloned checkout or editable install it runs the
+    script end-to-end; when invoked from a plain ``pip install`` it prints a
+    clear instruction rather than producing a cryptic ``No such file`` error.
+    """
+    _ensure_windows_utf8_output()
+    click.echo("🚀 ExoArmur Demo: canonical truth reconstruction")
+
+    repo_root = _discover_repo_root()
+    script_path = (
+        repo_root / "demos" / "canonical_truth_reconstruction_demo.py"
+        if repo_root is not None
+        else None
+    )
+
+    if script_path is None or not script_path.is_file():
+        click.echo(
+            "❌ Canonical demo script not found.\n"
+            "   The `exoarmur demo` command runs `demos/canonical_truth_reconstruction_demo.py`\n"
+            "   from the source checkout. That directory is intentionally not bundled into the\n"
+            "   installed wheel. To run the demo:\n\n"
+            "       git clone https://github.com/slucerodev/ExoArmur-Core.git\n"
+            "       cd ExoArmur-Core\n"
+            "       pip install -r requirements.lock\n"
+            "       pip install --no-deps -e '.[dev]'\n"
+            "       python demos/canonical_truth_reconstruction_demo.py\n"
         )
-        sys.exit(result.returncode)
+        sys.exit(1)
 
-    script_path = repo_root / "scripts" / "demo_v2_restrained_autonomy.py"
-    env = _script_env(os.environ.copy())
-    if not replay:
-        env.update({
-            'EXOARMUR_FLAG_V2_FEDERATION_ENABLED': 'true',
-            'EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED': 'true',
-            'EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED': 'true',
-        })
-
-    cmd = [sys.executable, str(script_path)]
-    if replay:
-        cmd.extend(["--replay", replay])
-    else:
-        cmd.extend(["--operator-decision", operator_decision])
-
-    result = subprocess.run(cmd, cwd=repo_root, env=env)
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        cwd=repo_root,
+        env=_script_env(os.environ.copy()),
+    )
     sys.exit(result.returncode)
 
 @main.command()

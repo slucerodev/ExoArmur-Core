@@ -361,7 +361,7 @@ python scripts/quick_start.py
 exoarmur health
 
 # Run a demo
-exoarmur demo --operator-decision deny
+exoarmur demo
 
 # See all commands
 exoarmur --help
