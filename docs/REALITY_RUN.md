@@ -4,7 +4,7 @@
 
 ### Prerequisites
 - Docker and docker-compose installed
-- Python 3.8+ with asyncio support
+- Python 3.10+ with asyncio support
 - Git repository checked out
 
 ### Single Command Reality Test

@@ -4,7 +4,7 @@ This guide covers setting up a clean development environment for ExoArmur ADMO V
 
 ## Prerequisites
 
-- Python 3.8+ (tested with Python 3.12)
+- Python 3.10+ (tested with Python 3.12)
 - Git
 - Virtual environment tool (venv recommended)
 

@@ -490,7 +490,7 @@ Bundles can be replayed to verify that they produce identical results to origina
 ExoArmur is implemented as an open-source Python package with the following key characteristics:
 
 #### Language and Framework
-The system is implemented in Python 3.8+ with minimal external dependencies. Core components use only standard library and well-vetted third-party packages.
+The system is implemented in Python 3.10+ with minimal external dependencies. Core components use only standard library and well-vetted third-party packages.
 
 #### Architecture Pattern
 The implementation follows a modular architecture with clear separation between components. Each component is implemented as an independent module with well-defined interfaces.
