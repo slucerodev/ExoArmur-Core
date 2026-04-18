@@ -105,24 +105,28 @@ V2 capabilities default to **off**:
 
 ## Governance Pipeline Demo
 
+The canonical Golden Demo exercises the full execution boundary end-to-end: a
+simulated AI agent requests a file-system action outside its authorized root,
+the policy decision point denies it before any side effect, the audit trail is
+emitted, and a cryptographic proof bundle is built and re-verified via replay
+in the same process. Runs from a fresh clone with no external services:
+
 ```bash
-EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true \
-EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true \
-EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true \
-python scripts/demo_v2_restrained_autonomy.py --operator-decision deny
+python demos/canonical_truth_reconstruction_demo.py
 ```
 
-Expected output:
+Expected output (deterministic, byte-identical across runs):
 ```
+Proof bundle written: .../demos/canonical_proof_bundle.json
+Proof bundle replay hash: 7eb0f264dd6d6e67925ece66ec2218ac73716ae6bc8a770ef84a8defd28bf47b
 DEMO_RESULT=DENIED
 ACTION_EXECUTED=false
-AUDIT_STREAM_ID=det-...
+AUDIT_STREAM_ID=canonical-truth-reconstruction-demo
+REPLAY_VERDICT=PASS
 ```
 
-Replay the audit stream:
-```bash
-python scripts/demo_v2_restrained_autonomy.py --replay <AUDIT_STREAM_ID>
-```
+The same demo is executed in CI on every push — see the `V2 Restrained
+Autonomy Demo Smoke` job in [`.github/workflows/v2-demo-smoke.yml`](.github/workflows/v2-demo-smoke.yml).
 
 ## CI
 
@@ -132,7 +136,7 @@ Every push runs:
 - **Security Scan** — CodeQL + pip-audit
 - **V2 Demo Smoke Test** — full governance pipeline end-to-end
 
-Current: **1033 passing, 11 skipped, 11 xfailed**. No external infrastructure required for the core suite.
+Current: **1041 passing, 10 skipped, 3 xfailed**. No external infrastructure required for the core suite.
 
 ## Live Demo (Requires NATS JetStream)
 

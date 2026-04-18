@@ -39,8 +39,9 @@ ExoArmur/
 │   ├── boundary_gate.py
 │   ├── demo_handshake.py
 │   ├── demo_identity_containment.py
-│   ├── demo_v2_restrained_autonomy.py  # Legacy V2 compatibility demo
 │   └── [additional scripts]
+├── demos/                        # Canonical governance demos (runnable end-to-end)
+│   └── canonical_truth_reconstruction_demo.py  # Golden Demo (CI-verified)
 ├── tools/                        # Export + boundary enforcement tooling
 │   ├── boundary_check.py
 │   ├── boundary_manifest.json
@@ -156,10 +157,10 @@ ExoArmur/
 ### Scripts (`scripts/`)
 
 **Demonstration Scripts**:
-- `demo_standalone.py`: Canonical standalone deny/proof demo
-- `demo_v2_restrained_autonomy.py`: Legacy V2 restrained autonomy demo
-- `demo_identity_containment.py`: Identity session containment demo
-- `boundary_gate.py`: Boundary enforcement demonstration
+- `demos/canonical_truth_reconstruction_demo.py`: Golden Demo (CI-verified deterministic proof of execution boundary)
+- `examples/demo_standalone.py`: Canonical standalone deny/proof demo
+- `scripts/demo_identity_containment.py`: Identity session containment demo
+- `scripts/boundary_gate.py`: Boundary enforcement demonstration
 
 **Utility Scripts**:
 - `demo_handshake.py`: Handshake protocol demonstration
