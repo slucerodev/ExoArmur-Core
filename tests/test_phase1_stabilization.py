@@ -24,13 +24,22 @@ class TestPhase1Stabilization:
         self.client = TestClient(app)
     
     def test_health_endpoint_unchanged(self):
-        """Verify health endpoint returns identical response"""
+        """Verify health endpoint preserves status + service fields.
+
+        Version field was added as an additive enhancement so the dashboard
+        can display the running backend version. Presence is optional to
+        tolerate environments where package metadata is unavailable.
+        """
         response = self.client.get("/health")
         assert response.status_code == 200
-        assert response.json() == {
-            "status": "healthy", 
-            "service": "ExoArmur Core"
-        }
+        body = response.json()
+        assert body["status"] == "healthy"
+        assert body["service"] == "ExoArmur Core"
+        # Additive: version is present when installed via pip (may be absent
+        # in edge deployments lacking package metadata).
+        if "version" in body:
+            assert isinstance(body["version"], str)
+            assert body["version"] != ""
     
     def test_root_endpoint_unchanged(self):
         """Verify root endpoint returns identical response"""

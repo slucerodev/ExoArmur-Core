@@ -97,6 +97,205 @@
         "title": "ApprovalStatusResponseV1",
         "type": "object"
       },
+      "ArbitrationConflictType": {
+        "description": "Types of conflicts that can be arbitrated",
+        "enum": [
+          "threat_classification",
+          "system_health",
+          "confidence_dispute",
+          "evidence_conflict",
+          "policy_violation",
+          "trust_dispute"
+        ],
+        "title": "ArbitrationConflictType",
+        "type": "string"
+      },
+      "ArbitrationInfo": {
+        "description": "Information about an arbitration",
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Approval request ID",
+            "title": "Approval Id"
+          },
+          "arbitration_id": {
+            "description": "Arbitration identifier",
+            "title": "Arbitration Id",
+            "type": "string"
+          },
+          "claims": {
+            "description": "Conflicting claims/beliefs",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "conflict_key": {
+            "description": "Deterministic conflict key",
+            "title": "Conflict Key",
+            "type": "string"
+          },
+          "conflict_type": {
+            "$ref": "#/components/schemas/ArbitrationConflictType",
+            "description": "Type of conflict"
+          },
+          "conflicts_detected": {
+            "description": "Detected conflicts",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Conflicts Detected",
+            "type": "array"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Correlation ID",
+            "title": "Correlation Id"
+          },
+          "created_at_utc": {
+            "description": "When arbitration was created",
+            "format": "date-time",
+            "title": "Created At Utc",
+            "type": "string"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Final decision after approval",
+            "title": "Decision"
+          },
+          "evidence_refs": {
+            "description": "Evidence references",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "description": "Additional metadata",
+            "title": "Metadata",
+            "type": "object"
+          },
+          "proposed_resolution": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Proposed resolution",
+            "title": "Proposed Resolution"
+          },
+          "resolution_applied_at_utc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When resolution was applied",
+            "title": "Resolution Applied At Utc"
+          },
+          "resolved_at_utc": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When arbitration was resolved",
+            "title": "Resolved At Utc"
+          },
+          "resolver_federate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Federate that resolved the conflict",
+            "title": "Resolver Federate Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArbitrationStatus",
+            "description": "Current arbitration status"
+          },
+          "subject_key": {
+            "description": "Subject of the conflict",
+            "title": "Subject Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "arbitration_id",
+          "created_at_utc",
+          "status",
+          "conflict_type",
+          "subject_key",
+          "conflict_key",
+          "claims",
+          "evidence_refs",
+          "correlation_id",
+          "conflicts_detected",
+          "proposed_resolution",
+          "decision",
+          "approval_id",
+          "resolved_at_utc",
+          "resolver_federate_id",
+          "resolution_applied_at_utc",
+          "metadata"
+        ],
+        "title": "ArbitrationInfo",
+        "type": "object"
+      },
+      "ArbitrationStatus": {
+        "description": "Arbitration status",
+        "enum": [
+          "open",
+          "resolved",
+          "rejected",
+          "expired"
+        ],
+        "title": "ArbitrationStatus",
+        "type": "string"
+      },
       "AuditResponseV1": {
         "additionalProperties": false,
         "description": "Response model for GET /v1/audit/{correlation_id}",
@@ -135,6 +334,131 @@
         "title": "AuditResponseV1",
         "type": "object"
       },
+      "BeliefInfo": {
+        "description": "Information about a belief",
+        "properties": {
+          "belief_id": {
+            "description": "Belief identifier",
+            "title": "Belief Id",
+            "type": "string"
+          },
+          "belief_type": {
+            "description": "Belief type",
+            "title": "Belief Type",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "Confidence score",
+            "title": "Confidence",
+            "type": "number"
+          },
+          "conflicts": {
+            "description": "Conflicting belief IDs",
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Correlation ID",
+            "title": "Correlation Id"
+          },
+          "derived_at": {
+            "description": "When belief was derived",
+            "format": "date-time",
+            "title": "Derived At",
+            "type": "string"
+          },
+          "evidence_summary": {
+            "description": "Evidence summary",
+            "title": "Evidence Summary",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "description": "Additional metadata",
+            "title": "Metadata",
+            "type": "object"
+          },
+          "source_observations": {
+            "description": "Source observation IDs",
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Observations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "belief_id",
+          "belief_type",
+          "confidence",
+          "source_observations",
+          "derived_at",
+          "correlation_id",
+          "evidence_summary",
+          "conflicts",
+          "metadata"
+        ],
+        "title": "BeliefInfo",
+        "type": "object"
+      },
+      "FederateInfo": {
+        "description": "Information about a federate",
+        "properties": {
+          "cell_status": {
+            "description": "Cell status",
+            "title": "Cell Status",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "When federate was created",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "federate_id": {
+            "description": "Federate identifier",
+            "title": "Federate Id",
+            "type": "string"
+          },
+          "federation_role": {
+            "description": "Federation role",
+            "title": "Federation Role",
+            "type": "string"
+          },
+          "public_key": {
+            "description": "Public key fingerprint",
+            "title": "Public Key",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "When federate was last updated",
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "federate_id",
+          "federation_role",
+          "cell_status",
+          "created_at",
+          "updated_at",
+          "public_key"
+        ],
+        "title": "FederateInfo",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -146,6 +470,81 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ObservationInfo": {
+        "description": "Information about an observation",
+        "properties": {
+          "confidence": {
+            "description": "Confidence score",
+            "title": "Confidence",
+            "type": "number"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Correlation ID",
+            "title": "Correlation Id"
+          },
+          "evidence_refs": {
+            "description": "Evidence references",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "observation_id": {
+            "description": "Observation identifier",
+            "title": "Observation Id",
+            "type": "string"
+          },
+          "observation_type": {
+            "description": "Observation type",
+            "title": "Observation Type",
+            "type": "string"
+          },
+          "payload_data": {
+            "additionalProperties": true,
+            "description": "Payload data",
+            "title": "Payload Data",
+            "type": "object"
+          },
+          "payload_type": {
+            "description": "Payload type",
+            "title": "Payload Type",
+            "type": "string"
+          },
+          "source_federate_id": {
+            "description": "Source federate ID",
+            "title": "Source Federate Id",
+            "type": "string"
+          },
+          "timestamp_utc": {
+            "description": "Observation timestamp",
+            "format": "date-time",
+            "title": "Timestamp Utc",
+            "type": "string"
+          }
+        },
+        "required": [
+          "observation_id",
+          "source_federate_id",
+          "timestamp_utc",
+          "correlation_id",
+          "observation_type",
+          "confidence",
+          "evidence_refs",
+          "payload_type",
+          "payload_data"
+        ],
+        "title": "ObservationInfo",
         "type": "object"
       },
       "TelemetryEventV1": {
@@ -352,6 +751,39 @@
           "trace_id"
         ],
         "title": "TelemetryIngestResponseV1",
+        "type": "object"
+      },
+      "TimelineInfo": {
+        "description": "Timeline information for correlation ID",
+        "properties": {
+          "beliefs": {
+            "description": "Beliefs",
+            "items": {
+              "$ref": "#/components/schemas/BeliefInfo"
+            },
+            "title": "Beliefs",
+            "type": "array"
+          },
+          "correlation_id": {
+            "description": "Correlation ID",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "observations": {
+            "description": "Observations",
+            "items": {
+              "$ref": "#/components/schemas/ObservationInfo"
+            },
+            "title": "Observations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "correlation_id",
+          "observations",
+          "beliefs"
+        ],
+        "title": "TimelineInfo",
         "type": "object"
       },
       "ValidationError": {
@@ -629,6 +1061,489 @@
           }
         },
         "summary": "Tick"
+      }
+    },
+    "/api/v2/visibility/arbitrations": {
+      "get": {
+        "description": "List arbitrations with optional filters",
+        "operationId": "list_arbitrations_api_v2_visibility_arbitrations_get",
+        "parameters": [
+          {
+            "description": "Filter by status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ArbitrationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter by conflict type",
+            "in": "query",
+            "name": "conflict_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ArbitrationConflictType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by conflict type",
+              "title": "Conflict Type"
+            }
+          },
+          {
+            "description": "Filter by correlation ID",
+            "in": "query",
+            "name": "correlation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by correlation ID",
+              "title": "Correlation Id"
+            }
+          },
+          {
+            "description": "Maximum number to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 100,
+              "description": "Maximum number to return",
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArbitrationInfo"
+                  },
+                  "title": "Response List Arbitrations Api V2 Visibility Arbitrations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Arbitrations",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/arbitrations/{arbitration_id}": {
+      "get": {
+        "description": "Get arbitration by ID",
+        "operationId": "get_arbitration_api_v2_visibility_arbitrations__arbitration_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "arbitration_id",
+            "required": true,
+            "schema": {
+              "title": "Arbitration Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArbitrationInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Arbitration",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/beliefs": {
+      "get": {
+        "description": "List beliefs with optional filters",
+        "operationId": "list_beliefs_api_v2_visibility_beliefs_get",
+        "parameters": [
+          {
+            "description": "Filter by correlation ID",
+            "in": "query",
+            "name": "correlation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by correlation ID",
+              "title": "Correlation Id"
+            }
+          },
+          {
+            "description": "Filter by belief type",
+            "in": "query",
+            "name": "belief_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by belief type",
+              "title": "Belief Type"
+            }
+          },
+          {
+            "description": "Maximum number to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 100,
+              "description": "Maximum number to return",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "Filter by timestamp (ISO format)",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by timestamp (ISO format)",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BeliefInfo"
+                  },
+                  "title": "Response List Beliefs Api V2 Visibility Beliefs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Beliefs",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/federates": {
+      "get": {
+        "description": "List all federates with their status",
+        "operationId": "list_federates_api_v2_visibility_federates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FederateInfo"
+                  },
+                  "title": "Response List Federates Api V2 Visibility Federates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Federates",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/observations": {
+      "get": {
+        "description": "List observations with optional filters",
+        "operationId": "list_observations_api_v2_visibility_observations_get",
+        "parameters": [
+          {
+            "description": "Filter by federate ID",
+            "in": "query",
+            "name": "federate_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by federate ID",
+              "title": "Federate Id"
+            }
+          },
+          {
+            "description": "Filter by correlation ID",
+            "in": "query",
+            "name": "correlation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by correlation ID",
+              "title": "Correlation Id"
+            }
+          },
+          {
+            "description": "Filter by observation type",
+            "in": "query",
+            "name": "observation_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by observation type",
+              "title": "Observation Type"
+            }
+          },
+          {
+            "description": "Maximum number to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 100,
+              "description": "Maximum number to return",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "Filter by timestamp (ISO format)",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by timestamp (ISO format)",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ObservationInfo"
+                  },
+                  "title": "Response List Observations Api V2 Visibility Observations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Observations",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/statistics": {
+      "get": {
+        "description": "Get visibility system statistics",
+        "operationId": "get_statistics_api_v2_visibility_statistics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Statistics",
+        "tags": [
+          "visibility"
+        ]
+      }
+    },
+    "/api/v2/visibility/timeline/{correlation_id}": {
+      "get": {
+        "description": "Get timeline of observations and beliefs for a correlation ID",
+        "operationId": "get_timeline_by_correlation_id_api_v2_visibility_timeline__correlation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correlation_id",
+            "required": true,
+            "schema": {
+              "title": "Correlation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Timeline By Correlation Id",
+        "tags": [
+          "visibility"
+        ]
       }
     },
     "/health": {
