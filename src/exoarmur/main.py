@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 import logging
 import sys
 import os
@@ -25,9 +26,14 @@ from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 # Import contract models
 from spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
 
-# Import ICW API
+# Import ICW API (lives under the installed exoarmur package root).
+# The try/except retains a safe fallback if the submodule is ever removed
+# or becomes unavailable at import time, but the canonical path must be
+# `exoarmur.identity_containment.icw_api` — `identity_containment` is not
+# a top-level package and a bare import silently degraded every
+# /v2/identity_containment/* endpoint to HTTP 503.
 try:
-    from identity_containment.icw_api import get_icw_api
+    from exoarmur.identity_containment.icw_api import get_icw_api
 except ImportError:
     # Fallback if ICW API not available
     def get_icw_api():
