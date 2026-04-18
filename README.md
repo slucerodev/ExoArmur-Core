@@ -46,14 +46,22 @@ print("Replay result:", getattr(report.result, "value", report.result))
 print("Failures:", report.failures or "none")
 ```
 
-Run the full suite (1033 tests, three-run stability gate):
+Run the full suite (1041 tests, three-run stability gate) with the same dependency set CI uses:
 
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core.git
 cd ExoArmur-Core
-pip install ".[dev]"
+pip install -r requirements.lock           # exact CI-pinned runtime deps
+pip install --no-deps -e ".[dev]"          # editable install + dev extras
 python -m pytest -q
 ```
+
+The two-step install is deliberate: `requirements.lock` pins every runtime
+dependency (including `fastapi==0.127.1` and `pydantic==2.12.5`) to the
+exact versions the committed OpenAPI snapshot was generated against, and
+`--no-deps` prevents `pip` from silently upgrading them when applying the
+`dev` extras. This is the same sequence every CI workflow uses — see
+[`.github/workflows/core-invariant-gates.yml`](.github/workflows/core-invariant-gates.yml).
 
 ---
 

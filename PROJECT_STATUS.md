@@ -64,7 +64,7 @@ If you are a prospective adopter or reviewer:
 3. Read [`SECURITY.md`](SECURITY.md) for the threat-model and responsible-disclosure policy
 4. Inspect [`.github/workflows/`](.github/workflows/) to see what CI actually enforces
 5. Inspect [`spec/contracts/`](spec/contracts/) for the immutable V1 data shapes
-6. Run `pip install -e ".[dev]" && python -m pytest -q` to reproduce the test suite
+6. Run `pip install -r requirements.lock && pip install --no-deps -e ".[dev]" && python -m pytest -q` to reproduce the test suite (same command CI runs)
 
 ## Contact
 
