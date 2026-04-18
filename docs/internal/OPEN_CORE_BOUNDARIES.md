@@ -156,7 +156,7 @@ logs/                      # ❌ No runtime logs
 ### Runtime Requirements
 - **NATS JetStream Server**: Required for message persistence and streaming
 - **Docker/Docker Compose**: Required for containerized deployment
-- **Python 3.8+**: Required runtime environment
+- **Python 3.10+**: Required runtime environment
 - **OSS Libraries**: All listed in requirements.txt
 
 ---

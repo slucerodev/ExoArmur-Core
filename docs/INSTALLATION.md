@@ -3,7 +3,7 @@
 ## 🚀 Quick Installation (5 minutes)
 
 ### Prerequisites
-- **Python 3.8+** (tested on 3.8-3.12)
+- **Python 3.10+** (tested on 3.10–3.12)
 - **pip** (Python package manager)
 - **512MB RAM** minimum
 
@@ -31,9 +31,7 @@ python scripts/quick_start.py
 - ✅ **Windows** (10+)
 
 ### Python Versions
-- ✅ **Python 3.8** (minimum)
-- ✅ **Python 3.9**
-- ✅ **Python 3.10**
+- ✅ **Python 3.10** (minimum)
 - ✅ **Python 3.11**
 - ✅ **Python 3.12** (recommended for CI)
 

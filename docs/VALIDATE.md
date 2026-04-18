@@ -4,7 +4,7 @@ This guide provides step-by-step commands to verify ExoArmur Core functionality 
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Git
 - Command line access
 

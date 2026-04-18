@@ -23,7 +23,7 @@
 # Clone and navigate to repository
 cd /path/to/ExoArmur
 
-# Ensure Python 3.8+ is available
+# Ensure Python 3.10+ is available
 python3 --version
 
 # Install dependencies (if requirements.txt exists)
@@ -158,7 +158,7 @@ PYTHONPATH=src python3 scripts/phase6_final_reality_run.py
 If individual tests fail:
 1. Check test output for specific error messages
 2. Verify all required dependencies are installed
-3. Ensure Python 3.8+ is being used
+3. Ensure Python 3.10+ is being used
 4. Check that src/reliability/ module is intact
 
 ### Evidence Bundle Issues

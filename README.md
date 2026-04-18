@@ -140,7 +140,7 @@ Autonomy Demo Smoke` job in [`.github/workflows/v2-demo-smoke.yml`](.github/work
 
 Every push runs:
 - **Core Invariant Gates** — three deterministic test runs, boundary enforcement, repo cleanliness
-- **Multi-Platform Tests** — Python 3.8–3.12 on Linux, macOS, Windows
+- **Multi-Platform Tests** — Python 3.12 on Linux, macOS, Windows (minimum supported: 3.10)
 - **Security Scan** — CodeQL + pip-audit
 - **V2 Demo Smoke Test** — full governance pipeline end-to-end
 
