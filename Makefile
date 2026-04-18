@@ -21,7 +21,7 @@ verify:
 
 lint:
 	@echo "Running basic Python syntax checks..."
-	.venv/bin/python -m py_compile src/federation/*.py
+	.venv/bin/python -m py_compile src/exoarmur/federation/*.py
 	@echo "✅ Syntax checks passed"
 
 format:
