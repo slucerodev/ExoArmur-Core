@@ -125,14 +125,26 @@ class VisibilityAPI:
         async def list_federates():
             """List all federates with their status"""
             try:
-                federates = []
-                
-                # Get all federate identities
-                # Note: FederateIdentityStore would need a list_all method
-                # For now, we'll return an empty list as placeholder
-                
+                federates: List[FederateInfo] = []
+
+                # FederateIdentityStore.list_identities() respects the
+                # v2_federation_enabled feature flag: returns [] when disabled.
+                # When enabled (e.g., dashboard-mode), returns registered cells.
+                identities = self.identity_store.list_identities()
+                for identity in identities:
+                    role = identity.federation_role
+                    status = identity.status
+                    federates.append(FederateInfo(
+                        federate_id=identity.federate_id,
+                        federation_role=(role.value if hasattr(role, 'value') else str(role)),
+                        cell_status=(status.value if hasattr(status, 'value') else str(status)),
+                        created_at=identity.created_at,
+                        updated_at=getattr(identity, 'updated_at', None) or identity.created_at,
+                        public_key=(identity.public_key or '')[:64],
+                    ))
+
                 return federates
-                
+
             except Exception as e:
                 logger.error(f"Error listing federates: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
