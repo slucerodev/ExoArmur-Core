@@ -4,17 +4,12 @@ Handles ingestion of federate observations with validation and verification
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
-import uuid
 
 from spec.contracts.models_v1 import (
-    ObservationV1,
-    BeliefV1,
-    FederateIdentityV1,
-    HandshakeState,
-    VerificationFailureReason
+    ObservationV1
 )
 from .observation_store import ObservationStore
 from .federate_identity_store import FederateIdentityStore

@@ -2,16 +2,15 @@
 CLI utilities for audit replay operations
 """
 
-import asyncio
 import json
 import sys
 from typing import Dict, Any, List
-from datetime import datetime, timezone
+from datetime import datetime
 
 import click
 from tabulate import tabulate
 
-from .replay_engine import ReplayEngine, ReplayReport, ReplayResult
+from .replay_engine import ReplayEngine, ReplayReport
 from .canonical_utils import canonical_json, stable_hash, to_canonical_event
 from .event_envelope import CanonicalEvent
 
@@ -19,7 +18,6 @@ from .event_envelope import CanonicalEvent
 @click.group()
 def replay():
     """Audit replay CLI utilities"""
-    pass
 
 
 @replay.command()

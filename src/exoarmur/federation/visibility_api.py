@@ -4,19 +4,14 @@ Read-only endpoints for federation coordination visibility
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from spec.contracts.models_v1 import (
-    ObservationV1,
-    BeliefV1,
-    ArbitrationV1,
     ArbitrationStatus,
-    ArbitrationConflictType,
-    FederateIdentityV1,
-    ObservationType
+    ArbitrationConflictType
 )
 from .observation_store import ObservationStore
 from .federate_identity_store import FederateIdentityStore

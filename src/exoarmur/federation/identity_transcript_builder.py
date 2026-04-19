@@ -13,14 +13,6 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 
-from .models.federation_identity_v2 import (
-    HandshakeState,
-    IdentityExchangeMessage,
-    CapabilityNegotiateMessage,
-    TrustEstablishMessage,
-    FederationConfirmMessage,
-    FederationIdentityMessage,
-)
 
 logger = logging.getLogger(__name__)
 

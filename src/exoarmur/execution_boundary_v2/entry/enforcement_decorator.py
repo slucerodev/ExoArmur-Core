@@ -27,7 +27,6 @@ def _next_logical_time() -> int:
 
 class ExecutionBypassError(RuntimeError):
     """Raised when direct execution bypass is detected"""
-    pass
 
 def enforce_canonical_routing(module_name: str = None):
     """

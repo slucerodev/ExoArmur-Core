@@ -5,7 +5,7 @@ Unified timeline construction with strict ordering preservation
 
 import logging
 from typing import Dict, Any, List, Optional, Union
-from datetime import datetime, timezone
+from datetime import datetime
 from dataclasses import dataclass
 
 from spec.contracts.models_v1 import AuditRecordV1

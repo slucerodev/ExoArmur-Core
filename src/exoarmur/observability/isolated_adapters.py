@@ -3,10 +3,8 @@ Isolated Observability Adapters
 Adapters for existing observability systems to work with isolated planes
 """
 
-import json
-import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime
 import logging
 
 from .plane_manager import (

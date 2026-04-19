@@ -4,13 +4,9 @@ Belief generation and JetStream publishing
 
 import logging
 import hashlib
-from datetime import datetime
-from typing import Dict, Any, List
 
-import sys
-import os
 import ulid
-from spec.contracts.models_v1 import LocalDecisionV1, BeliefV1, BeliefTelemetryV1
+from spec.contracts.models_v1 import LocalDecisionV1, BeliefTelemetryV1
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 from exoarmur.clock import deterministic_timestamp
 

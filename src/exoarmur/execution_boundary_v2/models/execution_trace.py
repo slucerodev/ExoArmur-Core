@@ -12,7 +12,6 @@ verification and deterministic ID generation for complete audit trails.
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
-from exoarmur.clock import utc_now
 from exoarmur.ids import make_trace_id, make_event_id
 from ..utils.verdict_resolution import FinalVerdict
 

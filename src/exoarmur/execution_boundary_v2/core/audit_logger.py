@@ -3,11 +3,9 @@ Deterministic Audit Logger implementation
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
-from enum import Enum
+from typing import Dict, List, Optional, Any
 import hashlib
 import json
-import time
 
 from .core_types import *
 

@@ -5,7 +5,7 @@ Interface for executor modules that perform real side effects.
 Enhanced with capability enforcement and sandboxing requirements.
 """
 
-from typing import Any, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Dict, List, Optional, Protocol
 from enum import Enum
 
 from ..models.action_intent import ActionIntent

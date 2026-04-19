@@ -2,11 +2,9 @@
 Lifecycle State Machine implementation
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, FrozenSet, Any
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, Any
 from enum import Enum
-import hashlib
-import json
 
 from ..core.core_types import *
 

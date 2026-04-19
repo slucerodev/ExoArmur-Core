@@ -5,7 +5,6 @@ Provides the main interface for running counterfactual experiments
 on ExoArmur audit trails.
 """
 
-from typing import Dict, Any, List
 from .intervention import Intervention, apply_intervention
 from .counterfactual_report import CounterfactualReport
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport

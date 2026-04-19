@@ -4,17 +4,15 @@ Deterministic aggregation of observations into beliefs
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional, Set
+from datetime import datetime
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from collections import defaultdict
 import hashlib
-import uuid
 
 from spec.contracts.models_v1 import (
     ObservationV1,
     BeliefV1,
-    BeliefTelemetryV1,
     ObservationType
 )
 from exoarmur.federation.conflict_detection import ConflictDetectionService

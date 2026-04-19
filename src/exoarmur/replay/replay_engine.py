@@ -12,22 +12,19 @@ Now includes schema versioning and migration support for proof bundles.
 import logging
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple, Union
+from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field
 from enum import Enum
 
 from .event_envelope import CanonicalEvent, EnvelopeValidationError
-from .replay_envelope_builder import ReplayEnvelopeBuilder, ReplayEnvelope
+from .replay_envelope_builder import ReplayEnvelopeBuilder
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.audit.audit_normalizer import CanonicalAuditEnvelope
-from exoarmur.clock import utc_now
 from exoarmur.execution_boundary_v2.schema_migrations import SchemaMigrations, MigrationError
 from exoarmur.execution_boundary_v2.utils.canonicalization import compute_replay_hash_with_migration
 
 # Import system components for reconstruction
-import sys
-import os
-from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1, BeliefV1, ExecutionIntentV1
+from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 
 logger = logging.getLogger(__name__)
 
@@ -725,4 +722,3 @@ class ReplayEngine:
 
 class ReplayEngineError(Exception):
     """Raised when replay engine operations fail"""
-    pass

@@ -5,8 +5,7 @@ Provides minimal abstractions for deterministic clock and tool wrapping.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Mapping, Optional, Callable
-from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 
 class Clock(ABC):
@@ -15,7 +14,6 @@ class Clock(ABC):
     @abstractmethod
     def now_iso8601(self) -> str:
         """Return current time in ISO 8601 format."""
-        pass
 
 
 class FixedClock(Clock):

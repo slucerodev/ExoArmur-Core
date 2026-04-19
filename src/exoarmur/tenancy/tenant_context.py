@@ -7,7 +7,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,6 @@ class TenantContext:
 
 class TenantIsolationError(Exception):
     """Raised when tenant isolation requirements are violated"""
-    pass
 
 
 class TenantContextManager:

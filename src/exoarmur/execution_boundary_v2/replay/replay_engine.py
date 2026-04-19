@@ -6,16 +6,14 @@ structured replay reporting for execution governance boundary verification.
 """
 
 import logging
-import json
 import hashlib
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple, Union, Set
+from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
 
 from exoarmur.clock import utc_now
-from exoarmur.ids import make_id
-from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
+from ..models.execution_trace import TraceStage
 from ..models.execution_proof_bundle import ExecutionProofBundle
 from ..utils.canonicalization import to_canonical_dict, canonical_json
 from ..utils.verdict_resolution import FinalVerdict
@@ -744,4 +742,3 @@ class ReplayEngine:
 
 class ReplayEngineError(Exception):
     """Raised when replay engine operations fail."""
-    pass

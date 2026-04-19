@@ -5,7 +5,7 @@ Bounded retry policy with exponential backoff, jitter, and durable idempotency p
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, Optional, Callable, TypeVar, Union, List
 from enum import Enum
 from dataclasses import dataclass, field

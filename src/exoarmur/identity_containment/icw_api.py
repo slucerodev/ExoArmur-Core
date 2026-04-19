@@ -4,9 +4,9 @@ Minimal endpoints for ICW operations with feature flag protection
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List, Optional
-from fastapi import HTTPException, Depends, Query
+from fastapi import HTTPException, Query
 from pydantic import BaseModel
 
 from exoarmur.federation.clock import Clock, FixedClock
@@ -22,7 +22,6 @@ from exoarmur.control_plane.intent_store import IntentStore
 from spec.contracts.models_v1 import (
     IdentitySubjectV1,
     IdentityContainmentRecommendationV1,
-    IdentityContainmentIntentV1,
     IdentityContainmentScopeV1
 )
 

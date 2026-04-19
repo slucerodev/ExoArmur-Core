@@ -4,11 +4,7 @@ Local decision generation from signal facts
 
 import logging
 import hashlib
-from datetime import datetime
-from typing import Dict, Any, List
 
-import sys
-import os
 import ulid
 from spec.contracts.models_v1 import SignalFactsV1, LocalDecisionV1
 from exoarmur.replay.canonical_utils import canonical_json

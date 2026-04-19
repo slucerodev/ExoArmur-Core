@@ -6,11 +6,10 @@ Circuit breaker logic for external dependencies with observable and auditable tr
 import asyncio
 import functools
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Callable, TypeVar, Set
 from enum import Enum
-from dataclasses import dataclass, field
-import weakref
+from dataclasses import dataclass
 
 from exoarmur.clock import utc_now
 
@@ -226,8 +225,6 @@ class CircuitBreaker:
             # Route audit emission through V2EntryGate
             from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
             from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
-            from datetime import datetime, timezone
-            import hashlib
             import ulid
             
             # Create audit emission request

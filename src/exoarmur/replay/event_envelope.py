@@ -5,8 +5,8 @@ Provides stable ordering and comprehensive event metadata
 
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
+from typing import Dict, Any, Optional
+from dataclasses import dataclass
 from enum import Enum
 
 from .canonical_utils import canonical_json, stable_hash
@@ -222,4 +222,3 @@ class AuditEventEnvelope:
 
 class EnvelopeValidationError(Exception):
     """Raised when envelope validation fails"""
-    pass

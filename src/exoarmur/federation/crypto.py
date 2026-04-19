@@ -7,17 +7,14 @@ import logging
 import base64
 import secrets
 from typing import Optional, Tuple, Dict, Any
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.backends import default_backend
 
 # Import canonical utilities from Workflow 1
-import sys
-import os
-from exoarmur.replay.canonical_utils import canonical_json, stable_hash
+from exoarmur.replay.canonical_utils import stable_hash
 
 # Import federation models
 from .messages import (

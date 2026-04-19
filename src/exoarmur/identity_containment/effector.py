@@ -6,7 +6,7 @@ operations with TTL enforcement and guaranteed auto-revert.
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Optional, List
 from dataclasses import dataclass
 import logging
@@ -16,8 +16,7 @@ from spec.contracts.models_v1 import (
     IdentityContainmentAppliedRecordV1,
     IdentityContainmentRevertedRecordV1,
     IdentityContainmentStatusV1,
-    IdentityContainmentScopeV1,
-    IdentitySubjectV1
+    IdentityContainmentScopeV1
 )
 from exoarmur.federation.clock import Clock
 from exoarmur.federation.audit import AuditService, AuditEventType
@@ -45,22 +44,18 @@ class IdentityContainmentEffector(ABC):
     @abstractmethod
     def apply(self, intent: IdentityContainmentIntentV1, approval_id: str) -> IdentityContainmentAppliedRecordV1:
         """Apply containment for the given intent"""
-        pass
     
     @abstractmethod
     def revert(self, intent: IdentityContainmentIntentV1, reason: str) -> IdentityContainmentRevertedRecordV1:
         """Revert containment for the given intent"""
-        pass
     
     @abstractmethod
     def status(self, subject_id: str, provider: str, scope: IdentityContainmentScopeV1) -> Optional[ContainmentState]:
         """Get current containment status for a subject"""
-        pass
     
     @abstractmethod
     def process_expirations(self) -> List[IdentityContainmentRevertedRecordV1]:
         """Process and revert any expired containments"""
-        pass
 
 
 class ContainmentStateStore:

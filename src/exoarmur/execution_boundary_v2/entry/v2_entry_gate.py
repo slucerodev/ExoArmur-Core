@@ -5,13 +5,12 @@ This is the ONLY allowed external entry point into execution.
 All execution must pass through this gate to ensure V2 governance.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
 import logging
-import uuid
 from datetime import datetime, timezone
 
-from exoarmur.clock import utc_now, deterministic_timestamp
+from exoarmur.clock import utc_now
 from ..core.core_types import *
 from ..lifecycle.lifecycle_state_machine import *
 from ..determinism.determinism_engine import *
@@ -261,7 +260,6 @@ class V2EntryGate:
         
         # Import V1 Core execution (lazy import to avoid circular dependencies)
         try:
-            from exoarmur.execution.execution_kernel import ExecutionKernel
             from spec.contracts.models_v1 import ExecutionIntentV1
             
             # Create V1 execution intent
@@ -407,7 +405,7 @@ class V2EntryGate:
         
         try:
             # Import collective aggregator (lazy import)
-            from exoarmur.collective_confidence.aggregator import CollectiveConfidenceAggregator
+            pass
             
             # Get the global aggregator instance
             import exoarmur.main as main_module
@@ -456,7 +454,7 @@ class V2EntryGate:
         
         try:
             # Import audit logger (lazy import)
-            from exoarmur.audit.audit_logger import AuditLogger
+            pass
             
             # Get the global audit logger instance
             import exoarmur.main as main_module
@@ -505,7 +503,7 @@ class V2EntryGate:
         
         try:
             # Import audit logger (lazy import)
-            from exoarmur.audit.audit_logger import AuditLogger
+            pass
             
             # Get the global audit logger instance
             import exoarmur.main as main_module

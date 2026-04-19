@@ -11,14 +11,13 @@ PRINCIPLES:
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
 class Phase2AEnforcementError(Exception):
     """Raised when Phase 2A enforcement fails"""
-    pass
 
 class Phase2AEnforcement:
     """Orchestrates Phase 2A structural enforcement"""

@@ -4,24 +4,22 @@ Minimal belief->policy->action pipeline with operator approval
 """
 
 import logging
-from typing import Dict, Any, Optional, List, Literal
+from typing import Dict, Any, Optional, Literal
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 import hashlib
 import json
 import uuid
 
 from exoarmur.federation.clock import Clock, FixedClock
-import sys
-import os
 
 # Add src to path for imports
 
 from exoarmur.feature_flags.feature_flags import get_feature_flags, FeatureFlagContext
-from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
+from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.spec.contracts.models_v1 import (
-    TelemetryEventV1, BeliefV1 as BeliefV1Original, ExecutionIntentV1, AuditRecordV1
+    TelemetryEventV1, BeliefV1 as BeliefV1Original, ExecutionIntentV1
 )
 BeliefV1 = BeliefV1Original  # Use the first BeliefV1 definition
 from .mock_executor import MockActionExecutor

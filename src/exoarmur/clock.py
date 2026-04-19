@@ -6,7 +6,6 @@ import hashlib
 import json
 from datetime import datetime, timezone, timedelta
 from typing import Protocol, Optional, Any
-from abc import ABC, abstractmethod
 
 
 class Clock(Protocol):

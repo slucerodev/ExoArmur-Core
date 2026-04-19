@@ -10,10 +10,8 @@ canonical execution logic or MultiNodeReplayVerifier behavior.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Callable, Union
+from typing import Dict, List, Any, Optional
 from enum import Enum
-import hashlib
-import json
 
 from .canonical_utils import canonical_json, stable_hash
 from .event_envelope import CanonicalEvent

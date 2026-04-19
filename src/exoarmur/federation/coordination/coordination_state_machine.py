@@ -7,19 +7,15 @@ Deterministic state machine for federation coordination (no intelligence, no dec
 """
 
 import asyncio
-import hashlib
 import logging
-import secrets
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, Optional, List, Tuple, Callable
+from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
-from enum import Enum
 
 from .coordination_models_v2 import (
-    CoordinationType, CoordinationState, CoordinationRole,
-    CoordinationAnnouncement, CoordinationClaim, CoordinationRelease,
-    CoordinationObservation, CoordinationIntentBroadcast, CoordinationEvent,
-    CoordinationSession
+    CoordinationType, CoordinationState, CoordinationAnnouncement,
+    CoordinationClaim, CoordinationRelease, CoordinationObservation,
+    CoordinationIntentBroadcast, CoordinationEvent, CoordinationSession
 )
 
 logger = logging.getLogger(__name__)

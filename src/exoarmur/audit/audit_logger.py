@@ -6,11 +6,10 @@ import json
 import hashlib
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import ulid
 
 from spec.contracts.models_v1 import AuditRecordV1
-from exoarmur.nats_client import ExoArmurNATSClient
 from exoarmur.clock import utc_now
 from exoarmur.feature_flags.resolver import (
     load_v2_core_types,
@@ -309,7 +308,6 @@ class AuditLogger:
             v2_entry_gate = load_v2_entry_gate()
             v2_core_types = load_v2_core_types()
             from datetime import datetime, timezone
-            import hashlib
             import ulid
             
             # TODO: Implement actual JetStream consumer

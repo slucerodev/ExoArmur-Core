@@ -5,9 +5,8 @@ Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → Collect
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
@@ -16,7 +15,6 @@ import os
 import asyncio
 from exoarmur.clock import utc_now
 from typing import Dict, Any, List, Optional
-import uuid
 
 # Add contracts to path
 
@@ -42,7 +40,7 @@ except ImportError:
         raise HTTPException(status_code=503, detail="ICW API not initialized")
 
 # Import API models
-from exoarmur.api_models import TelemetryIngestResponseV1, AuditResponseV1, ErrorResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
+from exoarmur.api_models import TelemetryIngestResponseV1, AuditResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
 
 # Import internal modules
 from exoarmur.perception.validator import TelemetryValidator
@@ -58,7 +56,6 @@ from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.feature_flags.resolver import (
     load_v2_core_types,
-    load_v2_diagnostics,
     load_v2_entry_gate,
     load_v2_safety_models,
 )
@@ -484,7 +481,6 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
     ModuleVersion = v2_core_types.ModuleVersion
 
     from exoarmur.clock import utc_now
-    import hashlib
     import ulid
     
     logger.info("Initiating system bootstrap through V2EntryGate")
@@ -764,7 +760,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
         collective_state = collective_aggregator.compute_collective_state(belief)
         
         # Step 6: Safety - evaluate safety gate with arbitration
-        from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState
+        from exoarmur.safety.safety_gate import TrustState, EnvironmentState
         from exoarmur.safety.policy_evaluator import PolicyEvaluator
         from exoarmur.safety.trust_evaluator import TrustEvaluator
         from exoarmur.safety.environment_monitor import EnvironmentMonitor

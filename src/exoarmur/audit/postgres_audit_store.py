@@ -10,9 +10,8 @@ Provides durable, queryable audit storage using PostgreSQL with:
 
 import json
 import logging
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 from datetime import datetime
-from dataclasses import asdict
 
 try:
     import asyncpg

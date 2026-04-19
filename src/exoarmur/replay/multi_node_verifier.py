@@ -5,10 +5,9 @@ Implements isolation guarantees and deterministic hash comparison across
 independent replay node executions.
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from enum import Enum
 
 from .canonical_utils import canonical_json, stable_hash
@@ -27,7 +26,6 @@ class ConsensusResult(Enum):
 
 class VerificationError(Exception):
     """Exception raised when verification fails due to invalid data or state"""
-    pass
 
 
 @dataclass(frozen=True)

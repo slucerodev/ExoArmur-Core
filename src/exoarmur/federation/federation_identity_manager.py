@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from .identity_handshake_state_machine import (
     IdentityHandshakeStateMachine,
     HandshakeConfig,
-    HandshakeEvent,
     HandshakeResult,
 )
 from .identity_audit_emitter import IdentityAuditEmitter

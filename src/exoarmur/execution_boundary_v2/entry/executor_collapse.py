@@ -11,14 +11,12 @@ PRINCIPLES:
 """
 
 import logging
-from typing import Any, Callable
 import functools
 
 logger = logging.getLogger(__name__)
 
 class ExecutorBypassError(RuntimeError):
     """Raised when direct executor bypass is detected"""
-    pass
 
 class ExecutorCollapser:
     """Collapses direct executor paths into canonical routing"""

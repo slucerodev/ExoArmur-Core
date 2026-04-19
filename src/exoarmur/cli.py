@@ -22,7 +22,7 @@ from exoarmur import __version__
 
 # Handle Windows encoding issues
 if sys.platform == "win32":
-    import locale
+    pass
     # Set UTF-8 encoding for Windows console
     try:
         sys.stdout.reconfigure(encoding='utf-8')
@@ -102,7 +102,6 @@ def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optiona
 @click.version_option(version=__version__, prog_name="exoarmur")
 def main():
     """ExoArmur Core — deterministic governance and replayable audit layer"""
-    pass
 
 @main.command()
 @click.option('--verbose', '-v', is_flag=True, help='Verbose output')
@@ -357,7 +356,6 @@ def health():
     
     try:
         # Test basic imports
-        from spec.contracts.models_v1 import TelemetryEventV1
         click.echo("✅ Core imports working")
         
         # Test feature flags
@@ -366,9 +364,6 @@ def health():
         click.echo(f"✅ Feature flags loaded: {len(flags._flags)} configured")
         
         # Test governed runtime subsystems are importable
-        from exoarmur.replay.replay_engine import ReplayEngine
-        from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
-        from exoarmur.safety.safety_gate import SafetyGate
         click.echo("✅ Governed runtime subsystems importable")
         
         click.echo("🎯 System healthy")

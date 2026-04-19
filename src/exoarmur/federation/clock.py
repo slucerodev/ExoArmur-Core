@@ -14,12 +14,10 @@ class Clock(ABC):
     @abstractmethod
     def now(self) -> datetime:
         """Get current time in UTC"""
-        pass
     
     @abstractmethod
     def advance(self, delta: timedelta) -> None:
         """Advance time by delta (for testing)"""
-        pass
 
 
 class SystemClock(Clock):

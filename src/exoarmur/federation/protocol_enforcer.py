@@ -4,8 +4,7 @@ Enforces cryptographic verification and replay protection for handshake messages
 """
 
 import logging
-from typing import Optional, Tuple, Dict, Any
-from datetime import datetime, timezone
+from typing import Optional, Tuple
 
 from .crypto import (
     verify_message_integrity,
@@ -17,8 +16,6 @@ from .clock import Clock, SystemClock
 from .messages import FederationSignedMessage
 from .federate_identity_store import FederateIdentityStore
 
-import sys
-import os
 from spec.contracts.models_v1 import HandshakeState
 
 logger = logging.getLogger(__name__)

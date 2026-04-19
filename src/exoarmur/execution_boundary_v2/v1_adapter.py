@@ -18,7 +18,6 @@ Key responsibilities:
 """
 
 from typing import Any, Dict, List, Optional
-from datetime import datetime
 
 from exoarmur.clock import utc_now
 from exoarmur.ids import make_audit_id, make_id
@@ -26,9 +25,7 @@ from exoarmur.ids import make_audit_id, make_id
 # Import V2-native structures
 from .models.action_intent import ActionIntent
 from .models.policy_decision import PolicyDecision
-from .models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
-from .models.execution_dispatch import ExecutionDispatch
-from .utils.verdict_resolution import FinalVerdict
+from .models.execution_trace import ExecutionTrace
 
 # Import V1 structures ONLY in this adapter
 from spec.contracts.models_v1 import (

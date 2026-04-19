@@ -9,9 +9,8 @@ Enhanced with forensic-grade replay verification support and schema versioning.
 
 import hashlib
 import json
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, Union, Optional
 
-from pydantic import BaseModel
 
 from ..models.action_intent import ActionIntent
 from ..models.policy_decision import PolicyDecision

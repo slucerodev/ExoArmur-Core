@@ -10,11 +10,8 @@ PRINCIPLES:
 - Preserve script functionality while enforcing routing
 """
 
-import sys
 import os
-import importlib.util
 from pathlib import Path
-from typing import Optional, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,7 +27,6 @@ def _next_logical_time() -> int:
 
 class ScriptExecutionError(Exception):
     """Raised when script execution fails canonical routing"""
-    pass
 
 class ScriptBootstrap:
     """Bootstrap layer that enforces canonical routing for script execution"""

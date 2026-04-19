@@ -145,4 +145,3 @@ def verify_canonical_hash(original_data: Any, expected_hash: str) -> bool:
 
 class CanonicalHashError(Exception):
     """Raised when canonicalization or hashing fails"""
-    pass

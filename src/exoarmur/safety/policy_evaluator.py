@@ -45,7 +45,6 @@ class PolicyEvaluator:
         Returns:
             PolicyState with deterministic evaluation
         """
-        from exoarmur.safety.safety_gate import PolicyState
         
         context = PolicyEvaluationContext(
             intent=intent,

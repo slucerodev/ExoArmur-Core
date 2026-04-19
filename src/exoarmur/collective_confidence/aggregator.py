@@ -3,12 +3,9 @@ Collective confidence aggregation from beliefs
 """
 
 import logging
-from datetime import datetime
-from typing import Dict, Any, List, Union
+from typing import Dict, List, Union
 from dataclasses import dataclass
 
-import sys
-import os
 from spec.contracts.models_v1 import BeliefV1, BeliefTelemetryV1
 from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
 
@@ -94,7 +91,6 @@ class CollectiveConfidenceAggregator:
             from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
             from exoarmur.execution_boundary_v2.core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
             from datetime import datetime, timezone
-            import hashlib
             import ulid
             
             # TODO: Implement actual JetStream consumer

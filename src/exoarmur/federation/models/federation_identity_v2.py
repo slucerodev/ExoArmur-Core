@@ -6,11 +6,10 @@ ExoArmur ADMO V2 Federation Identity Models
 Pydantic v2 models for federation identity handshake matching federation_identity_v2.yaml contract
 """
 
-from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Dict, Any, List, Union
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timezone
 from enum import Enum
-import uuid
 
 
 class FederationRole(str, Enum):

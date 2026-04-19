@@ -12,7 +12,7 @@ V1 compatibility is handled through the v1_adapter layer.
 """
 
 import logging
-from typing import Dict, Any, List, Literal, Optional
+from typing import Dict, Any, List, Literal
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)

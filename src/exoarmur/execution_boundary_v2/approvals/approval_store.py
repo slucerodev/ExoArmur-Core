@@ -23,7 +23,6 @@ class ApprovalStore(ABC):
         Raises:
             ValueError: If a decision already exists for the intent_id
         """
-        pass
     
     @abstractmethod
     def get(self, intent_id: str) -> Optional[ApprovalRecord]:
@@ -35,4 +34,3 @@ class ApprovalStore(ABC):
         Returns:
             The approval record if found, None otherwise
         """
-        pass

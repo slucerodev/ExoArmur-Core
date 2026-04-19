@@ -5,12 +5,10 @@ Bounded queues and tenant-scoped rate limiting with deterministic overload behav
 
 import asyncio
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, Optional, List, Callable, TypeVar
+from typing import Dict, Any, Optional, Callable, TypeVar
 from enum import Enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from collections import deque
-import weakref
 
 from exoarmur.clock import utc_now
 
