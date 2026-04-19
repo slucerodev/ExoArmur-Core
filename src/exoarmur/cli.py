@@ -12,11 +12,13 @@ import sys
 import os
 import subprocess
 import json
+import io
+import asyncio
 from pathlib import Path
 from typing import Optional
+from contextlib import redirect_stdout, redirect_stderr
 import click
 from exoarmur import __version__
-from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
 
 # Handle Windows encoding issues
 if sys.platform == "win32":
@@ -68,8 +70,31 @@ def _ensure_windows_utf8_output() -> None:
                 pass
 
 
-ensure_default_event_loop_policy()
+def _run_demo_inline(*, operator_decision: Optional[str] = None, replay: Optional[str] = None, env: Optional[dict] = None):
+    module = _load_demo_module()
+    buffer = io.StringIO()
+    original_env: dict[str, Optional[str]] = {}
+    for key, value in (env or {}).items():
+        original_env[key] = os.environ.get(key)
+        os.environ[key] = value
 
+    try:
+        with redirect_stdout(buffer), redirect_stderr(buffer):
+            if replay:
+                module.replay_audit_stream(replay)
+            else:
+                result = asyncio.run(module.run_demo_scenario(operator_decision))
+                if result.get("status") == "completed" and "outcome" in result:
+                    module.DEMO_AUDIT_PATH.write_text(json.dumps(result["audit_records"], indent=2, sort_keys=True))
+        return 0, buffer.getvalue()
+    except Exception:
+        return 1, buffer.getvalue()
+    finally:
+        for key, prior in original_env.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
 
 @click.group()
 @click.version_option(version=__version__, prog_name="exoarmur")

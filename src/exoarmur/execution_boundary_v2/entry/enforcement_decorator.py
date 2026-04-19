@@ -16,6 +16,15 @@ from typing import Callable, Any
 
 logger = logging.getLogger(__name__)
 
+# Deterministic logical clock for execution IDs
+_logical_clock = 0
+
+def _next_logical_time() -> int:
+    """Get next deterministic logical timestamp"""
+    global _logical_clock
+    _logical_clock += 1
+    return _logical_clock
+
 class ExecutionBypassError(RuntimeError):
     """Raised when direct execution bypass is detected"""
     pass
@@ -57,10 +66,10 @@ def enforce_canonical_routing(module_name: str = None):
             # Extract execution context from function arguments
             # This is a simplified extraction - real implementation would be more sophisticated
             execution_context = {
-                "execution_id": f"exec_{func.__name__}_{int(time.time())}",
+                "execution_id": f"exec_{func.__name__}_{_next_logical_time()}",
                 "module_id": module_name or func.__module__,
                 "deterministic_seed": 42,
-                "logical_timestamp": int(time.time()),
+                "logical_timestamp": _next_logical_time(),
                 "correlation_id": f"decorator_{func.__name__}"
             }
             
@@ -95,20 +104,20 @@ def prevent_direct_execution(cls_name: str = None):
         cls_name: Optional class identifier for error messages
     """
     def decorator(cls) -> Any:
+        class_identifier = cls_name or cls.__name__
         # Patch all execute methods
         for attr_name in dir(cls):
             if attr_name == 'execute' and callable(getattr(cls, attr_name)):
                 original_execute = getattr(cls, attr_name)
-                
+
                 @functools.wraps(original_execute)
                 def bypass_prevention_execute(*args, **kwargs):
-                    class_identifier = cls_name or cls.__name__
                     raise ExecutionBypassError(
                         f"DIRECT EXECUTOR BYPASS DETECTED in {class_identifier}. "
                         f"Use CanonicalExecutionRouter.route_to_v2_entry_gate() instead. "
                         f"Direct executor.execute() calls are forbidden."
                     )
-                
+
                 setattr(cls, attr_name, bypass_prevention_execute)
                 logger.info(f"Patched {class_identifier}.{attr_name} to prevent bypass")
         

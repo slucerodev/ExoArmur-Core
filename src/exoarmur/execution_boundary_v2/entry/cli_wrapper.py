@@ -11,11 +11,19 @@ PRINCIPLES:
 """
 
 import sys
-import time
 from typing import Optional, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Deterministic logical clock for execution IDs
+_logical_clock = 0
+
+def _next_logical_time() -> int:
+    """Get next deterministic logical timestamp"""
+    global _logical_clock
+    _logical_clock += 1
+    return _logical_clock
 
 class CLIExecutionError(Exception):
     """Raised when CLI execution fails canonical routing"""
@@ -59,10 +67,10 @@ class CLIWrapper:
         logger.info(f"CLI Wrapper: Routing demo execution through canonical spine")
         
         execution_context = {
-            "execution_id": f"cli_demo_{int(time.time())}",
+            "execution_id": f"cli_demo_{_next_logical_time()}",
             "module_id": "cli_demo_wrapper",
             "deterministic_seed": 42,
-            "logical_timestamp": int(time.time()),
+            "logical_timestamp": _next_logical_time(),
             "correlation_id": f"cli_demo_{scenario}"
         }
         
@@ -107,10 +115,10 @@ class CLIWrapper:
         logger.info("CLI Wrapper: Routing verify-all through canonical spine")
         
         execution_context = {
-            "execution_id": f"cli_verify_{int(time.time())}",
+            "execution_id": f"cli_verify_{_next_logical_time()}",
             "module_id": "cli_verify_wrapper",
             "deterministic_seed": 42,
-            "logical_timestamp": int(time.time()),
+            "logical_timestamp": _next_logical_time(),
             "correlation_id": "cli_verify_all"
         }
         
@@ -152,10 +160,10 @@ class CLIWrapper:
         logger.info("CLI Wrapper: Routing evidence export through canonical spine")
         
         execution_context = {
-            "execution_id": f"cli_evidence_{int(time.time())}",
+            "execution_id": f"cli_evidence_{_next_logical_time()}",
             "module_id": "cli_evidence_wrapper",
             "deterministic_seed": 42,
-            "logical_timestamp": int(time.time()),
+            "logical_timestamp": _next_logical_time(),
             "correlation_id": "cli_evidence_export"
         }
         

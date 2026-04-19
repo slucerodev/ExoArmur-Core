@@ -11,6 +11,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from exoarmur.clock import utc_now, deterministic_timestamp
 from ..core.core_types import *
 from ..lifecycle.lifecycle_state_machine import *
 from ..determinism.determinism_engine import *
@@ -69,7 +70,7 @@ class V2EntryGate:
         This is the ONLY valid execution path. ALL execution MUST pass through here.
         NO fallback execution paths exist. NO partial execution is possible.
         """
-        entry_timestamp = datetime.now(timezone.utc)
+        entry_timestamp = utc_now()
         
         # Mark V2 execution context for violation detection
         v2_context = get_v2_execution_context()
@@ -144,7 +145,7 @@ class V2EntryGate:
             'request': request,
             'execution_id': execution_id,
             'logical_time': self.logical_clock.create_module_time(request.module_id.value),
-            'start_timestamp': datetime.now(timezone.utc),
+            'start_timestamp': utc_now(),
             'v2_enforced': True
         }
     
@@ -286,7 +287,7 @@ class V2EntryGate:
             core_result = {
                 'success': True,
                 'intent_id': v1_intent.intent_id,
-                'executed_at': datetime.now(timezone.utc).isoformat(),
+                'executed_at': utc_now().isoformat(),
                 'v2_enforced': True
             }
             
@@ -670,7 +671,7 @@ class V2EntryGate:
             core_result = {
                 'success': True,
                 'intent_id': request.execution_context.execution_id.value,
-                'executed_at': datetime.now(timezone.utc).isoformat(),
+                'executed_at': utc_now().isoformat(),
                 'v2_enforced': True
             }
             
@@ -746,7 +747,7 @@ class V2EntryGate:
             # Calculate processing duration
             processing_duration_ms = None
             try:
-                exit_timestamp = datetime.now(timezone.utc)
+                exit_timestamp = utc_now()
                 duration = exit_timestamp - entry_timestamp
                 processing_duration_ms = duration.total_seconds() * 1000
             except Exception:
@@ -869,7 +870,7 @@ class V2EntryGate:
             # Calculate processing duration
             duration_ms = None
             try:
-                exit_timestamp = datetime.now(timezone.utc)
+                exit_timestamp = utc_now()
                 duration = exit_timestamp - entry_timestamp
                 duration_ms = duration.total_seconds() * 1000
             except Exception:
@@ -885,7 +886,7 @@ class V2EntryGate:
                 success=result.success,
                 duration_ms=duration_ms,
                 metadata={
-                    'exit_timestamp': datetime.now(timezone.utc).isoformat(),
+                    'exit_timestamp': utc_now().isoformat(),
                     'has_error': result.error is not None,
                     'error_type': 'v2_entry_gate_failure' if result.error else None,
                     'audit_trail_id': result.audit_trail_id

@@ -73,5 +73,5 @@ LABEL org.exoarmur.description="Demonstrates deterministic governance capabiliti
 LABEL org.exoarmur.determinism="enforced"
 LABEL org.exoarmur.python-hash-seed="0"
 
-# Run the demo web server
-CMD ["python3", "scripts/demo_web_server.py"]
+# Run the production FastAPI application
+CMD ["uvicorn", "exoarmur.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]

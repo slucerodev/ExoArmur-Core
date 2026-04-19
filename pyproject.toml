@@ -54,6 +54,9 @@ exoarmur-stability = "exoarmur.stability.classifier"
 # If/when a runtime dep is ever required by a V2 feature inside this
 # repository, add it under a new, explicit group name — do not reintroduce
 # an empty placeholder.
+postgres = [
+    "asyncpg>=0.29.0",
+]
 dev = [
   # Test runner + async
   "pytest>=7.4,<10",

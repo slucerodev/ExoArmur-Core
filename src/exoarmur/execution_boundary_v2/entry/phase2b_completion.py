@@ -15,7 +15,7 @@ PRINCIPLES:
 
 import logging
 from typing import Dict, Any, List
-import time
+from exoarmur.clock import utc_now
 from .execution_surface_audit import audit_execution_surfaces
 from .primitive_collapser import collapse_execution_primitives
 
@@ -154,7 +154,7 @@ class Phase2BCompletion:
             # Assess single-spine achievement
             final_assessment = self.assess_single_spine_achievement()
             
-            self._completion_time = time.time()
+            self._completion_time = utc_now().timestamp()
             
             # Prepare final results
             phase2b_results = {

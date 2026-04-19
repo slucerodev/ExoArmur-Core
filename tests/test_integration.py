@@ -18,14 +18,8 @@ from httpx import AsyncClient
 from exoarmur.clock import utc_now
 
 # Import the main app
-from exoarmur.main import app, initialize_components
+from exoarmur.main import app
 from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1, AuditRecordV1
-
-
-@pytest.fixture(autouse=True)
-def setup_test_components():
-    """Initialize components for testing"""
-    initialize_components()
 
 
 class TestThinVerticalSlice:

@@ -11,6 +11,8 @@ from enum import Enum
 from dataclasses import dataclass
 import functools
 
+from exoarmur.clock import utc_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -223,7 +225,7 @@ class TimeoutManager:
                 "correlation_id": correlation_id,
                 "trace_id": trace_id,
                 "additional_context": additional_context or {},
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": utc_now().isoformat()
             }
             
             await self._audit_emitter(audit_data)

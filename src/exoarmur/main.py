@@ -85,8 +85,6 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
-ensure_default_event_loop_policy()
-
 logger = logging.getLogger(__name__)
 
 # Global components (will be initialized on startup)
@@ -583,6 +581,11 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
 async def lifespan(app: FastAPI):
     """Initialize and cleanup components on app lifespan."""
     global nats_client, background_tasks
+
+    # Set deterministic event loop policy at application startup (not import time)
+    # This ensures consistent behavior without affecting test collection
+    ensure_default_event_loop_policy()
+
     logger.info("Starting ExoArmur Core service")
 
     # Initialize NATS client

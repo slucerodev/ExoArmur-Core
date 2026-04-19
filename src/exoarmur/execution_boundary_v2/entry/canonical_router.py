@@ -14,10 +14,18 @@ PRINCIPLES:
 from typing import Dict, Any
 from .v2_entry_gate import execute_module, ExecutionRequest, ExecutionResult
 from ..core.core_types import ModuleID, ExecutionID, DeterministicSeed, ModuleExecutionContext, ModuleVersion
-import time
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Deterministic logical clock for execution IDs
+_logical_clock = 0
+
+def _next_logical_time() -> int:
+    """Get next deterministic logical timestamp"""
+    global _logical_clock
+    _logical_clock += 1
+    return _logical_clock
 
 class CanonicalExecutionRouter:
     """
@@ -55,11 +63,11 @@ class CanonicalExecutionRouter:
         request = ExecutionRequest(
             module_id=ModuleID(module_id),
             execution_context=ModuleExecutionContext(
-                execution_id=ExecutionID(execution_context_data.get('execution_id', f"exec_{int(time.time())}")),
+                execution_id=ExecutionID(execution_context_data.get('execution_id', f"exec_{_next_logical_time()}")),
                 module_id=ModuleID(module_id),
                 module_version=ModuleVersion(1, 0, 0),
                 deterministic_seed=DeterministicSeed(execution_context_data.get('deterministic_seed', 42)),
-                logical_timestamp=execution_context_data.get('logical_timestamp', int(time.time())),
+                logical_timestamp=execution_context_data.get('logical_timestamp', _next_logical_time()),
                 dependency_hash=execution_context_data.get('dependency_hash', 'canonical_router')
             ),
             action_data=action_data,

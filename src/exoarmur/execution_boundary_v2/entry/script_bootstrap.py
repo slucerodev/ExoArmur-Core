@@ -12,13 +12,21 @@ PRINCIPLES:
 
 import sys
 import os
-import time
 import importlib.util
 from pathlib import Path
 from typing import Optional, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Deterministic logical clock for execution IDs
+_logical_clock = 0
+
+def _next_logical_time() -> int:
+    """Get next deterministic logical timestamp"""
+    global _logical_clock
+    _logical_clock += 1
+    return _logical_clock
 
 class ScriptExecutionError(Exception):
     """Raised when script execution fails canonical routing"""
@@ -64,10 +72,10 @@ class ScriptBootstrap:
         script_dir = str(script_path_obj.parent)
         
         execution_context = {
-            "execution_id": f"script_{script_name}_{int(time.time())}",
+            "execution_id": f"script_{script_name}_{_next_logical_time()}",
             "module_id": f"script_{script_name}",
             "deterministic_seed": 42,
-            "logical_timestamp": int(time.time()),
+            "logical_timestamp": _next_logical_time(),
             "correlation_id": f"script_{script_name}",
             "script_path": script_path,
             "script_dir": script_dir
@@ -115,10 +123,10 @@ class ScriptBootstrap:
         logger.info(f"Script Bootstrap: Routing demo scenario {scenario_type} through canonical spine")
         
         execution_context = {
-            "execution_id": f"demo_scenario_{scenario_type}_{int(time.time())}",
+            "execution_id": f"demo_scenario_{scenario_type}_{_next_logical_time()}",
             "module_id": "demo_scenario_script",
             "deterministic_seed": 42,
-            "logical_timestamp": int(time.time()),
+            "logical_timestamp": _next_logical_time(),
             "correlation_id": f"demo_{scenario_type}"
         }
         
