@@ -20,7 +20,7 @@ def print_banner():
     """Print ExoArmur banner"""
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║                    ExoArmur Core v0.3.0                        ║
+║                    ExoArmur Core v2.1.0                        ║
 ║              Deterministic Governance Runtime                   ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
