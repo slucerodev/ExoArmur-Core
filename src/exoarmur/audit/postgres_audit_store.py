@@ -446,7 +446,7 @@ class PostgresAuditStore:
             logger.error(f"Failed to get stats: {e}")
             return {"error": str(e)}
 
-    def _row_to_record(self, row: asyncpg.Record) -> AuditRecordV1:
+    def _row_to_record(self, row: "asyncpg.Record") -> AuditRecordV1:
         """Convert database row to AuditRecordV1"""
         from spec.contracts.models_v1 import PayloadRefV1
 
