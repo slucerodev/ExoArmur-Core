@@ -107,13 +107,17 @@ jobs:
 
     - name: Test quickstart examples
       run: |
-        # Test quickstart replay example
-        python examples/quickstart_replay.py || echo "Quickstart example not yet implemented"
+        # Test quickstart replay example - must succeed
+        if [ -f examples/quickstart_replay.py ]; then
+          python examples/quickstart_replay.py
+        else
+          echo "SKIP: quickstart_replay.py not found"
+        fi
 
     - name: Test demo scripts
       run: |
-        # Test standalone governance demo
-        python examples/demo_standalone.py || echo "Demo script needs environment setup"
+        # Test standalone governance demo - must succeed
+        python examples/demo_standalone.py
 
     - name: Validate example syntax
       run: |
