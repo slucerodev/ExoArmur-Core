@@ -112,12 +112,14 @@ class FeatureFlags:
     
     def _load_configuration(self):
         """Load feature flag configuration from environment and files"""
-        # Load from environment variables
+        # Collect explicit per-flag env overrides first so they survive file load
+        explicit_env_overrides = {}
         for flag_key in self._flags:
             env_value = os.getenv(f'EXOARMUR_FLAG_{flag_key.upper()}')
             if env_value is not None:
-                self._flags[flag_key]['current_value'] = env_value.lower() in ('true', '1', 'yes', 'on')
-        
+                explicit_env_overrides[flag_key] = env_value.lower() in ('true', '1', 'yes', 'on')
+                self._flags[flag_key]['current_value'] = explicit_env_overrides[flag_key]
+
         # Load from configuration file if exists
         config_file = os.getenv('EXOARMUR_FEATURE_FLAGS_CONFIG', '/etc/exoarmur/feature_flags.json')
         if os.path.exists(config_file):
@@ -130,7 +132,30 @@ class FeatureFlags:
                 logger.info(f"Loaded feature flags from {config_file}")
             except Exception as e:
                 logger.error(f"Failed to load feature flags from {config_file}: {e}")
-        
+
+        # Re-apply explicit env overrides last — they always win over file config
+        for flag_key, value in explicit_env_overrides.items():
+            self._flags[flag_key]['current_value'] = value
+
+        # Dashboard-mode opt-in (Organism Principle #8 compliant):
+        # Explicit EXOARMUR_DASHBOARD_MODE=true enables v2_federation_enabled so the
+        # ExoArmur Dashboard can surface V2 visibility data. Per-flag env vars above
+        # already win; stored defaults stay False. Production and the Golden Demo
+        # never set this var, so baseline behavior is unchanged.
+        dashboard_mode = os.getenv('EXOARMUR_DASHBOARD_MODE', '').lower() in (
+            'true', '1', 'yes', 'on'
+        )
+        if dashboard_mode:
+            dashboard_flags = ['v2_federation_enabled']
+            for flag_key in dashboard_flags:
+                explicit_env = f'EXOARMUR_FLAG_{flag_key.upper()}'
+                if os.getenv(explicit_env) is None and flag_key in self._flags:
+                    self._flags[flag_key]['current_value'] = True
+                    logger.info(
+                        f"Dashboard-mode: enabled {flag_key} "
+                        f"(stored default unchanged; explicit {explicit_env} still wins)"
+                    )
+
         self._config_loaded = True
         self._log_flag_status()
     
