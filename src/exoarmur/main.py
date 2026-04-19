@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
@@ -65,6 +66,18 @@ from exoarmur.feature_flags.resolver import (
 # Import V2 detection functions
 from exoarmur.execution_boundary_v2.detection.execution_violation_detector import check_domain_logic_access, ViolationSeverity
 
+# Import V2 Federation / Visibility services (additive, feature-flagged)
+try:
+    from exoarmur.federation.observation_store import ObservationStore
+    from exoarmur.federation.federate_identity_store import FederateIdentityStore
+    from exoarmur.federation.belief_aggregation import BeliefAggregationService, BeliefAggregationConfig
+    from exoarmur.federation.observation_ingest import ObservationIngestService, ObservationIngestConfig
+    from exoarmur.federation.visibility_api import VisibilityAPI
+    from exoarmur.federation.clock import SystemClock as FederationClock
+    _V2_FEDERATION_AVAILABLE = True
+except ImportError:
+    _V2_FEDERATION_AVAILABLE = False
+
 # Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
@@ -90,15 +103,131 @@ approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
 background_tasks = set()  # Track background tasks for deterministic shutdown
 
+# V1 telemetry ingest counter — incremented on each successful ingest for dashboard stats
+_v1_telemetry_count: int = 0
 
-class _AllowPolicyDecisionPoint:
-    def evaluate(self, intent: ActionIntent) -> PolicyDecision:
-        return PolicyDecision(
-            verdict=PolicyVerdict.ALLOW,
-            rationale="allow_path_adapter",
+# Governance PDP — instantiated once at module load; guards the V2 entry gate path
+_governance_pdp: Optional["GovernancePolicyDecisionPoint"] = None
+
+# V2 visibility service globals (None when federation feature-flag is off)
+_v2_observation_store: Optional["ObservationStore"] = None
+_v2_identity_store: Optional["FederateIdentityStore"] = None
+_v2_belief_service: Optional["BeliefAggregationService"] = None
+_v2_ingest_service: Optional["ObservationIngestService"] = None
+_v2_visibility_api: Optional["VisibilityAPI"] = None
+
+
+def _build_baseline_policy_rules():
+    """Build ExoArmur baseline governance policy rules for SimplePolicyDecisionPoint."""
+    from exoarmur.execution_boundary_v2.policy.policy_models import PolicyRule
+    return [
+        PolicyRule(
+            rule_id="GOV-A0-OBSERVE",
+            description="A0 observation actions are auto-allowed — read-only, zero side-effects",
+            allowed_domains=None,
+            allowed_methods=None,
+            require_approval=False,
+            tenant_id=None
+        ),
+        PolicyRule(
+            rule_id="GOV-A1-SOFT-CONTAINMENT",
+            description="A1 soft containment is auto-allowed — reversible, low-risk",
+            allowed_domains=None,
+            allowed_methods=None,
+            require_approval=False,
+            tenant_id=None
+        ),
+        PolicyRule(
+            rule_id="GOV-A2-HARD-CONTAINMENT",
+            description="A2 hard containment requires human approval — significant but reversible impact",
+            allowed_domains=None,
+            allowed_methods=None,
+            require_approval=True,
+            tenant_id=None
+        ),
+        PolicyRule(
+            rule_id="GOV-A3-IRREVERSIBLE",
+            description="A3 irreversible actions require human approval — permanent impact, high scrutiny",
+            allowed_domains=None,
+            allowed_methods=None,
+            require_approval=True,
+            tenant_id=None
+        ),
+        PolicyRule(
+            rule_id="GOV-SYSTEM-OPS",
+            description="System operations (bootstrap, internal) are auto-allowed",
+            allowed_domains=None,
+            allowed_methods=None,
+            require_approval=False,
+            tenant_id=None
+        ),
+    ]
+
+
+class GovernancePolicyDecisionPoint:
+    """
+    ExoArmur baseline Policy Decision Point.
+
+    Wraps SimplePolicyDecisionPoint with the full governance rule set.
+    Action-class routing is handled by the V1 PolicyEvaluator at the safety gate;
+    this PDP governs the V2 entry gate ActionIntent path.
+    """
+
+    def __init__(self):
+        from exoarmur.execution_boundary_v2.policy.simple_pdp import SimplePolicyDecisionPoint
+        self._pdp = SimplePolicyDecisionPoint(rules=_build_baseline_policy_rules())
+        logger.info(
+            f"GovernancePolicyDecisionPoint initialized with "
+            f"{len(self._pdp.rules)} baseline rules"
+        )
+
+    def evaluate(self, intent):
+        _models = load_v2_safety_models()
+        _PolicyDecision = _models.PolicyDecision
+        _PolicyVerdict = _models.PolicyVerdict
+
+        action_data = getattr(intent, "parameters", {}) or {}
+        action_class = action_data.get("action_class", "")
+
+        # A3 irreversible — deny outright at V2 boundary
+        if action_class == "A3_irreversible":
+            logger.warning(
+                f"GovernancePDP: A3_irreversible denied at V2 boundary "
+                f"[intent_id={intent.intent_id}]"
+            )
+            return _PolicyDecision(
+                verdict=_PolicyVerdict.DENY,
+                rationale="A3_irreversible actions are denied by ExoArmur baseline policy",
+                confidence=1.0,
+                approval_required=False,
+                policy_version="exoarmur-baseline-v1"
+            )
+
+        # A2 hard containment — require human approval
+        if action_class == "A2_hard_containment":
+            logger.info(
+                f"GovernancePDP: A2_hard_containment requires approval "
+                f"[intent_id={intent.intent_id}]"
+            )
+            return _PolicyDecision(
+                verdict=_PolicyVerdict.REQUIRE_APPROVAL,
+                rationale="A2_hard_containment requires human approval per ExoArmur baseline policy",
+                confidence=1.0,
+                approval_required=True,
+                policy_version="exoarmur-baseline-v1"
+            )
+
+        # A0 / A1 / system-ops — allow
+        logger.info(
+            f"GovernancePDP: action_class={action_class or 'system'} allowed "
+            f"[intent_id={intent.intent_id}]"
+        )
+        return _PolicyDecision(
+            verdict=_PolicyVerdict.ALLOW,
+            rationale=f"action_class={action_class or 'system'} allowed by ExoArmur baseline policy",
             confidence=1.0,
             approval_required=False,
-            policy_version="v1-ingest-adapter"
+            policy_version="exoarmur-baseline-v1"
         )
 
     def approval_status(self, intent_id: str) -> str:
@@ -202,6 +331,30 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
     if execution_kernel is None or audit_logger is None:
         raise RuntimeError("Execution runtime is not initialized")
 
+    # --- Governance PDP pre-screen ---
+    v2_safety_models = load_v2_safety_models()
+    _subject = execution_intent.subject
+    _target = _subject.get("subject_id", "unknown") if isinstance(_subject, dict) else str(_subject)
+    pdp_intent = v2_safety_models.ActionIntent.create(
+        actor_id=_target,
+        actor_type="telemetry_pipeline",
+        action_type=execution_intent.intent_type or "unknown",
+        target=_target,
+        parameters={
+            'action_class': execution_intent.action_class,
+            **(execution_intent.parameters or {})
+        },
+        tenant_id=getattr(execution_intent, 'tenant_id', ""),
+        cell_id=getattr(execution_intent, 'cell_id', ""),
+    )
+    pdp_decision = _governance_pdp.evaluate(pdp_intent)
+    if pdp_decision.verdict == v2_safety_models.PolicyVerdict.DENY:
+        logger.warning(
+            f"GovernancePDP denied intent {execution_intent.intent_id}: "
+            f"{pdp_decision.rationale}"
+        )
+        return False
+
     # Create V2 ExecutionRequest
     v2_entry_gate = load_v2_entry_gate()
     v2_core_types = load_v2_core_types()
@@ -218,10 +371,12 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
         ),
         action_data={
             'action_class': execution_intent.action_class,
-            'action_type': execution_intent.action_type,
+            'action_type': execution_intent.intent_type,
             'subject': execution_intent.subject,
-            'parameters': execution_intent.action_parameters,
-            'safety_verdict': safety_verdict.verdict
+            'parameters': execution_intent.parameters or {},
+            'safety_verdict': safety_verdict.verdict,
+            'policy_verdict': pdp_decision.verdict.value,
+            'policy_rule': pdp_decision.rationale,
         },
         correlation_id=execution_intent.correlation_id
     )
@@ -252,22 +407,30 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
     Returns:
         True if bootstrap successful, False otherwise
     """
-        # Load V2 models through resolver
+    # Load V2 models through resolver
     v2_safety_models = load_v2_safety_models()
     ActionIntent = v2_safety_models.ActionIntent
     PolicyDecision = v2_safety_models.PolicyDecision
     PolicyVerdict = v2_safety_models.PolicyVerdict
     ExecutorResult = v2_safety_models.ExecutorResult
+    v2_entry_gate = load_v2_entry_gate()
+    v2_core_types = load_v2_core_types()
+    ExecutionRequest = v2_entry_gate.ExecutionRequest
+    execute_module = v2_entry_gate.execute_module
+    ModuleID = v2_core_types.ModuleID
+    ExecutionID = v2_core_types.ExecutionID
+    ModuleExecutionContext = v2_core_types.ModuleExecutionContext
+    ModuleVersion = v2_core_types.ModuleVersion
+    DeterministicSeed = v2_core_types.DeterministicSeed
     from exoarmur.clock import utc_now
-    import hashlib
     import ulid
-    
+
     logger.info("Initiating system bootstrap through V2EntryGate")
-    
+
     # Generate proper ULIDs for bootstrap
     bootstrap_ulid = str(ulid.ULID())
     execution_ulid = str(ulid.ULID())
-    
+
     # Create bootstrap execution request
     bootstrap_request = ExecutionRequest(
         module_id=ModuleID(bootstrap_ulid),
@@ -358,21 +521,26 @@ async def lifespan(app: FastAPI):
     global nats_client, background_tasks
     logger.info("Starting ExoArmur Core service")
 
-    # Initialize NATS client
+    # Initialize NATS client (non-fatal — degraded mode if unavailable)
     nats_config = NATSConfig(url=os.getenv("NATS_URL", "nats://localhost:4222"))
     nats_client_instance = ExoArmurNATSClient(nats_config)
-    await nats_client_instance.connect()
-    await nats_client_instance.ensure_streams()
+    nats_connected = await nats_client_instance.connect()
+    if nats_connected:
+        try:
+            await nats_client_instance.ensure_streams()
+        except Exception as _nats_stream_err:
+            logger.warning(f"NATS stream setup failed (degraded mode): {_nats_stream_err}")
+    else:
+        logger.warning("NATS unavailable — running in degraded mode (V2 visibility still functional)")
 
-    # Initialize components with NATS client (V2 bootstrap through V2EntryGate)
-    nats_config_dict = {
-        'url': nats_config.url
-    }
-    
-    # Bootstrap system through V2EntryGate
-    bootstrap_success = bootstrap_system_via_v2_entry_gate(nats_config_dict)
-    if not bootstrap_success:
-        raise RuntimeError("System bootstrap failed through V2EntryGate")
+    # Bootstrap V1 pipeline components (non-fatal if V2EntryGate bootstrap fails)
+    nats_config_dict = {'url': nats_config.url}
+    try:
+        bootstrap_success = bootstrap_system_via_v2_entry_gate(nats_config_dict)
+        if not bootstrap_success:
+            logger.warning("V1 pipeline bootstrap failed — V1 ingest endpoints degraded")
+    except Exception as _boot_err:
+        logger.warning(f"V1 pipeline bootstrap error — V1 ingest endpoints degraded: {_boot_err}")
 
     # Start background consumers with tracking
     if collective_aggregator:
@@ -421,12 +589,58 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS — allow the Next.js dashboard (and any localhost dev port)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        os.getenv("DASHBOARD_ORIGIN", ""),
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# V2 Visibility services — instantiated at module load (in-memory, no I/O)
+# Data is populated at request time; feature-flag only gates federation auth
+if _V2_FEDERATION_AVAILABLE:
+    _v2_fed_flag = os.getenv("EXOARMUR_FLAG_V2_FEDERATION_ENABLED", "false").lower() == "true"
+    _v2_fed_clock = FederationClock()  # SystemClock: uses datetime.now(utc)
+    _v2_observation_store = ObservationStore(clock=_v2_fed_clock)
+    _v2_identity_store = FederateIdentityStore()
+    _v2_belief_service = BeliefAggregationService(
+        observation_store=_v2_observation_store,
+        clock=_v2_fed_clock,
+        config=BeliefAggregationConfig(feature_enabled=_v2_fed_flag)
+    )
+    _v2_ingest_service = ObservationIngestService(
+        observation_store=_v2_observation_store,
+        identity_store=_v2_identity_store,
+        clock=_v2_fed_clock,
+        config=ObservationIngestConfig(feature_enabled=_v2_fed_flag)
+    )
+    _v2_visibility_api = VisibilityAPI(
+        observation_store=_v2_observation_store,
+        identity_store=_v2_identity_store,
+        belief_service=_v2_belief_service,
+        ingest_service=_v2_ingest_service,
+        clock=_v2_fed_clock,
+        v1_counter_getter=lambda: _v1_telemetry_count
+    )
+    app.include_router(_v2_visibility_api.get_router())
+    logger.info("V2 visibility router mounted: /api/v2/visibility/*")
+
+# Governance PDP — instantiated after app creation (requires V2 models to be importable)
+_governance_pdp = GovernancePolicyDecisionPoint()
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint - READ-ONLY (No V2 routing required)"""
     logger.info("Health check accessed")
-    return {"status": "healthy", "service": "ExoArmur Core"}
+    return {"status": "healthy", "service": "ExoArmur Core", "version": "1.0.0"}
 
 
 @app.get("/")
@@ -658,6 +872,8 @@ async def ingest_telemetry(event: TelemetryEventV1):
             safety_verdict=safety_verdict.verdict if safety_verdict.verdict in ["require_human", "require_quorum"] else None
         )
         
+        global _v1_telemetry_count
+        _v1_telemetry_count += 1
         logger.info(f"Successfully processed telemetry event {event.event_id}")
         return response
         

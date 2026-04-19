@@ -101,7 +101,8 @@ class VisibilityAPI:
         belief_service: BeliefAggregationService,
         ingest_service: ObservationIngestService,
         clock: Clock,
-        arbitration_service=None
+        arbitration_service=None,
+        v1_counter_getter=None
     ):
         self.observation_store = observation_store
         self.identity_store = identity_store
@@ -109,6 +110,7 @@ class VisibilityAPI:
         self.ingest_service = ingest_service
         self.clock = clock
         self.arbitration_service = arbitration_service
+        self.v1_counter_getter = v1_counter_getter
         
         # Create FastAPI router
         self.router = APIRouter(prefix="/api/v2/visibility", tags=["visibility"])
@@ -328,6 +330,9 @@ class VisibilityAPI:
                 belief_stats = self.belief_service.get_aggregation_statistics()
                 store_stats = self.observation_store.get_statistics()
                 
+                v1_count = self.v1_counter_getter() if self.v1_counter_getter else 0
+                ingest_stats["total_ingested"] = v1_count
+
                 stats = {
                     "ingest_statistics": ingest_stats,
                     "belief_statistics": belief_stats,
@@ -346,9 +351,8 @@ class VisibilityAPI:
                 logger.error(f"Error getting statistics: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
         
-        # Arbitration endpoints (feature flagged)
-        if self.arbitration_service:
-            self._register_arbitration_endpoints()
+        # Arbitration endpoints — always registered; returns [] when service not configured
+        self._register_arbitration_endpoints()
     
     def _register_arbitration_endpoints(self):
         """Register arbitration endpoints"""
@@ -361,6 +365,8 @@ class VisibilityAPI:
             limit: Optional[int] = Query(100, description="Maximum number to return")
         ):
             """List arbitrations with optional filters"""
+            if not self.arbitration_service:
+                return []
             try:
                 arbitrations = self.arbitration_service.list_arbitrations(
                     status=status,
@@ -402,6 +408,8 @@ class VisibilityAPI:
         @self.router.get("/arbitrations/{arbitration_id}", response_model=ArbitrationInfo)
         async def get_arbitration(arbitration_id: str):
             """Get arbitration by ID"""
+            if not self.arbitration_service:
+                raise HTTPException(status_code=404, detail="Arbitration not found")
             try:
                 arbitration = self.arbitration_service.get_arbitration(arbitration_id)
                 if not arbitration:
