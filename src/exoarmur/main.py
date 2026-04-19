@@ -194,10 +194,15 @@ def _register_local_federate_identity() -> None:
                     format=serialization.PrivateFormat.Raw,
                     encryption_algorithm=serialization.NoEncryption(),
                 )
-                keypair_path.write_text(_json.dumps({
+                _keypair_data = _json.dumps({
                     "private_key_b64": base64.b64encode(priv_bytes).decode("ascii"),
                     "federate_id": _LOCAL_FEDERATE_ID,
-                }))
+                }).encode("utf-8")
+                _fd = os.open(str(keypair_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                try:
+                    os.write(_fd, _keypair_data)
+                finally:
+                    os.close(_fd)
                 logger.info(f"Generated and persisted local federate keypair at {keypair_path}")
             except OSError as e:
                 logger.warning(f"Could not persist local keypair ({e}); using ephemeral key.")
@@ -252,7 +257,7 @@ def _bridge_v1_to_v2_visibility(event, belief) -> None:
 
     obs_id = f"obs_{event.event_id}"
     severity_str = str(event.severity) if event.severity is not None else "unknown"
-    event_ts = event.timestamp
+    event_ts = event.observed_at or event.received_at
     sensor_id = (event.source or {}).get("sensor_id", "unknown") if isinstance(event.source, dict) else "unknown"
     event_type_str = str(event.event_type)
 
@@ -741,7 +746,8 @@ async def ingest_telemetry(event: TelemetryEventV1):
         # the dashboard can show live federation/pipeline state. Any failure
         # here is logged and swallowed — the V1 pipeline is not affected.
         try:
-            _bridge_v1_to_v2_visibility(event, belief)
+            if _feature_flags.is_enabled("v2_federation_enabled"):
+                _bridge_v1_to_v2_visibility(event, belief)
         except Exception as _bridge_exc:  # pragma: no cover - defensive
             logger.warning(f"V1->V2 visibility bridge skipped: {_bridge_exc}")
 
