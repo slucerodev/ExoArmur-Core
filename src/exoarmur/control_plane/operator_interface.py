@@ -8,7 +8,7 @@ import hashlib
 import json
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 
 from exoarmur.core.phase_gate import PhaseGate
 from exoarmur.clock import deterministic_timestamp

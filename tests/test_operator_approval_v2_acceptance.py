@@ -13,12 +13,11 @@ This test validates the complete V2 operator approval functionality:
 import pytest
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, List
 from unittest.mock import patch
 
 from exoarmur.feature_flags import get_feature_flags
-from exoarmur.feature_flags.feature_flags import FeatureFlagContext
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalConfig
 from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
 from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
@@ -331,7 +330,6 @@ class TestOperatorApprovalV2Compatibility:
     @pytest.fixture
     async def feature_flags(self):
         """Feature flags for V2 operator approval"""
-        from unittest.mock import patch
         flags = get_feature_flags()
         
         # Ensure V2 is disabled for compatibility testing

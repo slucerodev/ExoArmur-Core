@@ -67,6 +67,8 @@ def _ensure_windows_utf8_output() -> None:
             try:
                 reconfigure(encoding="utf-8", errors="replace")
             except (AttributeError, OSError, ValueError):
+                # Ignore encoding reconfiguration errors on Windows
+                # UTF-8 may not be supported on all Windows consoles
                 pass
 
 

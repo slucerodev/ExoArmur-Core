@@ -9,7 +9,6 @@ import json
 from typing import Dict, Any, List, Optional, Literal
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from exoarmur.feature_flags import get_feature_flags
 from exoarmur.clock import deterministic_timestamp
 
 logger = logging.getLogger(__name__)

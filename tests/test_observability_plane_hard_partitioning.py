@@ -3,11 +3,14 @@ Regression tests for Observability Plane Hard Partitioning
 Ensures physical isolation between observability planes with no shared memory
 """
 
+import logging
 import pytest
 import threading
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, List
+
+logger = logging.getLogger(__name__)
 
 from exoarmur.observability.plane_manager import (
     ObservabilityPlane, PlaneIdentityToken, SerializedEvent,
@@ -63,8 +66,8 @@ def _reset_observability_plane_singletons():
     if _bridge_module._isolated_observability_bridge is not None:
         try:
             _bridge_module._isolated_observability_bridge.shutdown()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Bridge shutdown during pre-test cleanup: {e}")
         _bridge_module._isolated_observability_bridge = None
 
     yield
@@ -75,8 +78,8 @@ def _reset_observability_plane_singletons():
     if _bridge_module._isolated_observability_bridge is not None:
         try:
             _bridge_module._isolated_observability_bridge.shutdown()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Bridge shutdown during post-test cleanup: {e}")
         _bridge_module._isolated_observability_bridge = None
 
 
