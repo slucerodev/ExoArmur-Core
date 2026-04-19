@@ -140,7 +140,7 @@ class VisibilityAPI:
                         cell_status=(status.value if hasattr(status, 'value') else str(status)),
                         created_at=identity.created_at,
                         updated_at=getattr(identity, 'updated_at', None) or identity.created_at,
-                        public_key=(identity.public_key or '')[:64],
+                        public_key=getattr(identity, 'key_id', None) or (identity.public_key or '')[:64],
                     ))
 
                 return federates
