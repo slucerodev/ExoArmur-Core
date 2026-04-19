@@ -22,13 +22,7 @@ from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
 
 class TestIntentFreezeBinding:
     """Tests for intent freezing and approval binding"""
-    
-    @pytest.fixture(autouse=True)
-    def setup_components(self):
-        """Initialize components for testing"""
-        import exoarmur.main as main
-        main.initialize_components(None)
-    
+
     @pytest.fixture
     def client(self):
         """FastAPI test client"""

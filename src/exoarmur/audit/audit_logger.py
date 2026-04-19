@@ -79,32 +79,61 @@ class AuditLogger:
                 logger.error(f"Failed to create/get idempotency KV: {e2}")
                 return False
     
-    async def _check_idempotency(self, tenant_id: str, idempotency_key: str) -> Optional[str]:
-        """Check if event already processed, returns audit_id if found"""
+    async def _check_idempotency(self, tenant_id: str, idempotency_key: str) -> Optional[AuditRecordV1]:
+        """Check if event already processed, returns original AuditRecordV1 if found"""
         if not self._idempotency_kv:
             await self._ensure_idempotency_kv()
-        
+
         if not self._idempotency_kv:
             return None
-        
+
         try:
             kv_key = f"{tenant_id}/{idempotency_key}"
             result = await self._idempotency_kv.get(kv_key)
             if result:
-                return result.value.decode()
+                # Deserialize the full audit record to preserve original timestamp
+                record_data = json.loads(result.value.decode())
+                from spec.contracts.models_v1 import PayloadRefV1
+                return AuditRecordV1(
+                    schema_version=record_data.get("schema_version", "1.0.0"),
+                    audit_id=record_data["audit_id"],
+                    tenant_id=record_data["tenant_id"],
+                    cell_id=record_data.get("cell_id"),
+                    idempotency_key=record_data["idempotency_key"],
+                    recorded_at=datetime.fromisoformat(record_data["recorded_at"]),
+                    event_kind=record_data["event_kind"],
+                    payload_ref=PayloadRefV1(**record_data["payload_ref"]) if record_data.get("payload_ref") else None,
+                    hashes=record_data.get("hashes", {"sha256": "", "upstream_hashes": []}),
+                    correlation_id=record_data["correlation_id"],
+                    trace_id=record_data.get("trace_id")
+                )
             return None
         except Exception as e:
             logger.warning(f"Idempotency check failed: {e}")
             return None
     
-    async def _record_idempotency(self, tenant_id: str, idempotency_key: str, audit_id: str):
-        """Record that event has been processed"""
+    async def _record_idempotency(self, tenant_id: str, idempotency_key: str, audit_record: AuditRecordV1):
+        """Record that event has been processed with full record data for deterministic replay"""
         if not self._idempotency_kv:
             return
-        
+
         try:
             kv_key = f"{tenant_id}/{idempotency_key}"
-            await self._idempotency_kv.put(kv_key, audit_id.encode())
+            # Store full serialized record to preserve original timestamp
+            record_data = {
+                "schema_version": audit_record.schema_version,
+                "audit_id": audit_record.audit_id,
+                "tenant_id": audit_record.tenant_id,
+                "cell_id": audit_record.cell_id,
+                "idempotency_key": audit_record.idempotency_key,
+                "recorded_at": audit_record.recorded_at.isoformat(),
+                "event_kind": audit_record.event_kind,
+                "payload_ref": audit_record.payload_ref.model_dump() if audit_record.payload_ref else None,
+                "hashes": audit_record.hashes,
+                "correlation_id": audit_record.correlation_id,
+                "trace_id": audit_record.trace_id
+            }
+            await self._idempotency_kv.put(kv_key, json.dumps(record_data).encode())
             logger.debug(f"Recorded idempotency for key: {kv_key}")
         except Exception as e:
             logger.warning(f"Failed to record idempotency: {e}")
@@ -175,26 +204,11 @@ class AuditLogger:
             idempotency_key = compute_idempotency_key(tenant_id, correlation_id, event_kind, payload_ref)
         
         # Check idempotency BEFORE creating audit record
-        existing_audit_id = await self._check_idempotency(tenant_id, idempotency_key)
-        if existing_audit_id:
-            logger.info(f"Idempotency hit: event already processed as {existing_audit_id}")
-            # Return existing record (create minimal record for evidence)
-            return AuditRecordV1(
-                schema_version="1.0.0",
-                audit_id=existing_audit_id,
-                tenant_id=tenant_id,
-                cell_id=cell_id,
-                idempotency_key=idempotency_key,
-                recorded_at=utc_now(),
-                event_kind=event_kind,
-                payload_ref=payload_ref,
-                hashes={
-                    "sha256": self._compute_hash(payload_ref),
-                    "upstream_hashes": []
-                },
-                correlation_id=correlation_id,
-                trace_id=trace_id
-            )
+        existing_record = await self._check_idempotency(tenant_id, idempotency_key)
+        if existing_record:
+            logger.info(f"Idempotency hit: event already processed as {existing_record.audit_id}")
+            # Return ORIGINAL record with original timestamp for deterministic replay
+            return existing_record
         
         # Create audit record
         audit_record = AuditRecordV1(
@@ -229,7 +243,7 @@ class AuditLogger:
                 # Continue with idempotency recording anyway for consistency
         
         # Record idempotency AFTER successful publish
-        await self._record_idempotency(tenant_id, idempotency_key, audit_record.audit_id)
+        await self._record_idempotency(tenant_id, idempotency_key, audit_record)
         
         return audit_record
     

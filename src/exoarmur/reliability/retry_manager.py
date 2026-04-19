@@ -5,14 +5,14 @@ Bounded retry policy with exponential backoff, jitter, and durable idempotency p
 
 import asyncio
 import logging
-import random
-import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Callable, TypeVar, Union, List
 from enum import Enum
 from dataclasses import dataclass, field
 import functools
 import hashlib
+
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class RetryAttempt:
     max_attempts: int
     delay: float
     exception: Optional[Exception] = None
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: utc_now())
 
 
 class RetryError(Exception):
@@ -152,7 +152,7 @@ class IdempotencyManager:
         self._idempotency_store[idempotency_key] = {
             "result": result,
             "metadata": metadata or {},
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": utc_now().isoformat()
         }
         logger.debug(f"Recorded result for idempotency key: {idempotency_key[:8]}...")
     
@@ -230,10 +230,11 @@ class RetryManager:
         # Cap at maximum delay
         delay = min(delay, policy.max_delay)
         
-        # Add jitter if enabled
+        # Add deterministic jitter if enabled (using hash-based jitter)
         if policy.jitter_enabled:
             jitter_range = delay * policy.jitter_factor
-            jitter = random.uniform(-jitter_range, jitter_range)
+            # Deterministic jitter based on attempt number (not random)
+            jitter = (hash(str(attempt)) % 1000 / 1000.0) * 2 * jitter_range - jitter_range
             delay = max(0, delay + jitter)
         
         return delay
@@ -419,7 +420,7 @@ class RetryManager:
                 "tenant_id": tenant_id,
                 "correlation_id": correlation_id,
                 "trace_id": trace_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": utc_now().isoformat()
             }
             
             await self._audit_emitter(audit_data)
@@ -451,7 +452,7 @@ class RetryManager:
                 "tenant_id": tenant_id,
                 "correlation_id": correlation_id,
                 "trace_id": trace_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": utc_now().isoformat()
             }
             
             await self._audit_emitter(audit_data)

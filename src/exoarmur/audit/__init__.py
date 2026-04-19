@@ -4,6 +4,14 @@ Audit logging components
 
 from .audit_logger import AuditLogger, compute_idempotency_key, compute_audit_id
 from .audit_normalizer import AuditNormalizer, CanonicalAuditEnvelope
+try:
+    from .postgres_audit_store import PostgresAuditStore, PostgresAuditStoreSync
+    POSTGRES_STORE_AVAILABLE = True
+except ImportError:
+    POSTGRES_STORE_AVAILABLE = False
+    PostgresAuditStore = None
+    PostgresAuditStoreSync = None
+
 from datetime import datetime
 from typing import Dict, Any
 
@@ -42,10 +50,13 @@ class FederationAuditInterface:
 
 __all__ = [
     'AuditLogger',
-    'compute_idempotency_key', 
+    'compute_idempotency_key',
     'compute_audit_id',
     'AuditNormalizer',
     'CanonicalAuditEnvelope',
     'NoOpAuditInterface',
-    'FederationAuditInterface'
+    'FederationAuditInterface',
+    'PostgresAuditStore',
+    'PostgresAuditStoreSync',
+    'POSTGRES_STORE_AVAILABLE'
 ]

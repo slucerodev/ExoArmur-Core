@@ -5,13 +5,14 @@ Bounded queues and tenant-scoped rate limiting with deterministic overload behav
 
 import asyncio
 import logging
-import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Callable, TypeVar
 from enum import Enum
 from dataclasses import dataclass, field
 from collections import deque
 import weakref
+
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +83,12 @@ class TokenBucket:
         self.burst = burst  # Maximum tokens
         self.window_size = window_size  # Window size in seconds
         self.tokens = burst  # Start with full burst
-        self.last_refill = time.time()
+        self.last_refill = utc_now().timestamp()
         self._lock = asyncio.Lock()
     
     def _refill_tokens(self):
         """Refill tokens based on elapsed time"""
-        now = time.time()
+        now = utc_now().timestamp()
         elapsed = now - self.last_refill
         
         # Calculate tokens to add
@@ -457,7 +458,7 @@ class BackpressureManager:
                 "queue_full": status["queue_full"],
                 "rate_limit_stats": status.get("rate_limit_stats", {}),
                 "queue_stats": status.get("queue_stats", {}),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": utc_now().isoformat()
             }
             
             await self._audit_emitter(audit_data)

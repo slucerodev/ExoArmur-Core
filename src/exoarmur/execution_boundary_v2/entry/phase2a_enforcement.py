@@ -12,7 +12,7 @@ PRINCIPLES:
 
 import logging
 from typing import Dict, Any, Optional
-import time
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class Phase2AEnforcement:
             executor_collapser = get_executor_collapser()
             self._enforcement_components["executor_collapser"] = executor_collapser
             
-            self._initialization_time = time.time()
+            self._initialization_time = utc_now().timestamp()
             self._enforcement_active = True
             
             logger.info("Phase 2A Enforcement System initialized successfully")
@@ -104,7 +104,7 @@ class Phase2AEnforcement:
             activation_results["canonical_router"] = "AVAILABLE"
             
             activation_results["enforcement_active"] = True
-            activation_results["activation_time"] = time.time()
+            activation_results["activation_time"] = utc_now().timestamp()
             
             logger.info("Phase 2A Enforcement Mechanisms activated successfully")
             
@@ -129,7 +129,7 @@ class Phase2AEnforcement:
         verification_results = {
             "enforcement_active": self._enforcement_active,
             "initialization_time": self._initialization_time,
-            "verification_time": time.time()
+            "verification_time": utc_now().timestamp()
         }
         
         try:

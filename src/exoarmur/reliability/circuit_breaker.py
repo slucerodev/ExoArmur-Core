@@ -6,12 +6,13 @@ Circuit breaker logic for external dependencies with observable and auditable tr
 import asyncio
 import functools
 import logging
-import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Callable, TypeVar, Set
 from enum import Enum
 from dataclasses import dataclass, field
 import weakref
+
+from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ class CircuitBreaker:
         # State tracking
         self._state = CircuitState.CLOSED
         self._state_lock = asyncio.Lock()
-        self._last_state_change = datetime.now(timezone.utc)
+        self._last_state_change = utc_now()
         self._failure_count = 0
         self._success_count = 0
         self._last_failure_time = None
@@ -135,7 +136,7 @@ class CircuitBreaker:
     
     def _record_failure(self):
         """Record a failure occurrence"""
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         self._failure_history.append(now)
         self._last_failure_time = now
         self._failure_count += 1
@@ -148,7 +149,7 @@ class CircuitBreaker:
     
     def _record_success(self):
         """Record a success occurrence"""
-        now = datetime.now(timezone.utc)
+        now = utc_now()
         self._success_history.append(now)
         self._last_success_time = now
         self._success_count += 1
@@ -172,7 +173,7 @@ class CircuitBreaker:
         if self._last_failure_time is None:
             return False
         
-        elapsed = (datetime.now(timezone.utc) - self._last_failure_time).total_seconds()
+        elapsed = (utc_now() - self._last_failure_time).total_seconds()
         return elapsed >= self.config.recovery_timeout
     
     async def _change_state(self, new_state: CircuitState, reason: str):
@@ -181,7 +182,7 @@ class CircuitBreaker:
         
         async with self._state_lock:
             self._state = new_state
-            self._last_state_change = datetime.now(timezone.utc)
+            self._last_state_change = utc_now()
         
         # Record state transition
         transition = CircuitStateTransition(
@@ -240,7 +241,7 @@ class CircuitBreaker:
                     module_id=ModuleID(audit_ulid),
                     module_version=ModuleVersion(1, 0, 0),
                     deterministic_seed=DeterministicSeed(hash("audit_emission") % (2**63)),
-                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    logical_timestamp=int(utc_now().timestamp()),
                     dependency_hash="audit_emission"
                 ),
                 action_data={

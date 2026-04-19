@@ -13,19 +13,20 @@ services:
       timeout: 5s
       retries: 5
 
-  exoarmur-demo:
+  exoarmur-core:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: exoarmur-demo
+    container_name: exoarmur-core
     ports:
       - "8080:8080"
     environment:
       - PYTHONHASHSEED=0
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - EXOARMUR_DASHBOARD_MODE=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,10 +34,10 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.exoarmur-demo.rule=Host(`localhost`)"
-      - "traefik.http.services.exoarmur-demo.loadbalancer.server.port=8080"
-      - "org.exoarmur.name=ExoArmur Deterministic Governance Demo"
-      - "org.exoarmur.version=1.0.0"
+      - "traefik.http.routers.exoarmur-core.rule=Host(`localhost`)"
+      - "traefik.http.services.exoarmur-core.loadbalancer.server.port=8080"
+      - "org.exoarmur.name=ExoArmur Core - Deterministic Governance"
+      - "org.exoarmur.version=2.1.0"
       - "org.exoarmur.determinism=enforced"
 
 networks:
