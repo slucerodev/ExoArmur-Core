@@ -5,14 +5,13 @@ Provides framework-agnostic wrapper to route tool execution through
 ExoArmur's ProxyPipeline without modifying Core runtime entrypoints.
 """
 
-import asyncio
 from datetime import datetime
-from typing import Any, Callable, Dict, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Mapping, Optional
 from inspect import iscoroutinefunction
 
 from ..models.action_intent import ActionIntent
 from ..pipeline.proxy_pipeline import ProxyPipeline
-from .types import Clock, FixedClock, ToolContext, ToolCall
+from .types import Clock, ToolContext, ToolCall
 
 
 def default_pipeline_factory() -> ProxyPipeline:

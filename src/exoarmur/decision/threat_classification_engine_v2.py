@@ -10,9 +10,7 @@ This module implements the ONLY autonomous decision type permitted in Phase 2A:
 """
 
 import logging
-import hashlib
-import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
 from ..feature_flags.feature_flags import get_feature_flags, FeatureFlagContext

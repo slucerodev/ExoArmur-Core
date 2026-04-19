@@ -38,13 +38,12 @@ WARNING:
 """
 
 from typing import Dict, Any, Optional, Union
-from datetime import datetime
 
 # Public SDK imports - these are the ONLY stable APIs
 from ..execution_boundary_v2.models.action_intent import ActionIntent
 from ..execution_boundary_v2.models.execution_proof_bundle import ExecutionProofBundle
 from ..execution_boundary_v2.utils.verdict_resolution import FinalVerdict
-from ..replay.replay_engine import ReplayEngine, ReplayReport
+from ..replay.replay_engine import ReplayReport
 from ..clock import utc_now
 from ..ids import make_id
 

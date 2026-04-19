@@ -6,7 +6,7 @@ ExoArmur ADMO V2 Federation Coordination Models
 Pydantic v2 models for federation coordination matching coordination_v2.yaml contract
 """
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime, timezone, timedelta
 from enum import Enum

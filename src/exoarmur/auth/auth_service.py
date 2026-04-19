@@ -5,7 +5,7 @@ Implements API key authentication for execution-triggering endpoints.
 
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Set
+from typing import Dict, Optional, List, Set
 from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 class AuthError(Exception):
     """Raised when authentication/authorization fails"""
-    pass
 
 
 class Permission(str, Enum):

@@ -6,11 +6,8 @@ Phase 5: Added execution gate enforcement for all side effects.
 import logging
 import hashlib
 from exoarmur.clock import utc_now
-from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
-import sys
-import os
 import ulid
 from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
 from exoarmur.clock import deterministic_timestamp
@@ -21,7 +18,6 @@ from exoarmur.feature_flags.resolver import (
     load_v2_diagnostics,
     load_v2_entry_gate,
 )
-from exoarmur.safety import enforce_execution_gate, ExecutionActionType, GateDecision
 
 logger = logging.getLogger(__name__)
 

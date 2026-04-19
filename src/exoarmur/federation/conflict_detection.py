@@ -6,14 +6,12 @@ Detects deterministic conflicts between beliefs and observations.
 
 import hashlib
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Tuple, Any, Union
+from datetime import datetime
+from typing import Dict, List, Any, Union
 
 from spec.contracts.models_v1 import (
     BeliefV1,
     BeliefTelemetryV1,
-    ObservationV1,
-    ObservationType,
     ArbitrationV1,
     ArbitrationStatus,
     ArbitrationConflictType

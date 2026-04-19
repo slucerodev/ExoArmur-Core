@@ -14,7 +14,7 @@ PRINCIPLES:
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from exoarmur.clock import utc_now
 from .execution_surface_audit import audit_execution_surfaces
 from .primitive_collapser import collapse_execution_primitives
@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 class Phase2BCompletionError(Exception):
     """Raised when Phase 2B completion fails"""
-    pass
 
 class Phase2BCompletion:
     """Orchestrates Phase 2B execution surface audit and primitive collapse"""

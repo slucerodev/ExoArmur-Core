@@ -6,13 +6,10 @@ All models reference the core contract models from spec/contracts/models_v1.py.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Literal
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 # Import core contract models
-import sys
-import os
-from spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
 
 
 class TelemetryIngestResponseV1(BaseModel):

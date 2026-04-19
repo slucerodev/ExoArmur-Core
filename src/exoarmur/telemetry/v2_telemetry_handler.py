@@ -4,15 +4,13 @@ Strictly observational instrumentation at V2 boundary with zero influence on exe
 """
 
 import logging
-import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from enum import Enum
 import threading
 from queue import Queue, Empty
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +82,6 @@ class TelemetrySink:
     
     def close(self):
         """Close sink and cleanup resources"""
-        pass
 
 
 class LogTelemetrySink(TelemetrySink):

@@ -4,19 +4,15 @@ Deterministic state machine for federation identity handshake protocol
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from enum import Enum
 
 from spec.contracts.models_v1 import (
     HandshakeState,
-    HandshakeSessionV1,
-    FederationRole,
-    CellStatus
+    HandshakeSessionV1
 )
 from .clock import Clock
-from .crypto import VerificationFailureReason
 
 logger = logging.getLogger(__name__)
 

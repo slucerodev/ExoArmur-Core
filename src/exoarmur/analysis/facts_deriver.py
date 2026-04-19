@@ -4,11 +4,7 @@ Signal facts derivation from telemetry events
 
 import logging
 import hashlib
-from datetime import datetime
-from typing import Dict, Any, List
 
-import sys
-import os
 import ulid
 from spec.contracts.models_v1 import TelemetryEventV1, SignalFactsV1
 from exoarmur.replay.canonical_utils import canonical_json

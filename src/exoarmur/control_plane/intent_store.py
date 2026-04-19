@@ -4,14 +4,9 @@ Stores frozen execution intents bound to approval requests
 """
 
 import logging
-import hashlib
-import json
 from typing import Dict, Optional
-from datetime import datetime, timezone
 
 # Import contract models
-import sys
-import os
 from spec.contracts.models_v1 import ExecutionIntentV1
 
 # Import canonical utilities for deterministic hashing

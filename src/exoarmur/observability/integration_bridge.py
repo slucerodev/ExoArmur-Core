@@ -3,7 +3,6 @@ Observability Integration Layer
 Integration of existing systems with isolated observability planes
 """
 
-import json
 import threading
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone

@@ -3,11 +3,7 @@ Telemetry validation and normalization
 """
 
 import logging
-from datetime import datetime
-from typing import Optional
 
-import sys
-import os
 from spec.contracts.models_v1 import TelemetryEventV1
 
 logger = logging.getLogger(__name__)

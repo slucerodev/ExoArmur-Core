@@ -6,12 +6,12 @@ Phase 6: Enhanced with timeout enforcement and reliability
 import logging
 import asyncio
 import json
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Callable
 from dataclasses import dataclass
 
 import nats
 from pydantic import ValidationError
-from nats.js.api import StreamConfig, ConsumerConfig
+from nats.js.api import StreamConfig
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ Phase 2B additive component — does not touch V1 paths.
 """
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 

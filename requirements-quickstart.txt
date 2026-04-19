@@ -7,4 +7,4 @@ cryptography>=46.0.7
 uuid>=1.30
 
 # Development dependencies (minimal)
-pytest>=7.0.0
+pytest>=9.0.3

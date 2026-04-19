@@ -10,8 +10,7 @@ PRINCIPLES:
 - Preserve CLI usability while enforcing routing
 """
 
-import sys
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,6 @@ def _next_logical_time() -> int:
 
 class CLIExecutionError(Exception):
     """Raised when CLI execution fails canonical routing"""
-    pass
 
 class CLIWrapper:
     """Wrapper layer that enforces canonical routing for CLI commands"""

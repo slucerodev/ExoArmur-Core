@@ -10,8 +10,6 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serial
 from enum import Enum
 
 # Import canonical utilities from Workflow 1
-import sys
-import os
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 logger = logging.getLogger(__name__)

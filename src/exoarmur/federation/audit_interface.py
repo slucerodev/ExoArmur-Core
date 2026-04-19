@@ -28,7 +28,6 @@ class AuditInterface(ABC):
         Returns:
             True if event was logged successfully, False otherwise
         """
-        pass
     
     @abstractmethod
     def get_events(self, event_type_prefix: str, correlation_id: str, limit: int) -> Optional[list]:
@@ -43,7 +42,6 @@ class AuditInterface(ABC):
         Returns:
             List of events or None if not available
         """
-        pass
 
 
 class V1AuditAdapter(AuditInterface):

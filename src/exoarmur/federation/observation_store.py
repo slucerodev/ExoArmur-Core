@@ -4,20 +4,15 @@ Deterministic storage and retrieval of federate observations
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Dict, Any, Tuple
-from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any
+from dataclasses import dataclass
 from collections import OrderedDict
-import uuid
 
 from spec.contracts.models_v1 import (
     BeliefV1,
     BeliefTelemetryV1,
-    ObservationV1,
-    TelemetryEventV1,
-    SignalFactsV1,
-    FederateIdentityV1,
-    HandshakeState
+    ObservationV1
 )
 from typing import Union
 from .clock import Clock

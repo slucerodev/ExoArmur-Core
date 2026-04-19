@@ -62,7 +62,6 @@ class ApprovalDecision:
 
 class ApprovalError(Exception):
     """Raised when approval requirements are not met"""
-    pass
 
 
 class ApprovalGate:

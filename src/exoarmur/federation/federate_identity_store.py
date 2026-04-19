@@ -4,26 +4,18 @@ Persistent storage for federation identities with deterministic behavior
 """
 
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 from datetime import datetime, timezone, timedelta
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import threading
-from collections import OrderedDict
 
 # Import feature flags for V2 isolation
-import sys
-import os
 from exoarmur.feature_flags.feature_flags import get_feature_flags
 
 # Import federation models
-import sys
-import os
 from spec.contracts.models_v1 import (
     FederateIdentityV1,
-    FederateNonceV1,
     HandshakeSessionV1,
-    FederationRole,
-    CellStatus,
     HandshakeState
 )
 logger = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ This module provides the main V1Adapter interface that tests expect.
 The actual implementation is delegated to the execution_boundary_v2.v1_adapter.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Import the actual implementation from execution_boundary_v2
 from .execution_boundary_v2.v1_adapter import V1CompatibilityLayer

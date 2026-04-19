@@ -6,11 +6,10 @@ based on observations and beliefs.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Optional, Set
+from datetime import timedelta
+from typing import List, Dict, Optional
 from dataclasses import dataclass
 import hashlib
-import json
 
 
 def create_sessions_scope():

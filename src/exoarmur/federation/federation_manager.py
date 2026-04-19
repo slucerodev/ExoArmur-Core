@@ -14,16 +14,12 @@ from exoarmur.feature_flags import get_feature_flags
 
 try:
     import nats
-    from nats.js.api import StreamConfig
 except ImportError:
     nats = None
 
 from .federation_identity_manager import FederationIdentityManager, HandshakeConfig
-from .audit_interface import AuditInterface
 
 # Import Phase Gate for strict Phase isolation
-import sys
-import os
 from exoarmur.core.phase_gate import PhaseGate
 
 logger = logging.getLogger(__name__)

@@ -4,14 +4,12 @@ Orchestrates handshake state machine with verification and audit events
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any, Tuple
+from datetime import timedelta
+from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
 from spec.contracts.models_v1 import (
-    HandshakeState,
-    FederationRole,
-    CellStatus
+    HandshakeState
 )
 from .handshake_state_machine import (
     HandshakeStateMachine,
@@ -21,10 +19,7 @@ from .handshake_state_machine import (
 from .handshake_context import HandshakeContext
 from .messages import (
     FederationSignedMessage,
-    MessageType,
-    IdentityExchangeMessage,
-    CapabilityNegotiateMessage,
-    TrustEstablishMessage
+    MessageType
 )
 from .crypto import VerificationFailureReason
 from .clock import Clock

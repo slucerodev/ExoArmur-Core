@@ -13,27 +13,22 @@ and executor sandboxing with capability enforcement.
 from __future__ import annotations
 
 import logging
-import hashlib
-import json
 from typing import Dict, Any, Union, Tuple, Optional
-from datetime import datetime
-import ulid
 
 from ..interfaces.policy_decision_point import PolicyDecisionPoint
-from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult, ValidationResult
+from ..interfaces.executor_plugin import ExecutorPlugin, ExecutorResult
 from ..models.action_intent import ActionIntent
-from ..models.policy_decision import PolicyDecision, PolicyVerdict
+from ..models.policy_decision import PolicyVerdict
 from ..models.execution_dispatch import ExecutionDispatch, DispatchStatus
-from ..models.execution_trace import ExecutionTrace, TraceEvent, TraceStage
+from ..models.execution_trace import ExecutionTrace, TraceStage
 from ..utils.verdict_resolution import FinalVerdict
 from exoarmur.clock import utc_now
-from exoarmur.ids import make_audit_id
 
 # Import V1 compatibility through adapter layer ONLY
 from ..v1_adapter import v1_compatibility
 
 # Import V2-native safety gate
-from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.safety.safety_gate import SafetyGate
 
 # Import verdict resolution utilities
 from ..utils.verdict_resolution import resolve_verdicts, FinalVerdict, create_verdict_resolution_id

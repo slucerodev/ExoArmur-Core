@@ -6,7 +6,7 @@ Automatic registration of modules and schemas to appropriate domains
 import inspect
 import importlib
 import pkgutil
-from typing import Dict, Set, List, Optional, Any, Type
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import logging
 

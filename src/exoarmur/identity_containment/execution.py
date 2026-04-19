@@ -7,12 +7,11 @@ Phase 5: Added execution gate enforcement for all side effects.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Dict, Optional, Any
+from datetime import datetime
+from typing import Optional
 from enum import Enum
 
 from spec.contracts.models_v1 import (
-    IdentityContainmentIntentV1,
     IdentityContainmentAppliedRecordV1,
     IdentityContainmentRevertedRecordV1
 )

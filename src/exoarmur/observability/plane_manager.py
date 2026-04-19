@@ -9,11 +9,10 @@ import queue
 import multiprocessing
 import uuid
 from enum import Enum
-from typing import Dict, Set, List, Optional, Any, Callable, Union
-from dataclasses import dataclass, field, asdict
+from typing import Dict, List, Optional, Any, Callable
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import logging
-import traceback
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
@@ -120,12 +119,10 @@ class IsolationStrategy(ABC):
     @abstractmethod
     def create_isolated_context(self, plane_type: ObservabilityPlane, config: Dict[str, Any]) -> 'IsolatedPlaneContext':
         """Create isolated context for a plane"""
-        pass
     
     @abstractmethod
     def cleanup_context(self, context: 'IsolatedPlaneContext'):
         """Cleanup isolated context"""
-        pass
 
 
 class ThreadIsolationStrategy(IsolationStrategy):
@@ -170,22 +167,18 @@ class IsolatedPlaneContext(ABC):
     @abstractmethod
     def start(self):
         """Start the isolated context"""
-        pass
     
     @abstractmethod
     def stop(self):
         """Stop the isolated context"""
-        pass
     
     @abstractmethod
     def send_event(self, event: SerializedEvent) -> bool:
         """Send event to this context"""
-        pass
     
     @abstractmethod
     def receive_event(self, timeout: Optional[float] = None) -> Optional[SerializedEvent]:
         """Receive event from this context"""
-        pass
 
 
 class ThreadIsolatedPlaneContext(IsolatedPlaneContext):

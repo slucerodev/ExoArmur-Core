@@ -6,7 +6,7 @@ and authority enforcement.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 from typing import Dict, Optional, Tuple
 import hashlib
 import json
@@ -15,12 +15,11 @@ from unittest.mock import Mock
 from spec.contracts.models_v1 import (
     IdentityContainmentIntentV1,
     IdentityContainmentRecommendationV1,
-    IdentitySubjectV1,
     IdentityContainmentScopeV1
 )
 from exoarmur.federation.clock import Clock
 from exoarmur.federation.audit import AuditService, AuditEventType
-from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict
+from exoarmur.safety.safety_gate import SafetyGate
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
 
 logger = logging.getLogger(__name__)

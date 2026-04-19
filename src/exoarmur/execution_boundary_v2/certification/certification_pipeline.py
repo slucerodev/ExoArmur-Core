@@ -2,9 +2,8 @@
 Certification Pipeline implementation
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, FrozenSet, Any
-from enum import Enum
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, Any
 import hashlib
 import json
 

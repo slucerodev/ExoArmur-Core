@@ -11,16 +11,14 @@ PRINCIPLES:
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List
 import functools
-from .execution_surface_audit import ExecutionSurface, CollapseAction, BypassRiskLevel
 from .canonical_router import CanonicalExecutionRouter
 
 logger = logging.getLogger(__name__)
 
 class PrimitiveCollapseError(Exception):
     """Raised when primitive collapse fails"""
-    pass
 
 class PrimitiveCollapser:
     """Collapses independent execution primitives"""
@@ -320,7 +318,7 @@ class PrimitiveCollapser:
         # Test that critical primitives are blocked
         try:
             # Test ReplayEngine
-            from exoarmur.replay.replay_engine import ReplayEngine
+            pass
             # This should now route through canonical spine
             
             # Test MockExecutor

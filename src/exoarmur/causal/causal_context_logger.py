@@ -4,15 +4,13 @@ Non-blocking observability layer for execution lineage tracking
 """
 
 import logging
-import asyncio
 import json
 import threading
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Set
-from dataclasses import dataclass, asdict, field
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
 from enum import Enum
 from queue import Queue, Empty
-import time
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -97,7 +95,6 @@ class CausalContextSink:
     
     def close(self):
         """Close sink and cleanup resources"""
-        pass
 
 
 class LogCausalSink(CausalContextSink):

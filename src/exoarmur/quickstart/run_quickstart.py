@@ -7,10 +7,8 @@ Uses existing public interfaces only with no modifications to core execution log
 """
 
 import sys
-import os
 import uuid
 import traceback
-from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path for imports
