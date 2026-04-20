@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class ObservationIngestConfig:
     """Configuration for observation ingest behavior"""
     feature_enabled: bool = False  # V2 additive feature flag
-    require_confirmed_federate: bool = True
-    require_signature: bool = True
+    # SECURITY: require_confirmed_federate removed - always enforced
+    require_signature: bool = True  # Can be disabled for testing only
     max_observation_size_bytes: int = 1024 * 1024  # 1MB
 
 
@@ -110,19 +110,21 @@ class ObservationIngestService:
         return True, "success", audit_event
     
     def _validate_federate_status(self, federate_id: str) -> Tuple[bool, str]:
-        """Validate that federate exists and is confirmed"""
-        if not self.config.require_confirmed_federate:
-            return True, "federate_validation_disabled"
-        
+        """Validate that federate exists and has confirmed handshake state"""
+        # SECURITY: Always validate federate status - no bypass allowed
         identity = self.identity_store.get_identity(federate_id)
         if not identity:
             return False, "federate_not_found"
-        
-        # Check if federate is confirmed (has successful handshake)
-        # This would typically be tracked in a session store
-        # For now, we'll assume any stored identity is valid
-        # In a full implementation, this would check handshake state
-        
+
+        # Check if federate has confirmed handshake session
+        session = self.identity_store.get_handshake_session_for_federate(federate_id)
+        if not session:
+            return False, "federate_no_handshake_session"
+
+        from spec.contracts.models_v1 import HandshakeState
+        if session.state != HandshakeState.CONFIRMED:
+            return False, f"federate_handshake_not_confirmed: {session.state.value}"
+
         return True, "federate_confirmed"
     
     def _validate_observation_schema(self, observation: ObservationV1) -> Tuple[bool, str]:

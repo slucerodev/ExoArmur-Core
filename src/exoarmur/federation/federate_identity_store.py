@@ -259,7 +259,33 @@ class FederateIdentityStore:
             
             logger.info(f"Updated session {session_id}: {old_state} -> {new_state}")
             return True
-    
+
+    def get_handshake_session_for_federate(self, federate_id: str) -> Optional[HandshakeSessionV1]:
+        """
+        Get the most recent confirmed handshake session for a federate
+
+        Args:
+            federate_id: Federate identifier
+
+        Returns:
+            HandshakeSessionV1 if found, None otherwise
+        """
+        if not self.is_enabled():
+            return None
+
+        with self._lock:
+            # Find most recent session for this federate
+            matching_sessions = [
+                session for session in self._active_sessions.values()
+                if session.initiator_cell_id == federate_id or session.responder_cell_id == federate_id
+            ]
+
+            if not matching_sessions:
+                return None
+
+            # Return the most recently updated session
+            return max(matching_sessions, key=lambda s: s.updated_at)
+
     def cleanup_expired_sessions(self, max_age_hours: int = 24) -> int:
         """
         Clean up expired handshake sessions
