@@ -4,18 +4,38 @@
 
 **Green means exactly:**
 - 0 failed tests
-- 0 errors  
-- 0 skipped tests
+- 0 errors
+- 0 **unexpected** skipped tests (see Allowed Skip Catalog below)
 
-Any deviation from (0, 0, 0) is **red** and blocks deployment.
+Any failure or unexplained skip is **red** and blocks deployment.
 
-## No pytest.skip Policy
+## Allowed Skip Catalog
 
-**ZERO tolerance for pytest.skip anywhere in the repo:**
-- `grep -R "pytest\.skip" -n . --exclude-dir=venv` must return no results
-- No conditional skips based on environment or dependencies
-- No try/except ImportError → skip patterns
-- Tests must either pass, fail, or be explicitly xfailed
+The following skips are **explicitly permitted** because they gate on external
+components that are intentionally optional:
+
+| Test file | Skip reason | Activation |
+|---|---|---|
+| `tests/integration/test_core_dpo_integration.py` | `exoarmur_dpo` package not installed | `pip install exoarmur-dpo` |
+| `tests/test_execution_boundary_v2_http_executor_integration.py` | HTTP Executor Plugin not available | Install external plugin |
+| `tests/test_execution_boundary_v2_filesystem_executor_integration.py` | Filesystem executor package not available | Install external plugin |
+| `tests/test_golden_demo_live.py` | Requires `EXOARMUR_LIVE_DEMO=1` + NATS JetStream | `docker compose up -d && EXOARMUR_LIVE_DEMO=1 pytest ...` |
+| `tests/test_plugin_registry.py` | PoD provider not installed | Install PoD provider |
+| `tests/test_schema_snapshots.py` | No schema change waivers file found | Only runs when waivers file is committed |
+
+**Current expected counts:** 1041 passing, **9 skipped (all from catalog above)**, 3 xfailed.
+Any new skip reason that is not in this catalog is a governance violation
+and must either be added here (with approval) or eliminated.
+
+## No Unannounced pytest.skip Policy
+
+**Any `pytest.skip` or `pytest.importorskip` introduced by a PR must:**
+- Appear in the Allowed Skip Catalog above, **or**
+- Be converted to `pytest.xfail(strict=True, reason="...")`, **or**
+- Be removed and the test rewritten to execute unconditionally
+
+No conditional skips based on undocumented environment assumptions.
+No silent `try/except ImportError → skip` without a corresponding catalog entry.
 
 ## xfail(strict=True) Policy
 
@@ -99,7 +119,7 @@ grep -R "pytest\.skip" -n . --exclude-dir=venv
 # Check for allow_module_level=True (must return no results)  
 grep -R "allow_module_level=True" -n . --exclude-dir=venv
 
-# Verify test counts (must show 0 skipped)
+# Verify test counts (must show exactly the cataloged skips, 0 failures)
 pytest -q
 
 # Verify xfail reasons are appropriate
@@ -107,9 +127,10 @@ pytest -q -rxX
 ```
 
 **Expected output:**
-- pytest.skip grep: no results
-- allow_module_level=True grep: no results
-- pytest summary: "X passed, Y xfailed, 0 failed, 0 errors, 0 skipped"
+- `pytest.skip` grep: only inside tests listed in the Allowed Skip Catalog
+- `allow_module_level=True` grep: no results
+- pytest summary: `1041 passed, 9 skipped, 3 xfailed, 0 failed, 0 errors`
+- Each skip message must match one of the reasons in the Allowed Skip Catalog
 - xfail reasons: only future implementation gates
 
 ## Philosophy

@@ -12,7 +12,7 @@
 | **Announced adopters / pilots** | None — seeking first integration |
 | **External security audit** | Not yet conducted |
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
-| **Test suite** | 1033+ passing, three-run stability gate |
+| **Test suite** | 1041 passing / 9 skipped / 3 xfailed, three-run stability gate |
 | **CI workflows** | 10 active (see `.github/workflows/`) |
 | **Licensing** | Apache-2.0 |
 
@@ -29,7 +29,7 @@ technical overview.
 
 - **Determinism** — enforced by CI (`core-invariant-gates.yml`, three-run gate)
 - **Module boundaries** — enforced by CI (`module-boundary-enforcement.yml`)
-- **Cross-platform compatibility** — CI matrix across Py 3.8–3.12 and three OSes
+- **Cross-platform compatibility** — CI matrix across Py 3.10–3.12 and three OSes (minimum supported: 3.10)
 - **Security scanning** — CodeQL + pip-audit on every push
 - **Replay boundary** — ReplayEngine consumes only CanonicalEvent inputs; no
   raw audit records, no wall-clock fields
@@ -43,8 +43,12 @@ technical overview.
 - **Formal proofs** — invariants are tested, not formally proven. Methodology
   is documented in the internal blueprint; no theorem-prover output exists yet.
 - **Production deployment at scale** — no known production deployments.
-- **Federation in hostile environments** — Byzantine fault-tolerance logic is
-  present but has not been exercised against a red team.
+- **Byzantine Fault Tolerance (BFT)** — the system does NOT claim or implement
+  BFT consensus. The `FaultInjector` framework (see `src/exoarmur/replay/byzantine_fault_injection.py`)
+  verifies replay determinism under adversarial input corruption; it is not a
+  consensus protocol and has not been exercised in a real distributed setting.
+- **Federation in hostile environments** — federation crypto and handshake
+  state machine have not been exercised against an external red team.
 
 ## Roadmap signal
 

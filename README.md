@@ -165,7 +165,7 @@ Every push runs:
 - **Security Scan** — CodeQL + pip-audit
 - **V2 Demo Smoke Test** — full governance pipeline end-to-end
 
-Current: **1041 passing, 10 skipped, 3 xfailed**. No external infrastructure required for the core suite.
+Current: **1041 passing, 9 skipped, 3 xfailed**. Skipped tests require optional external components (live NATS demo, filesystem/HTTP executor plugins, PoD provider, external waiver file). No external infrastructure required for the core suite.
 
 ## Live Demo (Requires NATS JetStream)
 
