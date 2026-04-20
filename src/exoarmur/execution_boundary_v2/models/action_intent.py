@@ -42,9 +42,10 @@ class ActionIntent(BaseModel):
         if safety_context is None:
             safety_context = {}
         
-        # Use deterministic timestamp for ID generation but exclude from canonicalization
+        # Use deterministic ID generation based only on action parameters (not timestamp)
+        # Timestamp is excluded from intent_id to ensure replay determinism
         timestamp = utc_now()
-        intent_id = make_intent_id(actor_id, action_type, target, timestamp)
+        intent_id = make_intent_id(actor_id, action_type, target, None)
         
         return cls(
             intent_id=intent_id,
