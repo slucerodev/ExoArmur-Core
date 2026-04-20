@@ -156,14 +156,17 @@ def verify_all(verbose: bool, fast: bool):
             import_cmd = [
                 sys.executable,
                 "-c",
-                "import exoarmur; from exoarmur.sdk import run_governed_execution, verify_governance_integrity, replay_governed_execution; print('✅ Installed package imports successful')",
+                "import sys; sys.stderr=open('/dev/null','w'); import exoarmur; from exoarmur.sdk import run_governed_execution, verify_governance_integrity, replay_governed_execution; print('OK')",
             ]
-            result = subprocess.run(
-                import_cmd,
-                cwd=package_root,
-                capture_output=True,
-                text=True,
-            )
+            # Run from a neutral temp directory to avoid cwd affecting imports
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                result = subprocess.run(
+                    import_cmd,
+                    cwd=tmpdir,
+                    capture_output=True,
+                    text=True,
+                )
             if result.returncode != 0:
                 click.echo("❌ Installed-package import sanity failed")
                 if verbose:
@@ -174,7 +177,7 @@ def verify_all(verbose: bool, fast: bool):
             else:
                 click.echo("✅ Installed-package import sanity passed")
                 if verbose and result.stdout:
-                    click.echo(result.stdout)
+                    click.echo(result.stdout.strip())
             skipped_checks.append("repo-local pytest suite")
         
         # 2. Boundary gate (if not fast)

@@ -73,13 +73,13 @@ def test_verify_all_skips_repo_only_checks_when_installed(monkeypatch):
         calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
         assert cmd[0] == sys.executable
         assert cmd[1] == "-c"
-        assert "Installed package imports successful" in cmd[2]
-        assert cwd == Path(cli.__file__).resolve().parent
+        assert "OK" in cmd[2]
+        assert cwd is not None  # Runs from temp directory, not package root
         assert capture_output is True
         assert text is True
         return SimpleNamespace(
             returncode=0,
-            stdout="✅ Installed package imports successful\n",
+            stdout="OK\n",
             stderr="",
         )
 

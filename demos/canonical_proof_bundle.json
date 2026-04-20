@@ -37,7 +37,7 @@
         }
       },
       "hashes": {
-        "sha256": "demo-hash",
+        "sha256": "2bd0ffcdc9b6244b3a4e163722b8ade47b4de8c8926a5d018bea5a2a6b52dedc",
         "upstream_hashes": []
       },
       "correlation_id": "canonical-truth-reconstruction-demo",
