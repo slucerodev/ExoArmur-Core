@@ -1,8 +1,12 @@
 """
-Byzantine Replay Stress & Fault Injection Layer
+Cross-Node Replay Determinism Verification & Fault Injection Layer
 
-Module 3: Deterministic fault injection for validating system resilience
-under adversarial or corrupted execution conditions.
+Module 3: Deterministic fault injection for validating replay consistency
+across multiple nodes with adversarial input corruption.
+
+NOTE: This is NOT Byzantine Fault Tolerance (BFT). It verifies that
+distributed replay produces identical deterministic outputs when given
+corrupted inputs, not consensus under malicious node behavior.
 
 This module is strictly additive - it injects faults without altering
 canonical execution logic or MultiNodeReplayVerifier behavior.
@@ -31,12 +35,12 @@ class FaultType(Enum):
     STRUCTURED_CORRUPTION = "structured_corruption"
 
 
-class ByzantineScenario(Enum):
-    """Predefined Byzantine fault scenarios"""
-    CLEAN = "clean"  # No faults
-    SINGLE_NODE = "single_node"  # 1 faulty node
-    PARTIAL = "partial"  # f < n/3 faulty nodes
-    MAJORITY = "majority"  # f >= n/2 faulty nodes
+class CorruptionScenario(Enum):
+    """Predefined input corruption scenarios for replay testing"""
+    CLEAN = "clean"  # No corruption
+    SINGLE_NODE = "single_node"  # 1 node receives corrupted input
+    PARTIAL = "partial"  # Some nodes receive corrupted input
+    MAJORITY = "majority"  # Majority of nodes receive corrupted input
 
 
 @dataclass(frozen=True)
@@ -80,10 +84,10 @@ class FaultInjectionResult:
 
 
 @dataclass(frozen=True)
-class ByzantineTestResult:
-    """Complete result of Byzantine fault testing"""
+class FaultInjectionTestResult:
+    """Complete result of cross-node replay fault injection testing"""
     
-    scenario: ByzantineScenario
+    scenario: CorruptionScenario
     fault_configs: List[FaultConfig]
     injection_results: List[FaultInjectionResult]
     divergence_report: DivergenceReport
@@ -105,8 +109,8 @@ class ByzantineTestResult:
         }
 
 
-class ByzantineFaultInjector:
-    """Deterministic fault injection engine for Byzantine testing"""
+class FaultInjector:
+    """Deterministic fault injection engine for replay determinism verification"""
     
     def __init__(self, deterministic_seed: Optional[int] = None):
         """
@@ -209,13 +213,13 @@ class ByzantineFaultInjector:
                     payload = event_dict["payload"].copy()
                     if isinstance(payload, dict):
                         # Mutate payload in deterministic way
-                        mutation_key = f"byzantine_mutation_{node_id}_{i}"
+                        mutation_key = f"fault_mutation_{node_id}_{i}"
                         payload[mutation_key] = f"corrupted_by_{node_id}"
                         
                         # If kind.ref exists, corrupt it too
                         if "kind" in payload and isinstance(payload["kind"], dict):
                             if "ref" in payload["kind"] and isinstance(payload["kind"]["ref"], dict):
-                                payload["kind"]["ref"]["byzantine_corruption"] = True
+                                payload["kind"]["ref"]["fault_corruption"] = True
                                 payload["kind"]["ref"]["corruption_source"] = node_id
                         
                         event_dict["payload"] = payload
@@ -223,7 +227,7 @@ class ByzantineFaultInjector:
                         event_dict["payload_hash"] = stable_hash(canonical_json(payload))
             
             # Always modify event_id to ensure uniqueness
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -255,7 +259,7 @@ class ByzantineFaultInjector:
                     # Default corruption
                     event_dict["event_type"] = f"{original_type}_corrupted_by_{node_id}"
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -285,7 +289,7 @@ class ByzantineFaultInjector:
                         seed_value = hash(f"{self._rng_seed}_{node_id}_{i}")
                         event_dict["sequence_number"] = abs(seed_value) % (len(events) * 2)
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -308,7 +312,7 @@ class ByzantineFaultInjector:
                     if field in event_dict and field != "payload":  # Never delete required payload
                         del event_dict[field]
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -323,7 +327,7 @@ class ByzantineFaultInjector:
         
         alterations = fault_config.fault_parameters.get("alterations", {
             "tenant_id": f"corrupted_{node_id}",
-            "cell_id": f"byzantine_{node_id}"
+            "cell_id": f"fault_{node_id}"
         })
         
         for i, event in enumerate(events):
@@ -334,7 +338,7 @@ class ByzantineFaultInjector:
                     if field in event_dict:
                         event_dict[field] = new_value
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -359,7 +363,7 @@ class ByzantineFaultInjector:
                 if "event_id" in event_dict:
                     event_dict["event_id"] = f"{event_dict['event_id']}_hash_corrupted"
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -400,7 +404,7 @@ class ByzantineFaultInjector:
                     if event_dict.get("sequence_number") is not None:
                         event_dict["sequence_number"] += 10000
             
-            event_dict["event_id"] = f"{event_dict['event_id']}_byzantine_{node_id}"
+            event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"
             
             corrupted_events.append(CanonicalEvent(**event_dict))
         
@@ -419,28 +423,28 @@ class ByzantineFaultInjector:
             return (event_index % 100) < threshold
 
 
-class ByzantineScenarioGenerator:
-    """Generator for predefined Byzantine fault scenarios"""
+class CorruptionScenarioGenerator:
+    """Generator for predefined input corruption scenarios"""
     
     @staticmethod
-    def create_scenario(scenario: ByzantineScenario, 
+    def create_scenario(scenario: CorruptionScenario, 
                        node_count: int,
                        deterministic_seed: int = 42) -> List[FaultConfig]:
         """
         Create fault configuration for a given scenario
         
         Args:
-            scenario: Byzantine scenario type
+            scenario: Input corruption scenario type
             node_count: Total number of nodes in the system
             deterministic_seed: Seed for deterministic behavior
             
         Returns:
             List of fault configurations
         """
-        if scenario == ByzantineScenario.CLEAN:
+        if scenario == CorruptionScenario.CLEAN:
             return []
         
-        elif scenario == ByzantineScenario.SINGLE_NODE:
+        elif scenario == CorruptionScenario.SINGLE_NODE:
             # Corrupt 1 node
             target_node = f"node-{(deterministic_seed % node_count) + 1}"
             return [
@@ -452,7 +456,7 @@ class ByzantineScenarioGenerator:
                 )
             ]
         
-        elif scenario == ByzantineScenario.PARTIAL:
+        elif scenario == CorruptionScenario.PARTIAL:
             # Corrupt f < n/3 nodes
             faulty_count = max(1, node_count // 3 - 1)
             target_nodes = []
@@ -470,7 +474,7 @@ class ByzantineScenarioGenerator:
                 )
             ]
         
-        elif scenario == ByzantineScenario.MAJORITY:
+        elif scenario == CorruptionScenario.MAJORITY:
             # Corrupt f >= n/2 nodes
             faulty_count = (node_count // 2) + 1
             target_nodes = []
@@ -497,12 +501,12 @@ class ByzantineScenarioGenerator:
             raise ValueError(f"Unsupported scenario: {scenario}")
 
 
-class ByzantineTestRunner:
-    """Complete Byzantine fault testing framework"""
+class FaultInjectionTestRunner:
+    """Complete cross-node replay fault injection testing framework"""
     
     def __init__(self, node_count: int = 3, deterministic_seed: int = 42):
         """
-        Initialize Byzantine test runner
+        Initialize fault injection test runner
         
         Args:
             node_count: Number of nodes to simulate
@@ -511,29 +515,29 @@ class ByzantineTestRunner:
         self.node_count = node_count
         self.deterministic_seed = deterministic_seed
         self.verifier = MultiNodeReplayVerifier(node_count=node_count)
-        self.fault_injector = ByzantineFaultInjector(deterministic_seed)
+        self.fault_injector = FaultInjector(deterministic_seed)
         self.logger = logging.getLogger(__name__)
     
-    def run_byzantine_test(self,
+    def run_fault_injection_test(self,
                           base_events: List[CanonicalEvent],
-                          scenario: ByzantineScenario,
-                          custom_fault_configs: Optional[List[FaultConfig]] = None) -> ByzantineTestResult:
+                          scenario: CorruptionScenario,
+                          custom_fault_configs: Optional[List[FaultConfig]] = None) -> FaultInjectionTestResult:
         """
-        Run complete Byzantine fault test
+        Run complete cross-node replay fault injection test
         
         Args:
             base_events: Base canonical events
-            scenario: Byzantine scenario to test
+            scenario: Input corruption scenario to test
             custom_fault_configs: Optional custom fault configurations
             
         Returns:
-            Complete Byzantine test result
+            Complete fault injection test result
         """
         # Get fault configurations
         if custom_fault_configs:
             fault_configs = custom_fault_configs
         else:
-            fault_configs = ByzantineScenarioGenerator.create_scenario(
+            fault_configs = CorruptionScenarioGenerator.create_scenario(
                 scenario, self.node_count, self.deterministic_seed
             )
         
@@ -562,11 +566,11 @@ class ByzantineTestRunner:
         
         # Run consensus verification with faults
         divergence_report = self.verifier.verify_consensus(
-            base_events, "byzantine_test", node_inputs
+            base_events, "fault_injection_test", node_inputs
         )
         
         # Create comprehensive result
-        result = ByzantineTestResult(
+        result = FaultInjectionTestResult(
             scenario=scenario,
             fault_configs=fault_configs,
             injection_results=list(injection_results.values()),
@@ -574,16 +578,16 @@ class ByzantineTestRunner:
             baseline_hash=baseline_hash
         )
         
-        self.logger.info(f"Byzantine test complete: {scenario.value} -> {divergence_report.consensus_result.value}")
+        self.logger.info(f"Fault injection test complete: {scenario.value} -> {divergence_report.consensus_result.value}")
         
         return result
     
-    def validate_byzantine_correctness(self, result: ByzantineTestResult) -> bool:
+    def validate_fault_injection_correctness(self, result: FaultInjectionTestResult) -> bool:
         """
-        Validate that Byzantine test results are correct
+        Validate that fault injection test results are correct
         
         Args:
-            result: Byzantine test result to validate
+            result: Fault injection test result to validate
             
         Returns:
             True if test behaved correctly
@@ -593,21 +597,21 @@ class ByzantineTestRunner:
         faulty_nodes = len(result.fault_configs)
         total_nodes = len(result.divergence_report.node_hashes)
         
-        if scenario == ByzantineScenario.CLEAN:
+        if scenario == CorruptionScenario.CLEAN:
             # Clean scenario should always achieve consensus
             return consensus_achieved
         
-        elif scenario == ByzantineScenario.SINGLE_NODE:
+        elif scenario == CorruptionScenario.SINGLE_NODE:
             # Single faulty node should cause divergence
             expected_divergence = faulty_nodes < (total_nodes - faulty_nodes)
             return consensus_achieved == (not expected_divergence)
         
-        elif scenario == ByzantineScenario.PARTIAL:
+        elif scenario == CorruptionScenario.PARTIAL:
             # Partial corruption (f < n/3) should cause divergence
             expected_divergence = faulty_nodes >= 1
             return consensus_achieved == (not expected_divergence)
         
-        elif scenario == ByzantineScenario.MAJORITY:
+        elif scenario == CorruptionScenario.MAJORITY:
             # Majority corruption should never achieve consensus
             return not consensus_achieved
         

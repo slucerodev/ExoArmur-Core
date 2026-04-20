@@ -1,6 +1,14 @@
 """
 Trust Evaluator for Safety Gate
-Deterministic trust scoring with safe fallback to preserve current behavior
+
+STUB IMPLEMENTATION - Returns fixed trust score 0.85 regardless of input.
+This is a placeholder for future trust scoring logic.
+
+TODO: Implement actual trust evaluation based on:
+- event_source.kind (edr, siem, etc.)
+- event_source.name (crowdstrike, sentinel, etc.)
+- emitter_id reputation
+- tenant-specific trust profiles
 """
 
 import logging
@@ -22,7 +30,10 @@ class TrustEvaluationContext:
 
 
 class TrustEvaluator:
-    """Deterministic trust evaluator with safe fallback"""
+    """STUB: Trust evaluator that always returns 0.85
+    
+    This is a placeholder implementation. Real trust evaluation
+    requires integration with reputation systems and telemetry sources."""
     
     def __init__(self):
         logger.info("TrustEvaluator initialized")
@@ -42,7 +53,7 @@ class TrustEvaluator:
             tenant_id: Tenant identifier
             
         Returns:
-            Trust score as float (0.0 to 1.0)
+            Trust score as float (0.0 to 1.0) - STUB: always returns 0.85
         """
         context = TrustEvaluationContext(
             event_source=event_source,
@@ -66,31 +77,13 @@ class TrustEvaluator:
     
     def _evaluate_trust_internal(self, context: TrustEvaluationContext) -> float:
         """
-        Internal trust evaluation logic
+        STUB: Internal trust evaluation logic
         
-        This method implements the actual trust evaluation.
-        If it fails for any reason, the fallback ensures behavior preservation.
+        TODO: Implement actual trust scoring. Currently returns fixed value.
         """
-        # TODO: Implement actual trust scoring logic here
-        # For now, maintain current behavior but with extensible structure
-        
-        # Default to current hardcoded behavior but with context awareness
-        base_trust_score = 0.85  # From main.py line 475
-        
-        # Future trust logic could consider:
-        # - event_source.kind (edr, siem, etc.)
-        # - event_source.name (crowdstrike, sentinel, etc.)
-        # - emitter_id reputation
-        # - tenant-specific trust profiles
-        
-        return base_trust_score
+        # STUB: Fixed value from original main.py line 475
+        return 0.85
     
     def _get_safe_fallback_trust_score(self) -> float:
-        """
-        Safe fallback that preserves current hardcoded behavior
-        
-        This ensures that even if the evaluator fails completely,
-        the system behaves exactly as it did before integration.
-        """
-        # Return the exact same value that was hardcoded in main.py
-        return 0.85  # From main.py line 475
+        """STUB: Safe fallback returns fixed 0.85"""
+        return 0.85

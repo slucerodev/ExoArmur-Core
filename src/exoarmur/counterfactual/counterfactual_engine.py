@@ -1,8 +1,11 @@
 """
-Counterfactual Engine for replay analysis.
+Counterfactual Engine for replay-based outcome comparison.
 
-Provides the main interface for running counterfactual experiments
-on ExoArmur audit trails.
+Provides A/B replay diffing to compare original audit trails against
+modified (intervened) versions. This is NOT academic causal inference - 
+it compares deterministic replay outputs, not causal effects.
+
+Use case: "What would have happened if this event had different parameters?"
 """
 
 from .intervention import Intervention, apply_intervention
@@ -11,7 +14,10 @@ from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport
 
 
 class CounterfactualEngine:
-    """Engine for running counterfactual replay experiments."""
+    """Engine for running A/B replay comparison experiments.
+    
+    Compares original replay against modified replay with interventions.
+    This is deterministic outcome diffing, not statistical causal inference."""
     
     def __init__(self, replay_engine: ReplayEngine):
         """
@@ -28,7 +34,7 @@ class CounterfactualEngine:
         intervention: Intervention
     ) -> CounterfactualReport:
         """
-        Run a counterfactual experiment.
+        Run an A/B replay comparison experiment.
         
         Args:
             correlation_id: Correlation ID to replay

@@ -13,19 +13,26 @@ from .multi_node_verifier import (
     DivergenceReport
 )
 from .byzantine_fault_injection import (
-    ByzantineFaultInjector,
-    ByzantineScenarioGenerator,
-    ByzantineTestRunner,
+    FaultInjector,
+    CorruptionScenarioGenerator,
+    FaultInjectionTestRunner,
     FaultType,
-    ByzantineScenario,
+    CorruptionScenario,
     FaultConfig,
     FaultInjectionResult,
-    ByzantineTestResult
+    FaultInjectionTestResult
 )
+
+# Backward compatibility aliases (deprecated)
+ByzantineFaultInjector = FaultInjector
+ByzantineScenarioGenerator = CorruptionScenarioGenerator
+ByzantineTestRunner = FaultInjectionTestRunner
+ByzantineScenario = CorruptionScenario
+ByzantineTestResult = FaultInjectionTestResult
 
 __all__ = [
     'canonical_json',
-    'stable_hash', 
+    'stable_hash',
     'AuditEventEnvelope',
     'EventTypePriority',
     'CanonicalEvent',
@@ -36,12 +43,19 @@ __all__ = [
     'ConsensusResult',
     'NodeResult',
     'DivergenceReport',
+    # New names (preferred)
+    'FaultInjector',
+    'CorruptionScenarioGenerator',
+    'FaultInjectionTestRunner',
+    'FaultType',
+    'CorruptionScenario',
+    'FaultConfig',
+    'FaultInjectionResult',
+    'FaultInjectionTestResult',
+    # Deprecated aliases for backward compatibility
     'ByzantineFaultInjector',
     'ByzantineScenarioGenerator',
     'ByzantineTestRunner',
-    'FaultType',
     'ByzantineScenario',
-    'FaultConfig',
-    'FaultInjectionResult',
-    'ByzantineTestResult'
+    'ByzantineTestResult',
 ]
