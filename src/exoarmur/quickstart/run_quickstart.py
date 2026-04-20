@@ -77,7 +77,7 @@ def main():
             
             canonical_event = CanonicalEvent(
                 event_id=event_id,
-                event_type="quickstart_test",
+                event_type="TELEMETRY_INGESTED",
                 actor="quickstart_runner",
                 correlation_id=correlation_id,
                 payload=payload,

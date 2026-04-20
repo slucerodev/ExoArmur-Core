@@ -110,6 +110,7 @@ def main() -> None:
             print("Execution boundary result: policy denied before any filesystem side effect")
             print(f"Proof bundle written: examples/demo_standalone_proof_bundle.json")
             print(f"Proof bundle schema version: {proof_bundle.schema_version}")
+            print(f"Proof bundle replay hash: {proof_bundle.replay_hash}")
             print("DEMO_RESULT=DENIED")
             print("ACTION_EXECUTED=false")
             print(f"AUDIT_STREAM_ID={audit_stream_id}")
