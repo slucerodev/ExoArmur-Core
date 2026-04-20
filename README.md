@@ -86,6 +86,27 @@ Decision Source → ActionIntent → PolicyDecisionPoint → SafetyGate → [App
 
 ExoArmur is a **governance and accountability layer** that wraps whatever agent framework you already use.
 
+## Capabilities and Limitations
+
+Honest disclosure of what this system does and does not provide:
+
+**What it provides:**
+- Deterministic execution boundary enforcement via `ProxyPipeline`
+- Cryptographic audit trails with SHA-256 payload hashes and Ed25519 signatures
+- Three-run deterministic replay verification with CI-enforced stability
+- Cross-node replay determinism verification with adversarial input corruption testing
+- A/B replay diffing (counterfactual engine) — compares original vs modified replay outputs
+- Plane isolation enforced at import-time by dependency edge guards
+- Idempotent audit ingestion with deterministic content-addressed keys
+
+**What it does not provide (known limitations):**
+- **Not Byzantine Fault Tolerance (BFT)** — the fault injection system verifies replay determinism under corrupted inputs, not consensus under malicious nodes
+- **Not causal inference** — the counterfactual engine performs deterministic replay diffing, not statistical causal analysis
+- **Trust evaluator is a stub** — currently returns a fixed trust score of `0.85` regardless of input; see `src/exoarmur/safety/trust_evaluator.py` for TODO list
+- **Only mock executor ships** — `MockActionExecutor` is the only bundled executor; real integrations must be written as `ExecutorPlugin` implementations
+- **Single-node in-memory stores** — default `IntentStore` and `FederateIdentityStore` are in-memory; durable Postgres/JetStream backends require manual configuration
+- **Federation is feature-flag gated** — multi-cell coordination requires `EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true`
+
 ## Architecture
 
 | Layer | Path | Purpose |
