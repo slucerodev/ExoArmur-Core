@@ -223,7 +223,7 @@ def verify_canonicalization(data: Dict[str, Any]) -> bool:
     """
     try:
         # Check for NaN values
-        json_str = json.dumps(data, allow_nan=False)
+        json_str = json.dumps(data, allow_nan=False, sort_keys=True)
         
         # Parse back and compare
         parsed = json.loads(json_str)

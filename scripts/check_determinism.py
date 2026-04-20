@@ -223,8 +223,16 @@ def main():
     # Skip certain directories
     skip_patterns = ['__pycache__', '.git', '.pytest_cache', 'venv', '.venv']
     python_files = [
-        f for f in python_files 
+        f for f in python_files
         if not any(pattern in str(f) for pattern in skip_patterns)
+    ]
+
+    # For determinism: only scan core modules (replay-critical)
+    # Non-core modules (federation, observability, etc.) may use wall-clock time
+    core_modules = ['execution_boundary_v2', 'replay', 'proof', 'sdk']
+    python_files = [
+        f for f in python_files
+        if any(core in str(f) for core in core_modules)
     ]
     
     print(f"📄 Found {len(python_files)} Python files to scan")

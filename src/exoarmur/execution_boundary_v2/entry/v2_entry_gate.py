@@ -375,9 +375,9 @@ class V2EntryGate:
                 'nats_client_configured': nats_client is not None,
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-            
+
             logger.info("System bootstrap completed successfully through V2EntryGate")
             return bootstrap_result
             
@@ -389,9 +389,9 @@ class V2EntryGate:
                 'bootstrap_type': 'SYSTEM_BOOTSTRAP',
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-    
+
     def _handle_belief_processing(self, v2_context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle belief processing intent through V2EntryGate.
@@ -427,9 +427,9 @@ class V2EntryGate:
                 'belief_id': belief_data.get('belief_id') if belief_data else None,
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Belief processing failed: {e}")
             return {
@@ -438,9 +438,9 @@ class V2EntryGate:
                 'intent_type': 'BELIEF_PROCESSING',
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-    
+
     def _handle_audit_processing(self, v2_context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle audit processing intent through V2EntryGate.
@@ -476,9 +476,9 @@ class V2EntryGate:
                 'event_id': audit_data.get('event_id') if audit_data else None,
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Audit processing failed: {e}")
             return {
@@ -487,9 +487,9 @@ class V2EntryGate:
                 'intent_type': 'AUDIT_PROCESSING',
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-    
+
     def _handle_audit_emission(self, v2_context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle audit emission intent through V2EntryGate.
@@ -525,9 +525,9 @@ class V2EntryGate:
                 'event_type': audit_data.get('event_type') if audit_data else None,
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Audit emission failed: {e}")
             return {
@@ -536,7 +536,7 @@ class V2EntryGate:
                 'intent_type': 'AUDIT_EMISSION',
                 'v2_enforced': True,
                 'audit_trail_id': v2_context['audit_trail_id'],
-                'executed_at': datetime.now(timezone.utc).isoformat()
+                'executed_at': utc_now().isoformat()
             }
     
     def _finalize_through_v2(self, v2_context: Dict[str, Any], core_result: Dict[str, Any]) -> ExecutionResult:

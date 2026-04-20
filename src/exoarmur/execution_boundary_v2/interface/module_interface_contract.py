@@ -8,6 +8,7 @@ from enum import Enum
 import hashlib
 import json
 
+from exoarmur.clock import utc_now
 from ..core.core_types import *
 
 # === INTERFACE ENUMS ===
@@ -195,7 +196,7 @@ class ModuleOutputSchema:
     
     def _build_metadata(self, custom_metadata: Dict[str, Any]) -> Dict[str, Any]:
         base_metadata = {
-            'timestamp': time.time(),
+            'timestamp': utc_now().timestamp(),
             'schema_version': self.schema_version,
             'serialization_format': self.serialization_format.value
         }

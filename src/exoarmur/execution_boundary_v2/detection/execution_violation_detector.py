@@ -10,6 +10,7 @@ import threading
 import traceback
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
+from exoarmur.clock import utc_now
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class ExecutionViolation:
         self.call_origin = call_origin
         self.execution_context = execution_context
         self.severity = severity
-        self.timestamp = datetime.now(timezone.utc)
+        self.timestamp = utc_now()
         self.stack_trace = stack_trace or traceback.format_stack()[-5:]  # Last 5 frames
     
     def to_dict(self) -> Dict[str, Any]:
@@ -80,7 +81,7 @@ class ExecutionContextTracker:
     def enter_v2_context(self):
         """Mark entry into V2EntryGate context"""
         self._context.in_v2_gate = True
-        self._context.v2_entry_time = datetime.now(timezone.utc)
+        self._context.v2_entry_time = utc_now()
     
     def exit_v2_context(self):
         """Mark exit from V2EntryGate context"""
