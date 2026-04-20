@@ -147,6 +147,10 @@ class CanonicalAuditEmitter:
         canonical = json.dumps({"intent_id": intent_id, "event_type": event_type}, sort_keys=True)
         digest = hashlib.sha256(canonical.encode()).digest()
         audit_id = str(ulid.ULID.from_bytes(digest[:16]))
+        payload_ref = {"kind": {"ref": details}}
+        payload_hash = hashlib.sha256(
+            json.dumps(payload_ref, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
         audit_record = {
             "schema_version": "1.0.0",
             "audit_id": audit_id,
@@ -155,8 +159,8 @@ class CanonicalAuditEmitter:
             "idempotency_key": intent_id,
             "recorded_at": recorded_at or FIXED_TIMESTAMP,
             "event_kind": event_type,
-            "payload_ref": {"kind": {"ref": details}},
-            "hashes": {"sha256": "demo-hash", "upstream_hashes": []},
+            "payload_ref": payload_ref,
+            "hashes": {"sha256": payload_hash, "upstream_hashes": []},
             "correlation_id": intent_id,
             "trace_id": intent_id,
         }

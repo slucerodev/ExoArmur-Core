@@ -396,6 +396,10 @@ class ReplayEngine:
             self._process_intent_executed(envelope, report)
         elif event_type == "intent_denied":
             self._process_intent_denied(envelope, report)
+        elif event_type == "policy_denial":
+            self._process_policy_denial(envelope, report)
+        elif event_type == "policy_allow":
+            self._process_policy_allow(envelope, report)
         else:
             report.add_warning(f"Unknown event type: {event_type}")
 
@@ -620,7 +624,39 @@ class ReplayEngine:
             
         except Exception as e:
             report.add_failure(f"Failed to process intent denial: {e}")
-    
+
+    def _process_policy_denial(self, envelope: CanonicalEvent, report: ReplayReport):
+        """Process policy denial event"""
+        try:
+            denial_data = self._extract_payload_ref(envelope.payload)
+            if not denial_data:
+                report.add_failure("Policy denial payload missing data")
+                return
+
+            verdict = denial_data.get("verdict")
+            rationale = denial_data.get("rationale")
+
+            self.logger.debug(f"Reconstructed policy denial: {verdict} - {rationale}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process policy denial: {e}")
+
+    def _process_policy_allow(self, envelope: CanonicalEvent, report: ReplayReport):
+        """Process policy allow event"""
+        try:
+            allow_data = self._extract_payload_ref(envelope.payload)
+            if not allow_data:
+                report.add_failure("Policy allow payload missing data")
+                return
+
+            verdict = allow_data.get("verdict")
+            rationale = allow_data.get("rationale")
+
+            self.logger.debug(f"Reconstructed policy allow: {verdict} - {rationale}")
+
+        except Exception as e:
+            report.add_failure(f"Failed to process policy allow: {e}")
+
     def _verify_final_state(self, report: ReplayReport):
         """Verify final state consistency"""
         try:
