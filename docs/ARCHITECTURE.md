@@ -211,3 +211,59 @@ class V2Module:
 - External coordination only
 
 This architecture ensures ExoArmur maintains autonomous defense capabilities while enabling controlled evolution through external layers that never compromise core safety or reliability.
+
+## Determinism and Replay Architecture
+
+### Core Determinism Requirements
+
+Replay-critical components MUST use deterministic time handling:
+
+| Component | Clock Source | Reason |
+|-----------|--------------|--------|
+| `execution_boundary_v2/` | `exoarmur.clock.utc_now()` | Replay verification requires deterministic timestamps |
+| `replay/` | `exoarmur.clock.utc_now()` | Replay engine must reconstruct identical timelines |
+| `proof/` | `exoarmur.clock.utc_now()` | Proof bundles require deterministic replay hashes |
+| `sdk/` | `exoarmur.clock.utc_now()` | Public API must produce deterministic proof bundles |
+
+### Non-Core Flexibility
+
+Non-replay components MAY use wall-clock time:
+
+| Component | Clock Source | Reason |
+|-----------|--------------|--------|
+| `federation/` | `datetime.now(timezone.utc)` | Cross-cell coordination needs real-time awareness |
+| `observability/` | `datetime.now(timezone.utc)` | Metrics and monitoring require wall-clock time |
+| `control_plane/` | `datetime.now(timezone.utc)` | Operator interfaces use wall-clock |
+
+### Clock Abstraction
+
+The `exoarmur.clock` module provides:
+
+```python
+# Deterministic clock for core replay
+def utc_now() -> datetime:
+    """Get current UTC time using global clock"""
+    return get_clock().utc_now()
+
+# Clock implementations
+class SystemClock:
+    """Production clock using system time"""
+    def utc_now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+class DeterministicClock:
+    """Deterministic clock for testing/replay"""
+    def utc_now(self) -> datetime:
+        return self._current_time  # Fixed or sequenced
+```
+
+### Replay Engine
+
+The replay engine reconstructs execution from proof bundles:
+
+1. **Schema Migration**: Automatic version adaptation
+2. **Hash Verification**: Cryptographic integrity checks
+3. **Timeline Reconstruction**: Deterministic event ordering
+4. **Verdict Validation**: Confirm execution outcomes
+
+See `docs/DETERMINISM_SCOPE.md` for detailed determinism requirements.
