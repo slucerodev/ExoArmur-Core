@@ -127,16 +127,16 @@ class TestByzantineFaultInjector:
         # Verify payload corruption
         corrupted_event = result.corrupted_events[0]
         payload = corrupted_event.to_dict()["payload"]
-        assert "byzantine_mutation_node-1_0" in payload
+        assert "fault_mutation_node-1_0" in payload
         
         # Check for kind.ref corruption if present
         if "kind" in payload and isinstance(payload["kind"], dict):
             if "ref" in payload["kind"] and isinstance(payload["kind"]["ref"], dict):
-                assert payload["kind"]["ref"]["byzantine_corruption"] is True
+                assert payload["kind"]["ref"]["fault_corruption"] is True
                 assert payload["kind"]["ref"]["corruption_source"] == "node-1"
         
         # Verify event_id corruption
-        assert "_byzantine_node-1" in corrupted_event.to_dict()["event_id"]
+        assert "_fault_node-1" in corrupted_event.to_dict()["event_id"]
     
     def test_event_type_substitution_fault(self, fault_injector, sample_canonical_events):
         """Test event type substitution fault injection"""
@@ -315,8 +315,8 @@ class TestByzantineFaultInjector:
         for event in corrupted_events:
             payload = event.to_dict().get("payload", {})
             if isinstance(payload, dict):
-                # Look for any key containing "byzantine_mutation"
-                has_mutation = any("byzantine_mutation" in key for key in payload.keys())
+                # Look for any key containing "fault_mutation"
+                has_mutation = any("fault_mutation" in key for key in payload.keys())
                 if has_mutation:
                     corrupted_count += 1
         
@@ -343,8 +343,8 @@ class TestByzantineFaultInjector:
         for event in result_zero.corrupted_events:
             payload = event.to_dict().get("payload", {})
             if isinstance(payload, dict):
-                # Look for any key containing "byzantine_mutation"
-                has_mutation = any("byzantine_mutation" in key for key in payload.keys())
+                # Look for any key containing "fault_mutation"
+                has_mutation = any("fault_mutation" in key for key in payload.keys())
                 if has_mutation:
                     corrupted_count_zero += 1
         

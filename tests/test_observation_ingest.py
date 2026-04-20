@@ -47,7 +47,6 @@ def ingest_config():
     """Ingest configuration for testing"""
     return ObservationIngestConfig(
         feature_enabled=True,
-        require_confirmed_federate=True,
         require_signature=True
     )
 
@@ -103,6 +102,14 @@ def create_mock_identity(test_federate_identity):
     return mock_identity
 
 
+def create_mock_confirmed_session():
+    """Create a mock handshake session in CONFIRMED state"""
+    from exoarmur.spec.contracts.models_v1 import HandshakeState
+    mock_session = Mock()
+    mock_session.state = HandshakeState.CONFIRMED
+    return mock_session
+
+
 def test_observation_ingest_requires_confirmed_federate(ingest_service, test_key_pair, fixed_clock):
     """Test that observation ingest requires confirmed federate"""
     # Create observation from unconfirmed federate
@@ -140,6 +147,7 @@ def test_observation_signature_required_and_verified(
     # Mock the identity store to return our test identity
     mock_identity = create_mock_identity(test_federate_identity)
     identity_store.get_identity = Mock(return_value=mock_identity)
+    identity_store.get_handshake_session_for_federate = Mock(return_value=create_mock_confirmed_session())
     identity_store.is_nonce_available = Mock(return_value=True)
     identity_store.mark_nonce_used = Mock()
     
@@ -190,6 +198,7 @@ def test_observation_nonce_replay_rejected(
     # Mock the identity store to return our test identity
     mock_identity = create_mock_identity(test_federate_identity)
     identity_store.get_identity = Mock(return_value=mock_identity)
+    identity_store.get_handshake_session_for_federate = Mock(return_value=create_mock_confirmed_session())
     identity_store.is_nonce_available = Mock(return_value=True)
     identity_store.mark_nonce_used = Mock()
     
@@ -283,6 +292,7 @@ def test_observation_schema_validation(ingest_service, test_federate_identity, f
     # Mock the identity store to return our test identity
     mock_identity = create_mock_identity(test_federate_identity)
     ingest_service.identity_store.get_identity = Mock(return_value=mock_identity)
+    ingest_service.identity_store.get_handshake_session_for_federate = Mock(return_value=create_mock_confirmed_session())
     ingest_service.identity_store.is_nonce_available = Mock(return_value=True)
     ingest_service.identity_store.mark_nonce_used = Mock()
     
@@ -323,6 +333,7 @@ def test_observation_timestamp_validation(ingest_service, test_federate_identity
     # Mock the identity store to return our test identity
     mock_identity = create_mock_identity(test_federate_identity)
     ingest_service.identity_store.get_identity = Mock(return_value=mock_identity)
+    ingest_service.identity_store.get_handshake_session_for_federate = Mock(return_value=create_mock_confirmed_session())
     ingest_service.identity_store.is_nonce_available = Mock(return_value=True)
     ingest_service.identity_store.mark_nonce_used = Mock()
     
@@ -362,6 +373,7 @@ def test_duplicate_observation_rejection(
     # Mock the identity store to return our test identity
     mock_identity = create_mock_identity(test_federate_identity)
     identity_store.get_identity = Mock(return_value=mock_identity)
+    identity_store.get_handshake_session_for_federate = Mock(return_value=create_mock_confirmed_session())
     identity_store.is_nonce_available = Mock(return_value=True)
     identity_store.mark_nonce_used = Mock()
     

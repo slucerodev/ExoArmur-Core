@@ -579,9 +579,9 @@ class FaultInjectionTestRunner:
         )
         
         self.logger.info(f"Fault injection test complete: {scenario.value} -> {divergence_report.consensus_result.value}")
-        
+
         return result
-    
+
     def validate_fault_injection_correctness(self, result: FaultInjectionTestResult) -> bool:
         """
         Validate that fault injection test results are correct
@@ -614,5 +614,19 @@ class FaultInjectionTestRunner:
         elif scenario == CorruptionScenario.MAJORITY:
             # Majority corruption should never achieve consensus
             return not consensus_achieved
-        
+
         return False
+
+    # Backward compatibility aliases (deprecated - use new names)
+    run_byzantine_test = run_fault_injection_test
+    run_fault_test = run_fault_injection_test  # Additional alias used by tier0 tests
+    validate_byzantine_correctness = validate_fault_injection_correctness
+    validate_fault_correctness = validate_fault_injection_correctness  # Additional alias
+
+
+# Backward compatibility aliases (deprecated - use new names)
+ByzantineFaultInjector = FaultInjector
+ByzantineScenarioGenerator = CorruptionScenarioGenerator
+ByzantineTestRunner = FaultInjectionTestRunner
+ByzantineScenario = CorruptionScenario
+ByzantineTestResult = FaultInjectionTestResult

@@ -89,12 +89,12 @@ class TestByzantineFaultInjector:
         # Verify payload mutation occurred
         for corrupted_event in result.corrupted_events:
             # Event ID should be modified
-            assert "_byzantine_node-1" in corrupted_event.event_id
+            assert "_fault_node-1" in corrupted_event.event_id
             
             # Payload should contain mutation markers
             if corrupted_event.payload:
                 payload_str = json.dumps(corrupted_event.payload)
-                assert "byzantine_mutation_node-1" in payload_str or "corrupted_by_node-1" in payload_str
+                assert "fault_mutation_node-1" in payload_str or "corrupted_by_node-1" in payload_str
     
     def test_event_type_substitution_fault(self, injector, base_events):
         """Test event type substitution fault injection"""
@@ -112,7 +112,7 @@ class TestByzantineFaultInjector:
         
         # Verify event type substitution
         for corrupted_event in result.corrupted_events:
-            assert "_byzantine_node-2" in corrupted_event.event_id
+            assert "_fault_node-2" in corrupted_event.event_id
             
             # Event type should be different from original
             original_event = next(e for e in base_events if e.sequence_number == corrupted_event.sequence_number)
@@ -241,7 +241,7 @@ class TestByzantineFaultInjector:
             # Count corrupted events (those with mutation markers)
             corrupted_count = 0
             for event in result.corrupted_events:
-                if event.payload and "byzantine_mutation" in json.dumps(event.payload):
+                if event.payload and "fault_mutation" in json.dumps(event.payload):
                     corrupted_count += 1
             
             corruption_counts.append(corrupted_count)
@@ -454,7 +454,7 @@ class TestByzantineTestRunner:
     
     def test_runner_clean_scenario(self, runner, base_events):
         """Test runner with clean scenario"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.CLEAN
         )
@@ -467,7 +467,7 @@ class TestByzantineTestRunner:
     
     def test_runner_single_node_scenario(self, runner, base_events):
         """Test runner with single node fault scenario"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.SINGLE_NODE
         )
@@ -486,7 +486,7 @@ class TestByzantineTestRunner:
     
     def test_runner_partial_scenario(self, runner, base_events):
         """Test runner with partial fault scenario"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.PARTIAL
         )
@@ -502,7 +502,7 @@ class TestByzantineTestRunner:
     
     def test_runner_majority_scenario(self, runner, base_events):
         """Test runner with majority fault scenario"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.MAJORITY
         )
@@ -525,7 +525,7 @@ class TestByzantineTestRunner:
             )
         ]
         
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.CLEAN,  # Use clean but override with custom
             custom_fault_configs=custom_configs
@@ -537,7 +537,7 @@ class TestByzantineTestRunner:
     
     def test_runner_baseline_hash_generation(self, runner, base_events):
         """Test baseline hash generation for clean execution"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.SINGLE_NODE
         )
@@ -548,7 +548,7 @@ class TestByzantineTestRunner:
     
     def test_runner_injection_results(self, runner, base_events):
         """Test that runner captures injection results"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.SINGLE_NODE
         )
@@ -564,7 +564,7 @@ class TestByzantineTestRunner:
     
     def test_runner_test_summary(self, runner, base_events):
         """Test test summary generation"""
-        result = runner.run_byzantine_test(
+        result = runner.run_fault_test(
             base_events,
             ByzantineScenario.SINGLE_NODE
         )
@@ -594,22 +594,22 @@ class TestByzantineTestRunner:
     def test_runner_correctness_validation(self, runner, base_events):
         """Test Byzantine correctness validation"""
         # Test clean scenario - should be correct
-        clean_result = runner.run_byzantine_test(base_events, ByzantineScenario.CLEAN)
-        assert runner.validate_byzantine_correctness(clean_result) is True
+        clean_result = runner.run_fault_test(base_events, ByzantineScenario.CLEAN)
+        assert runner.validate_fault_correctness(clean_result) is True
         
         # Test single node fault - validation logic expects divergence but gets consensus
-        single_result = runner.run_byzantine_test(base_events, ByzantineScenario.SINGLE_NODE)
+        single_result = runner.run_fault_test(base_events, ByzantineScenario.SINGLE_NODE)
         # The validation logic expects single node fault to cause divergence
         # but in 3-node system with 1 faulty node, consensus may still be achieved
         # This is a known limitation of the current validation logic
-        validation_result = runner.validate_byzantine_correctness(single_result)
+        validation_result = runner.validate_fault_correctness(single_result)
         # For now, we accept that validation may fail due to this limitation
         # The important thing is that the system behaves deterministically
         assert validation_result in [True, False]  # Accept either outcome for now
         
         # Test majority fault - should be correct (no consensus expected)
-        majority_result = runner.run_byzantine_test(base_events, ByzantineScenario.MAJORITY)
-        assert runner.validate_byzantine_correctness(majority_result) is True
+        majority_result = runner.run_fault_test(base_events, ByzantineScenario.MAJORITY)
+        assert runner.validate_fault_correctness(majority_result) is True
 
 
 class TestByzantineDataStructures:
@@ -680,7 +680,7 @@ class TestByzantineDataStructures:
         assert summary["corruption_ratio"] == 1.0
         assert "injection_details" in summary
     
-    def test_byzantine_test_result_structure(self):
+    def test_fault_test_result_structure(self):
         """Test ByzantineTestResult structure"""
         from exoarmur.replay.multi_node_verifier import DivergenceReport
         
@@ -784,7 +784,7 @@ class TestByzantineEdgeCases:
         
         # Verify corruption occurred
         corrupted_event = result.corrupted_events[0]
-        assert "_byzantine_node-1" in corrupted_event.event_id
+        assert "_fault_node-1" in corrupted_event.event_id
     
     def test_large_event_sequence_fault_injection(self, injector):
         """Test fault injection with large event sequence"""
@@ -815,7 +815,7 @@ class TestByzantineEdgeCases:
         
         # Should have approximately 50% corruption
         corrupted_count = sum(1 for event in result.corrupted_events 
-                           if event.payload and "byzantine_mutation" in json.dumps(event.payload))
+                           if event.payload and "fault_mutation" in json.dumps(event.payload))
         corruption_ratio = corrupted_count / 1000
         
         # Allow some tolerance due to deterministic algorithm
@@ -855,7 +855,7 @@ class TestByzantineEdgeCases:
         
         # Should contain both original unicode (JSON-escaped) and corruption markers
         assert "\\ud83d\\ude80" in payload_str or "\\u4f60\\u597d" in payload_str  # Unicode characters are JSON-escaped
-        assert "byzantine_mutation" in payload_str  # Corruption marker added
+        assert "fault_mutation" in payload_str  # Corruption marker added
     
     def test_extreme_severity_values(self, injector):
         """Test fault injection with extreme severity values"""
@@ -884,7 +884,7 @@ class TestByzantineEdgeCases:
         # Should have no corruption
         corrupted_event = result_0.corrupted_events[0]
         payload_str = json.dumps(corrupted_event.payload)
-        assert "byzantine_mutation" not in payload_str
+        assert "fault_mutation" not in payload_str
         
         # Test severity = 1.0 (maximum corruption)
         fault_config_1 = FaultConfig(
@@ -899,7 +899,7 @@ class TestByzantineEdgeCases:
         # Should have corruption
         corrupted_event = result_1.corrupted_events[0]
         payload_str = json.dumps(corrupted_event.payload)
-        assert "byzantine_mutation" in payload_str
+        assert "fault_mutation" in payload_str
     
     def test_concurrent_fault_injection(self, injector):
         """Test concurrent fault injection operations"""

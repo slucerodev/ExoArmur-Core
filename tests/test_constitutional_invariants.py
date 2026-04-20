@@ -67,7 +67,6 @@ def observation_ingest_service(observation_store, identity_store, fixed_clock):
     from exoarmur.federation.observation_ingest import ObservationIngestConfig
     config = ObservationIngestConfig(
         feature_enabled=True,
-        require_confirmed_federate=True,
         require_signature=True
     )
     return ObservationIngestService(
