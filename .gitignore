@@ -105,6 +105,8 @@ test_output.txt
 test_replay.txt
 demo_output.zip
 scripts/demo_audit_stream.json
+scripts/audit_record.json
+scripts/storage_state.json
 tmp/
 
 # Runtime State and Evidence Bundles
