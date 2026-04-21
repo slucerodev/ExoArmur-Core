@@ -119,6 +119,7 @@ Thumbs.db
 
 # Generated demo artifacts (written by test_demo_standalone.py / demo_standalone.py)
 examples/demo_standalone_proof_bundle.json
+examples/model_wrapped_demo_proof_bundle.json
 
 # Local development artifacts and backups
 restore_venv/
