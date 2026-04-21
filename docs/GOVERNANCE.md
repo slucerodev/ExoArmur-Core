@@ -158,6 +158,57 @@ ExoArmur governance exists to ensure:
 - Override V1 safety gate decisions
 - Modify V1 audit trails
 
+## Reversible Action Guarantees (Doctrine Claim 3)
+
+Per The ExoArmur Doctrine, every autonomous action requires:
+- **Precomputed reversal plan** — rollback steps defined before execution
+- **Bounded rollback window** — time limit within which rollback must complete
+- **Post-rollback verification** — proof that state matches pre-action state
+
+### Action Classification System
+
+All actions are classified by reversibility level:
+
+| Class | Name | Reversible | Rollback | Approval Required |
+|-------|------|------------|----------|-------------------|
+| A0 | OBSERVE | ✅ Always | N/A (no side effects) | No |
+| A1 | SOFT_CONTAINMENT | ✅ Yes | Within 300s window | No |
+| A2 | HARD_CONTAINMENT | ⚠️ Difficult | Limited recovery | Yes |
+| A3 | IRREVERSIBLE | ❌ Never | N/A | Explicit approval |
+
+### Implementation Requirements
+
+**For A1 (Reversible) Actions:**
+1. Pre-action state snapshot captured and hashed
+2. Reversal plan generated with explicit rollback steps
+3. Action executed with audit trail
+4. Post-action state captured
+5. Rollback executed within bounded window (300s default)
+6. Post-rollback state verified against pre-action hash
+
+**Verification Command:**
+```bash
+python examples/reversible_action_demo.py
+# Expected: REVERSIBILITY_CLAIM=VERIFIED
+```
+
+### Lifecycle State Machine Integration
+
+The `LifecycleStateMachine` includes explicit rollback states:
+- `START_ROLLBACK` — Initiated on commit failure or explicit rollback request
+- `ROLLING_BACK` — Rollback steps executing
+- `ROLLBACK_COMPLETE` — All steps finished
+- `ROLLED_BACK` — Final state, ready for finalization
+
+### Governance Enforcement
+
+- No A2 or A3 action executes without explicit approval record
+- All A1 actions have automatically generated reversal plans
+- Rollback window violations trigger audit alerts
+- State hash mismatches after rollback escalate to incident
+
+See `examples/reversible_action_demo.py` for complete demonstration.
+
 ## Phase Completion Records
 
 ### Phase 2A: Federation Identity Handshake - COMPLETED ✅

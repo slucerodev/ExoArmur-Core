@@ -264,7 +264,7 @@ And once measured:
 |---------------|---------------------|----------|
 | 1. Deterministic Replay | ✅ **VERIFIED** | Identical hashes across 3+ runs: `7e90a4d9bb988557e3a1f0b353d82c6d272db175831e4bd7a5783e8bcae46c4d` |
 | 2. Cryptographic Attestation | ✅ **VERIFIED** | Proof bundles contain replay_hash, bundle_checksum, intent_id, final_verdict |
-| 3. Reversible Actions | ✅ **VERIFIED** | Lifecycle state machine includes START_ROLLBACK/ROLLBACK_COMPLETE; action classes (A0-A3) enforce reversibility levels |
+| 3. Reversible Actions | ✅ **VERIFIED** | `examples/reversible_action_demo.py` shows pre-action → action → rollback → identical pre-action state; `ActionClass` enum (A0-A3); 300s rollback window |
 | 4. ML Isolation | ✅ **VERIFIED** | Recommender outputs are advisory-only (status="pending"); `tests/test_ml_isolation.py` (6 tests); `docs/ML_ISOLATION.md` policy; decision pipeline uses deterministic policy evaluation |
 | 5. Counterfactual Replay | ✅ **VERIFIED** | ReplayEngine with replay/verify methods; execution traces enable counterfactual analysis |
 

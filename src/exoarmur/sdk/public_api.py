@@ -46,6 +46,40 @@ from ..execution_boundary_v2.utils.verdict_resolution import FinalVerdict
 from ..replay.replay_engine import ReplayReport
 from ..clock import utc_now
 from ..ids import make_id
+from enum import Enum
+
+
+class ActionClass(Enum):
+    """Action classification for reversibility guarantees.
+    
+    Per Doctrine Claim 3, all autonomous actions must be classified
+    by reversibility level with appropriate rollback guarantees.
+    
+    Attributes:
+        A0_OBSERVE: Information gathering only - always reversible
+        A1_SOFT_CONTAINMENT: Reversible containment actions (e.g., network quarantine)
+        A2_HARD_CONTAINMENT: Difficult-to-reverse actions (e.g., process termination)
+        A3_IRREVERSIBLE: Cannot be undone - requires explicit approval
+    
+    Example:
+        intent = ActionIntent.create(
+            action_type="file_delete",
+            target="/tmp/test.txt",
+            action_class=ActionClass.A1_SOFT_CONTAINMENT  # Reversible
+        )
+    """
+    A0_OBSERVE = "A0_observe"
+    A1_SOFT_CONTAINMENT = "A1_soft_containment"
+    A2_HARD_CONTAINMENT = "A2_hard_containment"
+    A3_IRREVERSIBLE = "A3_irreversible"
+    
+    def is_reversible(self) -> bool:
+        """Check if action class supports rollback."""
+        return self in (ActionClass.A0_OBSERVE, ActionClass.A1_SOFT_CONTAINMENT)
+    
+    def requires_approval(self) -> bool:
+        """Check if action class requires explicit approval."""
+        return self in (ActionClass.A2_HARD_CONTAINMENT, ActionClass.A3_IRREVERSIBLE)
 
 
 class SDKConfig:
