@@ -397,5 +397,225 @@ def proof():
         click.echo(f"❌ Proof mode failed: {e}")
         sys.exit(1)
 
+@main.command()
+@click.option('--runs', default=10, help='Number of runs per mode (default: 10)')
+@click.option('--mode', type=click.Choice(['all', 'sequential', 'parallel', 'process-isolated', 'time-skewed', 'adversarial', 'single-run']), default='all', help='Run specific mode only (default: all)')
+@click.option('--input-hash', default=None, help='Input hash for single-run mode (required with --mode single-run)')
+@click.option('--include-failure-demo', is_flag=True, help='Include failure demonstration mode to prove enforcement is real')
+def prove_determinism(runs: int, mode: str, input_hash: str, include_failure_demo: bool):
+    """Run determinism proof harness with comprehensive mode testing"""
+    _ensure_windows_utf8_output()
+    
+    try:
+        from exoarmur.proof.determinism_harness import DeterminismHarness
+        from exoarmur.proof.scenario_builder import build_deterministic_scenario
+        from exoarmur.proof.payload_store import load_payload
+        from exoarmur.proof.hash_extractor import extract_canonical_audit_hash, verify_hash_consistency
+        from exoarmur.stability.deterministic_ordering import DeterminismViolationError
+        
+        click.echo("=" * 60)
+        click.echo("DETERMINISM PROOF HARNESS")
+        click.echo("=" * 60)
+        click.echo()
+        
+        # Single-run mode: load payload, execute once, print hash
+        if mode == 'single-run':
+            if not input_hash:
+                click.echo("Error: --input-hash is required for single-run mode")
+                sys.exit(1)
+            
+            try:
+                # Load payload from storage
+                payload = load_payload(input_hash)
+                
+                # Execute scenario once
+                audit_records = build_deterministic_scenario()
+                
+                # Compute execution hash
+                execution_hash = extract_canonical_audit_hash(audit_records)
+                
+                # Print ONLY the execution hash
+                click.echo(f"EXECUTION HASH: {execution_hash}")
+                sys.exit(0)
+                
+            except Exception as e:
+                click.echo(f"Error in single-run mode: {e}")
+                sys.exit(1)
+        
+        # Initialize harness
+        harness = DeterminismHarness(build_deterministic_scenario, runs=runs)
+        
+        # Run requested modes
+        if mode == 'all':
+            report = harness.run_full_proof()
+        elif mode == 'sequential':
+            harness.run_sequential()
+            report = harness.report
+        elif mode == 'parallel':
+            harness.run_parallel()
+            report = harness.report
+        elif mode == 'process-isolated':
+            harness.run_process_isolated()
+            report = harness.report
+        elif mode == 'time-skewed':
+            harness.run_with_time_skew()
+            report = harness.report
+        elif mode == 'adversarial':
+            harness.run_adversarial()
+            report = harness.report
+        
+        # Run failure demonstration if requested
+        if include_failure_demo:
+            click.echo()
+            click.echo("=" * 60)
+            click.echo("FAILURE DEMONSTRATION")
+            click.echo("=" * 60)
+            click.echo()
+            failure_result = harness.run_failure_mode()
+            report.failure_detected = failure_result["failure_detected"]
+            report.failure_mode_result = failure_result
+            
+            click.echo("FAILURE DEMONSTRATION:")
+            if report.failure_detected:
+                click.echo("  ✓ Determinism violation correctly detected")
+                click.echo(f"    Type: {failure_result.get('violation_type', 'unknown')}")
+            else:
+                click.echo("  ✗ FAILED TO DETECT VIOLATION (FAIL)")
+                sys.exit(1)
+            click.echo()
+        
+        # Generate readable proof report
+        click.echo()
+        click.echo("=" * 60)
+        click.echo("DETERMINISM PROOF REPORT")
+        click.echo("=" * 60)
+        click.echo()
+        
+        click.echo(f"Runs: {runs}")
+        click.echo()
+        
+        # Output Input Hash
+        click.echo("Input Hash:")
+        if report.input_hash:
+            hash_display = report.input_hash[:8] + "..." + report.input_hash[-4:]
+            click.echo(f"  {hash_display}")
+        else:
+            click.echo("  [NO INPUT HASH]")
+        click.echo()
+        
+        # Output Execution Hash
+        click.echo("Execution Hash:")
+        if report.execution_hash:
+            hash_display = report.execution_hash[:8] + "..." + report.execution_hash[-4:]
+            click.echo(f"  {hash_display}")
+        else:
+            click.echo("  [NO EXECUTION HASH]")
+        click.echo()
+        
+        # Output Replay Verification
+        click.echo("Replay Verification:")
+        if report.replay_verified:
+            click.echo("  ✓ MATCH")
+        else:
+            click.echo("  ✗ MISMATCH")
+        click.echo()
+        
+        # Output Noise Injection
+        click.echo("Noise Injection:")
+        if report.noise_verified:
+            click.echo("  ✓ IGNORED")
+        else:
+            click.echo("  ✗ AFFECTED EXECUTION")
+        click.echo()
+        
+        # Output Failure Detection
+        if include_failure_demo:
+            click.echo("Failure Detection:")
+            if report.failure_detected:
+                click.echo("  ✓ ENFORCED")
+            else:
+                click.echo("  ✗ NOT ENFORCED")
+            click.echo()
+        
+        # Output Environment
+        click.echo("Environment:")
+        env = report.environment
+        if env:
+            click.echo(f"  Python: {env.get('python_version', 'unknown')}")
+            click.echo(f"  OS: {env.get('os', 'unknown')}")
+            click.echo(f"  Determinism Guards: {env.get('determinism_guards', {}).get('status', 'unknown')}")
+        else:
+            click.echo("  [NO ENVIRONMENT DATA]")
+        click.echo()
+        
+        # Output Process-Isolated status
+        click.echo("Process-Isolated:")
+        if report.process_isolated_hashes and verify_hash_consistency(report.process_isolated_hashes):
+            click.echo("  ✓ PASS")
+        else:
+            click.echo("  ✗ FAIL")
+        click.echo()
+        
+        # Output mode statuses
+        click.echo("Modes:")
+        for mode_name, status in report.mode_statuses.items():
+            status_symbol = "✓" if status == "PASS" else "✗"
+            click.echo(f"  {mode_name}: {status_symbol} {status}")
+        click.echo()
+        
+        click.echo(f"Unique Hashes Observed: {report.unique_hash_count}")
+        click.echo()
+        
+        click.echo("-" * 60)
+        if report.unique_hash_count == 1 and report.replay_verified and report.noise_verified:
+            if include_failure_demo and report.failure_detected:
+                click.echo("STATUS: VERIFIED DETERMINISTIC (FULLY SEALED)")
+            else:
+                click.echo("STATUS: VERIFIED DETERMINISTIC (CLOSED-LOOP)")
+            click.echo()
+            sys.exit(0)
+        elif report.unique_hash_count == 1:
+            click.echo("STATUS: VERIFIED DETERMINISTIC")
+            click.echo()
+            sys.exit(0)
+        else:
+            click.echo("STATUS: DETERMINISM VIOLATION DETECTED")
+            click.echo()
+            click.echo("Hashes observed:")
+            for i, h in enumerate(report.all_hashes[:10], 1):
+                hash_display = h[:8] + "..." + h[-4:]
+                click.echo(f"  Run {i}: {hash_display}")
+            if len(report.all_hashes) > 10:
+                click.echo(f"  ... and {len(report.all_hashes) - 10} more")
+            sys.exit(1)
+            
+    except DeterminismViolationError as e:
+        click.echo()
+        click.echo("=" * 60)
+        click.echo("DETERMINISM PROOF REPORT")
+        click.echo("=" * 60)
+        click.echo()
+        click.echo(f"Runs: {runs}")
+        click.echo(f"Mode: {mode}")
+        click.echo()
+        click.echo("Canonical Hash: [VIOLATION]")
+        click.echo()
+        click.echo(f"Unique Hashes Observed: [MULTIPLE]")
+        click.echo()
+        click.echo("-" * 60)
+        click.echo("STATUS: DETERMINISM VIOLATION DETECTED")
+        click.echo()
+        click.echo(f"Error: {e}")
+        sys.exit(1)
+    except ImportError as e:
+        click.echo("❌ Proof harness not available")
+        click.echo(f"Import error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"❌ Proof harness failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
 if __name__ == '__main__':
     main()
