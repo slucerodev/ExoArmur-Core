@@ -5,8 +5,11 @@
 [![Python](https://img.shields.io/pypi/pyversions/exoarmur-core)](https://pypi.org/project/exoarmur-core/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1.0-green)](https://github.com/slucerodev/ExoArmur-Core/releases)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Codespaces-purple)](https://codespaces.new/slucerodev/ExoArmur-Core)
 
 **Deterministic execution governance for AI agents.** Every action passes through a policy gate, produces a cryptographic audit trail, and is deterministically replayable.
+
+🚀 **[Try the Live Demo](https://codespaces.new/slucerodev/ExoArmur-Core)** — One-click browser environment, no installation needed.
 
 > **Status (April 2026):** Single-maintainer reference implementation. CI invariant
 > gates enforce determinism, module boundaries, and three-run stability. No external
