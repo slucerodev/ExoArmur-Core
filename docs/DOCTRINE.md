@@ -276,9 +276,10 @@ And once measured:
 | cryptographic audit chain integrity | ✅ PASS |
 | action reversibility guarantees | ✅ PASS |
 | isolation of non-deterministic components | ✅ PASS |
+| ML isolation | ✅ PASS |
 | counterfactual explainability | ✅ PASS |
 
-**Overall Assessment: 5/5 requirements verified — FULL DACT v0.1 COMPLIANCE ACHIEVED.**
+**Overall Assessment: 6/6 requirements verified — FULL DACT v0.1 COMPLIANCE ACHIEVED.**
 
 ### Test Metrics
 - **Test Count:** 1035 passing, 8 skipped, 3 xfailed
