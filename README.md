@@ -49,7 +49,7 @@ print("Replay result:", getattr(report.result, "value", report.result))
 print("Failures:", report.failures or "none")
 ```
 
-Run the full suite (1041 tests, three-run stability gate) with the same dependency set CI uses:
+Run the full suite (1047 tests, three-run stability gate) with the same dependency set CI uses:
 
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core.git
@@ -168,7 +168,7 @@ Every push runs:
 - **Security Scan** — CodeQL + pip-audit
 - **V2 Demo Smoke Test** — full governance pipeline end-to-end
 
-Current: **1041 passing, 9 skipped, 3 xfailed**. Skipped tests require optional external components (live NATS demo, filesystem/HTTP executor plugins, PoD provider, external waiver file). No external infrastructure required for the core suite.
+Current: **1047 passing, 9 skipped, 3 xfailed**. Skipped tests require optional external components (live NATS demo, filesystem/HTTP executor plugins, PoD provider, external waiver file). No external infrastructure required for the core suite.
 
 ## Live Demo (Requires NATS JetStream)
 
@@ -179,7 +179,11 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE_SIMPLE.md)
+- [Architecture](docs/ARCHITECTURE.md) — Full system architecture
+- [The ExoArmur Doctrine](docs/DOCTRINE.md) — Verified claims and compliance
+- [Doctrine Verification](docs/DOCTRINE_VERIFICATION.md) — Test evidence and status
+- [ML Isolation Policy](docs/ML_ISOLATION.md) — Advisory-only ML components
+- [Governance](docs/GOVERNANCE.md) — Reversibility guarantees and approval gates
 - [Design Principles](docs/DESIGN_PRINCIPLES.md)
 - [Validation Guide](docs/VALIDATE.md)
 - [Phase Status](docs/PHASE_STATUS.md)
