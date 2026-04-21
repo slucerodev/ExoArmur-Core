@@ -70,18 +70,31 @@ cd /home/oem/CascadeProjects/ExoArmur && exoarmur proof 2>&1 | grep "Replay Hash
 
 ---
 
-### ⚠️ Claim 4: ML Isolation from Authority Path
+### ✅ Claim 4: ML Isolation from Authority Path
 
 **Doctrine Statement:** "ML outputs are: advisory‑only, non‑binding, fully traceable"
 
-**Partial Evidence:**
+**Verification:**
 - `IdentityContainmentRecommender` generates recommendations with `status="pending"`
 - Recommendations are not binding decisions - they require separate enforcement
 - Decision pipeline (`ProxyPipeline`) uses deterministic policy evaluation, not ML
+- **New:** `docs/ML_ISOLATION.md` - explicit policy stating all ML is advisory-only
+- **New:** `tests/test_ml_isolation.py` - 6 tests verifying ML isolation:
+  - `test_decision_pipeline_no_ml_components` - Policy uses deterministic rules
+  - `test_pipeline_deterministic_without_ml` - 3 runs produce identical results
+  - `test_recommender_outputs_not_binding` - All recommendations have status="pending"
+  - `test_ml_disable_does_not_affect_correctness` - No degradation without ML
+  - `test_proof_bundle_no_ml_metadata` - No ML-derived fields in bundles
+  - `test_multi_run_determinism_no_ml` - Identical replay hashes across runs
+- **New:** `docs/ARCHITECTURE.md` ML Isolation section with architecture boundaries
 
-**Status:** ⚠️ PARTIALLY VERIFIED - ML components are advisory, but comprehensive documentation of ML isolation is limited
+**Status:** ✅ VERIFIED - ML components are strictly isolated from authority path
 
-**Note:** The recommender system clearly separates recommendations from enforcement. However, explicit documentation stating "all ML is advisory-only" is needed for full verification.
+**Implementation Details:**
+- `PolicyDecisionPoint.evaluate()` - Rule-based, no ML
+- `SafetyGate.evaluate_safety()` - Deterministic state machine, no ML
+- `IdentityContainmentRecommender` - Advisory-only, queues for approval
+- Disabling ML cannot affect correctness or determinism
 
 ---
 
@@ -111,7 +124,7 @@ cd /home/oem/CascadeProjects/ExoArmur && exoarmur proof 2>&1 | grep "Replay Hash
 | Replay Parity (3 runs) | ✅ PASS | Identical hashes: 7e90a4d9... |
 | Cryptographic Attestation | ✅ PASS | replay_hash, bundle_checksum present |
 | Action Reversibility | ⚠️ PARTIAL | Lifecycle events exist, full demo pending |
-| ML Isolation | ⚠️ PARTIAL | Advisory pattern used, docs need strengthening |
+| ML Isolation | ✅ PASS | 6 tests verify ML isolation; docs complete |
 | Counterfactual Consistency | ✅ PASS | ReplayEngine + execution traces present |
 
 ## Minimum Requirements Assessment
@@ -124,15 +137,14 @@ Per DACT v0.1, a system satisfies minimum autonomous defense criteria if it pass
 | cryptographic audit chain integrity | ✅ PASS |
 | action reversibility guarantees | ⚠️ PARTIAL |
 | isolation of non-deterministic components | ✅ PASS |
+| ML isolation | ✅ PASS |
 | counterfactual explainability | ✅ PASS |
 
-**Overall Assessment:** 4/5 requirements fully verified, 1 partially verified.
+**Overall Assessment:** 5/6 requirements fully verified, 1 partially verified.
 
 ## Recommendations for Full Compliance
 
 1. **Action Reversibility:** Implement comprehensive rollback demonstration showing pre-action state → action → rollback → identical pre-action state
-
-2. **ML Isolation:** Add explicit documentation stating all ML components are advisory-only and cannot affect deterministic decision paths
 
 3. **Documentation:** Cross-reference this verification document in the main doctrine
 

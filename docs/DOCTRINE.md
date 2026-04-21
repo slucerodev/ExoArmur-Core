@@ -1,4 +1,4 @@
-# THE EXOARMUR DOCTRINE (INDUSTRY VERSION)
+#THE EXOARMUR DOCTRINE (INDUSTRY VERSION)
 ## Deterministic Autonomous Defense with Verifiable Governance
 
 **Version 1.4 — April 2026**
@@ -265,7 +265,7 @@ And once measured:
 | 1. Deterministic Replay | ✅ **VERIFIED** | Identical hashes across 3+ runs: `7e90a4d9bb988557e3a1f0b353d82c6d272db175831e4bd7a5783e8bcae46c4d` |
 | 2. Cryptographic Attestation | ✅ **VERIFIED** | Proof bundles contain replay_hash, bundle_checksum, intent_id, final_verdict |
 | 3. Reversible Actions | ✅ **VERIFIED** | Lifecycle state machine includes START_ROLLBACK/ROLLBACK_COMPLETE; action classes (A0-A3) enforce reversibility levels |
-| 4. ML Isolation | ✅ **VERIFIED** | Recommender outputs are advisory-only (status="pending"); decision pipeline uses deterministic policy evaluation |
+| 4. ML Isolation | ✅ **VERIFIED** | Recommender outputs are advisory-only (status="pending"); `tests/test_ml_isolation.py` (6 tests); `docs/ML_ISOLATION.md` policy; decision pipeline uses deterministic policy evaluation |
 | 5. Counterfactual Replay | ✅ **VERIFIED** | ReplayEngine with replay/verify methods; execution traces enable counterfactual analysis |
 
 ### DACT v0.1 Compliance
@@ -302,3 +302,4 @@ cd /home/oem/CascadeProjects/ExoArmur && exoarmur proof
 ---
 
 *This document contains both the theoretical framework (the Doctrine) and the empirical verification that ExoArmur satisfies all stated requirements.*
+ 

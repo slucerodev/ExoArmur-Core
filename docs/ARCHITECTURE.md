@@ -267,3 +267,65 @@ The replay engine reconstructs execution from proof bundles:
 4. **Verdict Validation**: Confirm execution outcomes
 
 See `docs/DETERMINISM_SCOPE.md` for detailed determinism requirements.
+
+## ML Isolation from Authority Path
+
+### Core Principle
+
+All Machine Learning (ML) components in ExoArmur are **advisory-only** and **non-binding** per Doctrine Claim 4.
+
+### Architecture Boundaries
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     DECISION PIPELINE                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐ │
+│  │   ML Layer   │───▶│  Policy Gate │───▶│ Execution Gate  │ │
+│  │  (Advisory)  │    │  (Binding)   │    │   (Binding)     │ │
+│  └──────────────┘    └──────────────┘    └─────────────────┘ │
+│         │                   │                       │         │
+│    Recommendations     Deterministic           Action Dispatch │
+│    status="pending"    Rules Evaluation        with Audit      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Where ML is Allowed
+
+1. **IdentityContainmentRecommender** (`src/exoarmur/identity_containment/recommender.py`)
+   - Generates containment recommendations with `status="pending"`
+   - Recommendations queue for approval, never direct execution
+   - Fully traceable through audit events
+
+2. **ThreatClassificationEngine** (`src/exoarmur/decision/threat_classification_engine_v2.py`)
+   - Produces advisory threat classifications
+   - Feeds into deterministic policy rules (not binding decisions)
+
+### Where ML is Prohibited
+
+| Component | ML Status | Reason |
+|-----------|-----------|--------|
+| `PolicyDecisionPoint.evaluate()` | ❌ Prohibited | Binding decisions must be deterministic |
+| `SafetyGate.evaluate_safety()` | ❌ Prohibited | Safety gate uses deterministic state machine |
+| `ProxyPipeline.execute_with_trace()` | ❌ Prohibited | Execution path must be deterministic |
+| `AuditEmitter.emit_audit_event()` | ❌ Prohibited | Audit chain requires cryptographic integrity |
+
+### Verification
+
+ML isolation is verified by:
+
+1. **Unit tests** (`tests/test_ml_isolation.py`):
+   - Decision pipeline produces identical results with/without ML
+   - Recommender outputs have `status="pending"`
+   - No ML-derived metadata in proof bundles
+
+2. **Determinism check** (`scripts/check_determinism.py`):
+   - Core modules use `utc_now()` not probabilistic sources
+   - No `random`, `time.time()`, or unseeded ML in authority path
+
+3. **Architecture review**:
+   - `ProxyPipeline` uses deterministic `PolicyDecisionPoint`
+   - All ML outputs flow through approval gates
+   - Disabling ML cannot affect correctness
+
+See `docs/ML_ISOLATION.md` for the complete isolation policy.
