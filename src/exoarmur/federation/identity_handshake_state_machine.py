@@ -12,6 +12,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List, Tuple, Callable
 from dataclasses import dataclass, field
+from exoarmur.federation.clock import get_federation_clock
 
 from .models.federation_identity_v2 import (
     HandshakeState,
@@ -88,7 +89,7 @@ class IdentityHandshakeStateMachine:
             event_name=event_name,
             session_id=self.session.session_id,
             step_index=self.session.step_index,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=get_federation_clock().now(),
             data=data or {}
         )
         
@@ -388,7 +389,7 @@ class IdentityHandshakeStateMachine:
         
         old_state = self.session.current_state
         self.session.current_state = new_state
-        self.session.updated_at = datetime.now(timezone.utc)
+        self.session.updated_at = get_federation_clock().now()
         
         # Determine if this is a success or failure transition
         is_success = new_state not in [
@@ -405,10 +406,10 @@ class IdentityHandshakeStateMachine:
     def _buffer_message(self, message_type: str, message_data: Dict[str, Any], direction: str):
         """Buffer message for potential out-of-order handling"""
         buffer_key = f"{message_type}:{direction}"
-        self._message_buffer[buffer_key] = (datetime.now(timezone.utc), (message_type, message_data, direction))
+        self._message_buffer[buffer_key] = (get_federation_clock().now(), (message_type, message_data, direction))
         
         # Clean old messages outside buffer window
-        cutoff_time = datetime.now(timezone.utc) - timedelta(milliseconds=self.config.buffer_window_ms)
+        cutoff_time = get_federation_clock().now() - timedelta(milliseconds=self.config.buffer_window_ms)
         self._message_buffer = {
             k: v for k, v in self._message_buffer.items() 
             if v[0] > cutoff_time

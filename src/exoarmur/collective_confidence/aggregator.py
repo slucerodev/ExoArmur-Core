@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 from spec.contracts.models_v1 import BeliefV1, BeliefTelemetryV1
 from exoarmur.execution_boundary_v2.detection import check_domain_logic_access, ViolationSeverity
+from exoarmur.replay.canonical_utils import stable_hash
+from exoarmur.federation.clock import get_federation_clock
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ class CollectiveConfidenceAggregator:
                 'content': 'Simulated belief for V2 routing',
                 'confidence': 0.8,
                 'source': 'test_consumer',
-                'timestamp': datetime.now(timezone.utc).isoformat()
+                'timestamp': get_federation_clock().now().isoformat()
             }
             
             logger.info(f"Received belief: {simulated_belief['belief_id']}")
@@ -117,8 +119,8 @@ class CollectiveConfidenceAggregator:
                     execution_id=ExecutionID(execution_ulid),
                     module_id=ModuleID(belief_ulid),
                     module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash("belief_processing") % (2**63)),
-                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    deterministic_seed=DeterministicSeed(int(stable_hash("belief_processing"), 16) % (2**63)),
+                    logical_timestamp=int(get_federation_clock().now().timestamp()),
                     dependency_hash="belief_processing"
                 ),
                 action_data={

@@ -197,3 +197,35 @@ def default_event_loop_policy_name() -> str:
     """Return the explicit default event-loop policy class name."""
 
     return DEFAULT_EVENT_LOOP_POLICY_NAME
+
+
+class DeterminismRequirementError(RuntimeError):
+    """Raised when determinism requirements are not met."""
+
+    def __init__(self, message: str, requirement: str, actual: str | None):
+        self.requirement = requirement
+        self.actual = actual
+        super().__init__(message)
+
+
+def enforce_determinism_requirements() -> None:
+    """Enforce determinism requirements at application startup.
+
+    This function should be called early in the application lifecycle to ensure
+    that all requirements for deterministic execution are met. It will raise
+    DeterminismRequirementError if any requirement is not satisfied.
+
+    Requirements:
+    - PYTHONHASHSEED must be set to 0 for deterministic hash values
+
+    Raises:
+        DeterminismRequirementError: If any determinism requirement is not met
+    """
+    # Check PYTHONHASHSEED
+    hash_seed = os.environ.get("PYTHONHASHSEED")
+    if hash_seed != "0":
+        raise DeterminismRequirementError(
+            f"PYTHONHASHSEED must be set to '0' for deterministic operation, got {hash_seed!r}",
+            requirement="PYTHONHASHSEED=0",
+            actual=hash_seed,
+        )

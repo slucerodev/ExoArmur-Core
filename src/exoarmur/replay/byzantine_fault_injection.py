@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 from enum import Enum
 
-from .canonical_utils import canonical_json, stable_hash
+from exoarmur.replay.canonical_utils import to_canonical_event, stable_hash
 from .event_envelope import CanonicalEvent
 from .multi_node_verifier import MultiNodeReplayVerifier, DivergenceReport, ConsensusResult
 
@@ -286,7 +286,7 @@ class FaultInjector:
                         event_dict["sequence_number"] = len(events) - i
                     elif manipulation_type == "random":
                         # Deterministic pseudo-random based on seed and node
-                        seed_value = hash(f"{self._rng_seed}_{node_id}_{i}")
+                        seed_value = int(stable_hash(f"{self._rng_seed}_{node_id}_{i}"), 16)
                         event_dict["sequence_number"] = abs(seed_value) % (len(events) * 2)
             
             event_dict["event_id"] = f"{event_dict['event_id']}_fault_{node_id}"

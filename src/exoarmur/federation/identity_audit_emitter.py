@@ -7,8 +7,9 @@ Integration with V1 audit system for federation identity events via boundary int
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+from exoarmur.federation.clock import get_federation_clock
 
 from .identity_handshake_state_machine import HandshakeEvent
 from .audit_interface import AuditInterface
@@ -161,7 +162,7 @@ class IdentityAuditEmitter:
                         "session_id": session_id,
                         "events": events,
                         "event_count": len(events),
-                        "retrieved_at": datetime.now(timezone.utc).isoformat()
+                        "retrieved_at": get_federation_clock().now().isoformat()
                     }
             
             # Fallback for testing
@@ -169,7 +170,7 @@ class IdentityAuditEmitter:
                     "session_id": session_id,
                     "events": [],
                     "event_count": 0,
-                    "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                    "retrieved_at": get_federation_clock().now().isoformat(),
                     "note": "Audit logger not available"
                 }
                 
@@ -195,7 +196,7 @@ class IdentityAuditEmitter:
                 "session_id": session_id,
                 "valid": False,
                 "reason": "Audit trail not available",
-                "validated_at": datetime.now(timezone.utc).isoformat()
+                "validated_at": get_federation_clock().now().isoformat()
             }
         
         events = audit_trail.get("events", [])
@@ -230,7 +231,7 @@ class IdentityAuditEmitter:
             "step_order_valid": step_order_valid,
             "expected_steps": expected_step_count,
             "actual_steps": actual_step_count,
-            "validated_at": datetime.now(timezone.utc).isoformat(),
+            "validated_at": get_federation_clock().now().isoformat(),
             "issues": [
                 "Step count mismatch" if not step_count_valid else None,
                 "Duplicate idempotency keys" if not idempotency_valid else None,

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serial
 from enum import Enum
 
 # Import canonical utilities from Workflow 1
+from exoarmur.federation.clock import Clock, get_federation_clock
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 logger = logging.getLogger(__name__)
@@ -303,7 +304,7 @@ def create_identity_exchange_message(
 ) -> IdentityExchangeMessage:
     """Factory function to create identity exchange message"""
     if timestamp is None:
-        timestamp = datetime.now(timezone.utc)
+        timestamp = get_federation_clock().now()
     
     payload = IdentityExchangePayload(
         cell_public_key=cell_public_key,
@@ -350,7 +351,7 @@ def create_capability_negotiate_message(
 ) -> CapabilityNegotiateMessage:
     """Factory function to create capability negotiation message"""
     if timestamp is None:
-        timestamp = datetime.now(timezone.utc)
+        timestamp = get_federation_clock().now()
     
     payload = CapabilityNegotiatePayload(
         supported_capabilities=supported_capabilities,
@@ -396,7 +397,7 @@ def create_trust_establish_message(
 ) -> TrustEstablishMessage:
     """Factory function to create trust establishment message"""
     if timestamp is None:
-        timestamp = datetime.now(timezone.utc)
+        timestamp = get_federation_clock().now()
     
     payload = TrustEstablishPayload(
         trust_score=trust_score,

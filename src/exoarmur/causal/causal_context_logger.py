@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from enum import Enum
+from exoarmur.clock import utc_now
 from queue import Queue, Empty
 import uuid
 
@@ -358,7 +359,7 @@ class CausalContextLogger:
             return None
         
         try:
-            now = datetime.now(timezone.utc)
+            now = utc_now()
             causal_chain_id = self._generate_causal_chain_id(correlation_id, trace_id)
             
             record = CausalContextRecord(
@@ -420,7 +421,7 @@ class CausalContextLogger:
             return False
         
         try:
-            now = datetime.now(timezone.utc)
+            now = utc_now()
             causal_chain_id = self._generate_causal_chain_id(correlation_id, trace_id)
             
             record = CausalContextRecord(
@@ -484,7 +485,7 @@ class CausalContextLogger:
             return None
         
         try:
-            now = datetime.now(timezone.utc)
+            now = utc_now()
             causal_chain_id = self._generate_causal_chain_id(correlation_id, trace_id)
             
             record = CausalContextRecord(
@@ -547,7 +548,7 @@ class CausalContextLogger:
             return None
         
         try:
-            now = datetime.now(timezone.utc)
+            now = utc_now()
             causal_chain_id = self._generate_causal_chain_id(correlation_id, trace_id)
             
             record = CausalContextRecord(

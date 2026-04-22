@@ -228,10 +228,10 @@ def verify_message_integrity(
     
     # 3. Check timestamp freshness
     if clock is None:
-        from .clock import SystemClock
+        from exoarmur.clock import utc_now, deterministic_timestamp, SystemClock
         clock = SystemClock()
     
-    now = clock.now()
+    now = deterministic_timestamp()
     message_time = message.timestamp_utc
     
     # Allow both future and past timestamps within bounds
@@ -295,7 +295,7 @@ class VerificationAuditEvent:
         self.correlation_id = correlation_id
         self.success = success
         self.failure_reason = failure_reason
-        self.timestamp = timestamp or datetime.now(timezone.utc)
+        self.timestamp = timestamp or deterministic_timestamp()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for audit logging"""

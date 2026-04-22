@@ -9,8 +9,10 @@ import json
 import uuid
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from exoarmur.federation.clock import get_federation_clock
 from exoarmur.feature_flags import get_feature_flags
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 try:
     import nats
@@ -205,7 +207,7 @@ class FederationManager:
             member = FederationMember(
                 cell_id=cell_id,
                 status=data.get("status", "active"),
-                last_heartbeat=datetime.now(timezone.utc),
+                last_heartbeat=get_federation_clock().now(),
                 capabilities=data.get("capabilities", []),
                 trust_score=data.get("trust_score", 0.8),
                 role=data.get("role", "member")
@@ -228,7 +230,7 @@ class FederationManager:
             
             # Update last heartbeat time
             if cell_id in self._membership:
-                self._membership[cell_id].last_heartbeat = datetime.now(timezone.utc)
+                self._membership[cell_id].last_heartbeat = get_federation_clock().now()
                 logger.debug(f"Received heartbeat from {cell_id}")
             
         except Exception as e:
@@ -253,7 +255,7 @@ class FederationManager:
         
         heartbeat_msg = {
             "cell_id": self.config.cell_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": get_federation_clock().now().isoformat(),
             "sequence_number": 1,  # TODO: Implement proper sequence
             "status": "active",
             "federation_id": self._federation_id
@@ -276,7 +278,7 @@ class FederationManager:
         join_msg = {
             "cell_id": self.config.cell_id,
             "federation_id": self._federation_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": get_federation_clock().now().isoformat(),
             "capabilities": ["belief_aggregation", "policy_distribution"],
             "trust_score": 0.8,
             "role": "member",
@@ -309,7 +311,7 @@ class FederationManager:
         self_member = FederationMember(
             cell_id=self.config.cell_id,
             status="active",
-            last_heartbeat=datetime.now(timezone.utc),
+            last_heartbeat=get_federation_clock().now(),
             capabilities=["belief_aggregation", "policy_distribution"],
             trust_score=0.8,
             role="member"
@@ -317,12 +319,12 @@ class FederationManager:
         self._membership[self.config.cell_id] = self_member
         
         # Add initial members to membership table
-        for cell_id, cell_info in cells.items():
+        for cell_id, cell_info in deterministic_iter_dict(cells):
             if cell_id != self.config.cell_id:
                 member = FederationMember(
                     cell_id=cell_id,
                     status="active",
-                    last_heartbeat=datetime.now(timezone.utc),
+                    last_heartbeat=get_federation_clock().now(),
                     capabilities=cell_info.get("capabilities", []),
                     trust_score=cell_info.get("trust_score", 0.8),
                     role=cell_info.get("role", "member")
@@ -364,7 +366,7 @@ class FederationManager:
             leave_msg = {
                 "cell_id": self.config.cell_id,
                 "federation_id": federation_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": get_federation_clock().now().isoformat(),
                 "status": "decommissioned"
             }
             
@@ -397,9 +399,9 @@ class FederationManager:
         
         # Count active members
         active_members = [
-            cell_id for cell_id, member in self._membership.items()
-            if member.status == "active" and 
-               (datetime.now(timezone.utc) - member.last_heartbeat).seconds < 120
+            cell_id for cell_id, member in deterministic_iter_dict(self._membership)
+            if member.status == "active" and
+               (get_federation_clock().now() - member.last_heartbeat).seconds < 120
         ]
         
         return {
@@ -409,7 +411,7 @@ class FederationManager:
             "healthy_cells": active_members,
             "degraded_cells": [],
             "cell_id": self.config.cell_id,
-            "last_heartbeat": datetime.now(timezone.utc).isoformat()
+            "last_heartbeat": get_federation_clock().now().isoformat()
         }
     
     async def add_member(self, cell_id: str, cell_info: Dict[str, Any]) -> bool:
@@ -421,7 +423,7 @@ class FederationManager:
         member = FederationMember(
             cell_id=cell_id,
             status="active",
-            last_heartbeat=datetime.now(timezone.utc),
+            last_heartbeat=get_federation_clock().now(),
             capabilities=cell_info.get("capabilities", []),
             trust_score=cell_info.get("trust_score", 0.8),
             role=cell_info.get("role", "member")

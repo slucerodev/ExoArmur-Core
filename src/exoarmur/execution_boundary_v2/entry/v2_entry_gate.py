@@ -8,6 +8,7 @@ All execution must pass through this gate to ensure V2 governance.
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 import logging
+import threading
 from datetime import datetime, timezone
 
 from exoarmur.clock import utc_now
@@ -21,6 +22,7 @@ from ..core.audit_logger import DeterministicAuditLogger
 from ..detection import get_v2_execution_context
 from ...telemetry.v2_telemetry_handler import get_v2_telemetry_handler
 from ...causal.causal_context_logger import get_causal_context_logger
+from exoarmur.replay.canonical_utils import stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +61,29 @@ class V2EntryGate:
         self.trust_registry = TRUST_TIER_REGISTRY
         self.telemetry_handler = get_v2_telemetry_handler()
         self.causal_logger = get_causal_context_logger()
-        
-        logger.info("V2EntryGate initialized - SINGLE ENTRY POINT ENFORCED")
-    
+
+        # FIFO execution queue for deterministic execution
+        self._execution_queue = []
+        self._execution_lock = threading.Lock()
+        self._queue_sequence = 0
+
+        logger.info("V2EntryGate initialized - SINGLE ENTRY POINT ENFORCED with FIFO execution queue")
+
+    def _deterministic_execution_context_id(self, request: ExecutionRequest) -> str:
+        """Generate deterministic execution context ID derived from request hash"""
+        from exoarmur.replay.canonical_utils import canonical_json
+
+        # Create canonical representation of request for deterministic hashing
+        request_dict = {
+            "module_id": request.module_id,
+            "execution_context": request.execution_context,
+            "action_data": request.action_data,
+            "approval_id": request.approval_id,
+            "correlation_id": request.correlation_id
+        }
+        canonical_request = canonical_json(request_dict)
+        return stable_hash(canonical_request)
+
     def execute_module(self, request: ExecutionRequest) -> ExecutionResult:
         """
         STRICT PRECONDITION CHECKER & DETERMINISTIC ROUTING GATE
@@ -70,7 +92,10 @@ class V2EntryGate:
         NO fallback execution paths exist. NO partial execution is possible.
         """
         entry_timestamp = utc_now()
-        
+
+        # Generate deterministic execution context ID
+        execution_context_id = self._deterministic_execution_context_id(request)
+
         # Mark V2 execution context for violation detection
         v2_context = get_v2_execution_context()
         with v2_context:
@@ -547,7 +572,7 @@ class V2EntryGate:
         self.audit_logger.log_module_output(
             module_id=request.module_id,
             output_data=core_result,
-            output_hash=str(hash(str(core_result))),
+            output_hash=str(stable_hash(str(core_result))),
             success=core_result.get('success', False),
             timestamp=v2_context['logical_time'].tick_count
         )

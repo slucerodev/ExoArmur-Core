@@ -16,6 +16,7 @@ from spec.contracts.models_v1 import (
 )
 from typing import Union
 from .clock import Clock
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 logger = logging.getLogger(__name__)
 

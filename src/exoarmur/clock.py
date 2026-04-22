@@ -4,6 +4,7 @@ Clock interface for deterministic time handling
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Protocol, Optional, Any
 
@@ -60,7 +61,12 @@ class DeterministicClock:
 
 
 # Global clock instance (can be injected for testing)
-_default_clock = SystemClock()
+# Use DeterministicClock by default in production for critical paths
+# Set EXOARMUR_DETERMINISTIC_CLOCK=false to use wall-clock (for non-critical operations only)
+if os.getenv("EXOARMUR_DETERMINISTIC_CLOCK", "true").lower() == "true":
+    _default_clock = DeterministicClock()
+else:
+    _default_clock = SystemClock()
 
 
 def get_clock() -> Clock:

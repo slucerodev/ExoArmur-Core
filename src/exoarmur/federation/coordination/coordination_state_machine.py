@@ -8,9 +8,10 @@ Deterministic state machine for federation coordination (no intelligence, no dec
 
 import asyncio
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import timezone, timedelta
 from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
+from exoarmur.federation.clock import get_federation_clock
 
 from .coordination_models_v2 import (
     CoordinationType, CoordinationState, CoordinationAnnouncement,
@@ -162,7 +163,7 @@ class CoordinationStateMachine:
             # Apply claim
             session.current_claim = claim
             session.state = CoordinationState.CLAIMED
-            session.updated_at = datetime.now(timezone.utc)
+            session.updated_at = get_federation_clock().now()
             session.coordinator_cell_id = claim.owner_cell_id
             
             if claim.owner_cell_id not in session.participants:
@@ -214,7 +215,7 @@ class CoordinationStateMachine:
             
             # Apply release
             session.state = CoordinationState.RELEASED
-            session.updated_at = datetime.now(timezone.utc)
+            session.updated_at = get_federation_clock().now()
             session.final_state = release.final_state
             
             # Remove claim
@@ -276,7 +277,7 @@ class CoordinationStateMachine:
                 )
             
             session.observations.append(observation)
-            session.updated_at = datetime.now(timezone.utc)
+            session.updated_at = get_federation_clock().now()
             
             # Add observer to participants if not already present
             if observation.observer_cell_id not in session.participants:
@@ -332,7 +333,7 @@ class CoordinationStateMachine:
                     continue
                 
                 session.intents.append(intent)
-                session.updated_at = datetime.now(timezone.utc)
+                session.updated_at = get_federation_clock().now()
             
             self._emit_event(
                 "intent_broadcast",
@@ -399,7 +400,7 @@ class CoordinationStateMachine:
     def _validate_announcement(self, announcement: CoordinationAnnouncement) -> bool:
         """Validate announcement"""
         # Check expiration
-        if announcement.expiration_timestamp <= datetime.now(timezone.utc):
+        if announcement.expiration_timestamp <= get_federation_clock().now():
             return False
         
         # Check duration limit
@@ -412,7 +413,7 @@ class CoordinationStateMachine:
     def _validate_claim(self, claim: CoordinationClaim, session: CoordinationSession) -> bool:
         """Validate claim"""
         # Check expiration
-        if claim.expiration_timestamp <= datetime.now(timezone.utc):
+        if claim.expiration_timestamp <= get_federation_clock().now():
             return False
         
         # Check session not expired
@@ -445,7 +446,7 @@ class CoordinationStateMachine:
     def _validate_intent(self, intent: CoordinationIntentBroadcast) -> bool:
         """Validate intent"""
         # Check validity period
-        if intent.valid_until <= datetime.now(timezone.utc):
+        if intent.valid_until <= get_federation_clock().now():
             return False
         
         # Check priority bounds
@@ -483,7 +484,7 @@ class CoordinationStateMachine:
     
     async def _cleanup_expired_sessions(self):
         """Clean up expired sessions"""
-        now = datetime.now(timezone.utc)
+        now = get_federation_clock().now()
         expired_sessions = []
         
         for coordination_id, session in self._sessions.items():

@@ -13,6 +13,7 @@ import functools
 import hashlib
 
 from exoarmur.clock import utc_now
+from exoarmur.replay.canonical_utils import stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -234,7 +235,7 @@ class RetryManager:
         if policy.jitter_enabled:
             jitter_range = delay * policy.jitter_factor
             # Deterministic jitter based on attempt number (not random)
-            jitter = (hash(str(attempt)) % 1000 / 1000.0) * 2 * jitter_range - jitter_range
+            jitter = (stable_hash(str(attempt)) % 1000 / 1000.0) * 2 * jitter_range - jitter_range
             delay = max(0, delay + jitter)
         
         return delay

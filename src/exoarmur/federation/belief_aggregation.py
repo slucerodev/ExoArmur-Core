@@ -18,6 +18,7 @@ from spec.contracts.models_v1 import (
 from exoarmur.federation.conflict_detection import ConflictDetectionService
 from .observation_store import ObservationStore
 from .clock import Clock
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ class BeliefAggregationService:
         groups = self._group_observations_for_aggregation(observations)
         
         beliefs = []
-        for group_key, obs_group in groups.items():
+        for group_key, obs_group in deterministic_iter_dict(groups):
             belief = self._create_belief_from_group(obs_group)
             if belief:
                 beliefs.append(belief)
@@ -169,7 +170,7 @@ class BeliefAggregationService:
         elif observation.observation_type == ObservationType.SYSTEM_HEALTH:
             # Group by service status summary
             if hasattr(payload, 'service_status'):
-                healthy_services = sum(1 for status in payload.service_status.values() if status == "healthy")
+                healthy_services = sum(1 for _, status in deterministic_iter_dict(payload.service_status) if status == "healthy")
                 total_services = len(payload.service_status)
                 return f"{healthy_services}/{total_services}"
         
@@ -257,7 +258,7 @@ class BeliefAggregationService:
         severity_dist = defaultdict(int)
         for obs in observations:
             if hasattr(obs.payload, 'severity_distribution'):
-                for severity, count in obs.payload.severity_distribution.items():
+                for severity, count in deterministic_iter_dict(obs.payload.severity_distribution):
                     severity_dist[severity] += count
         
         evidence_summary = (

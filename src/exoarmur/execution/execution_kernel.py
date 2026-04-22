@@ -135,7 +135,7 @@ class ExecutionKernel:
                 execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
                 module_id=v2_core_types.ModuleID(self._generate_module_ulid()),
                 module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
+                deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash(intent.intent_id), 16) % (2**63)),
                 logical_timestamp=int(utc_now().timestamp()),
                 dependency_hash=intent.correlation_id or "default"
             ),

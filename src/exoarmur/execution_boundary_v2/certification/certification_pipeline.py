@@ -10,6 +10,7 @@ import json
 from ..core.core_types import *
 from ..interface.module_interface_contract import *
 from ..determinism.determinism_engine import *
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 # === CERTIFICATION FUNCTION ===
 
@@ -474,23 +475,23 @@ class CertificationFunction:
         }
         
         total_score = 0.0
-        for stage_name, weight in stage_weights.items():
+        for stage_name, weight in deterministic_iter_dict(stage_weights):
             if stage_name in stage_results:
                 stage_score = 1.0 if stage_results[stage_name].pass_result else 0.0
                 total_score += stage_score * weight
         
-        all_passed = all(result.pass_result for result in stage_results.values())
+        all_passed = all(result.pass_result for _, result in deterministic_iter_dict(stage_results))
         
         failure_codes = []
         if not all_passed:
-            for stage_name, result in stage_results.items():
+            for stage_name, result in deterministic_iter_dict(stage_results):
                 if not result.pass_result:
                     failure_codes.extend(self._map_stage_to_failure_codes(stage_name))
         
         cert_hash = hashlib.sha256(json.dumps({
             'module_id': context.module_definition.interface.module_id.value,
             'version': str(context.module_definition.interface.module_version),
-            'stage_results': {k: v.pass_result for k, v in stage_results.items()},
+            'stage_results': {k: v.pass_result for k, v in deterministic_iter_dict(stage_results)},
             'score': total_score
         }, sort_keys=True).encode()).hexdigest()
         

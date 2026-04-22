@@ -13,6 +13,7 @@ from enum import Enum
 from .canonical_utils import canonical_json, stable_hash
 from .event_envelope import CanonicalEvent
 from .replay_engine import ReplayEngine, ReplayReport
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict, deterministic_iter_set
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +72,14 @@ class DivergenceReport:
         
         # Count hash frequencies
         hash_counts = {}
-        for node_id, node_hash in self.node_hashes.items():
+        for node_id, node_hash in deterministic_iter_dict(self.node_hashes):
             hash_counts[node_hash] = hash_counts.get(node_hash, 0) + 1
         
         # Find majority hash
-        majority_hash = max(hash_counts.items(), key=lambda x: x[1])[0]
+        majority_hash = max(list(deterministic_iter_dict(hash_counts)), key=lambda x: x[1])[0]
         
         # Return nodes with majority hash
-        return [node_id for node_id, node_hash in self.node_hashes.items() 
+        return [node_id for node_id, node_hash in deterministic_iter_dict(self.node_hashes)
                 if node_hash == majority_hash]
 
 
@@ -124,7 +125,7 @@ class MultiNodeReplayVerifier:
                     raise ValueError(f"node_inputs must have exactly {self.node_count} entries")
                 
                 # Verify all inputs are lists of CanonicalEvent
-                for node_id, events in node_inputs.items():
+                for node_id, events in deterministic_iter_dict(node_inputs):
                     if not isinstance(events, list):
                         raise ValueError(f"Node {node_id} inputs must be a list")
                     for event in events:
@@ -170,7 +171,7 @@ class MultiNodeReplayVerifier:
         """Execute replay on each node with complete isolation"""
         node_results = []
         
-        for node_id, events in node_inputs.items():
+        for node_id, events in deterministic_iter_dict(node_inputs):
             try:
                 # Create isolated replay engine for this node
                 audit_store = {correlation_id: events}
@@ -223,7 +224,7 @@ class MultiNodeReplayVerifier:
             canonical_outputs[result.node_id] = result.canonical_output
         
         # Check if all hashes are identical
-        unique_hashes = set(node_hashes.values())
+        unique_hashes = {node_hash for _, node_hash in deterministic_iter_dict(node_hashes)}
         
         if len(unique_hashes) == 1:
             # Consensus achieved
@@ -244,12 +245,12 @@ class MultiNodeReplayVerifier:
             
             # Find divergent nodes (nodes not in majority)
             hash_counts = {}
-            for node_hash in node_hashes.values():
+            for _, node_hash in deterministic_iter_dict(node_hashes):
                 hash_counts[node_hash] = hash_counts.get(node_hash, 0) + 1
-            
-            majority_hash = max(hash_counts.items(), key=lambda x: x[1])[0]
+
+            majority_hash = max(list(deterministic_iter_dict(hash_counts)), key=lambda x: x[1])[0]
             divergent_nodes = [
-                node_id for node_id, node_hash in node_hashes.items()
+                node_id for node_id, node_hash in deterministic_iter_dict(node_hashes)
                 if node_hash != majority_hash
             ]
             

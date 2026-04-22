@@ -6,9 +6,10 @@ Phase 2B additive component — does not touch V1 paths.
 """
 
 import logging
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
+from exoarmur.federation.clock import get_federation_clock
 
 from exoarmur.core.phase_gate import PhaseGate
 
@@ -202,6 +203,6 @@ class CrossCellAggregator:
         """Append a deterministic audit entry."""
         self._audit_log.append({
             "event_type": event_type,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": get_federation_clock().now().isoformat(),
             "details": details,
         })

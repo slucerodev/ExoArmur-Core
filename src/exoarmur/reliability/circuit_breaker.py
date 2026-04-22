@@ -12,6 +12,7 @@ from enum import Enum
 from dataclasses import dataclass
 
 from exoarmur.clock import utc_now
+from exoarmur.replay.canonical_utils import stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +238,7 @@ class CircuitBreaker:
                     execution_id=ExecutionID(execution_ulid),
                     module_id=ModuleID(audit_ulid),
                     module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash("audit_emission") % (2**63)),
+                    deterministic_seed=DeterministicSeed(int(stable_hash("audit_emission"), 16) % (2**63)),
                     logical_timestamp=int(utc_now().timestamp()),
                     dependency_hash="audit_emission"
                 ),

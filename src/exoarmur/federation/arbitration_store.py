@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from spec.contracts.models_v1 import ArbitrationV1, ArbitrationStatus
 from exoarmur.federation.clock import Clock
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 logger = logging.getLogger(__name__)
 

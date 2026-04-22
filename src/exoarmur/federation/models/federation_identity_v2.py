@@ -6,9 +6,10 @@ ExoArmur ADMO V2 Federation Identity Models
 Pydantic v2 models for federation identity handshake matching federation_identity_v2.yaml contract
 """
 
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timezone
+from exoarmur.federation.clock import get_federation_clock
 from enum import Enum
 
 
@@ -57,7 +58,7 @@ class CellIdentity(BaseModel):
     federation_role: FederationRole = Field(default=FederationRole.MEMBER, description="Federation role")
     capabilities: List[CapabilityType] = Field(..., description="Supported capabilities")
     trust_score: float = Field(default=0.8, ge=0.0, le=1.0, description="Trust score")
-    last_heartbeat: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last heartbeat timestamp")
+    last_heartbeat: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Last heartbeat timestamp")
     status: CellStatus = Field(default=CellStatus.ACTIVE, description="Cell status")
     
     @field_validator('cell_id')
@@ -76,7 +77,7 @@ class IdentityExchangeMessage(BaseModel):
     """Identity exchange message matching contract"""
     cell_identity: CellIdentity = Field(..., description="Cell identity information")
     signature: str = Field(..., description="Ed25519 signature of message")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Message timestamp")
+    timestamp: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Message timestamp")
     nonce: str = Field(..., description="Cryptographic nonce for replay protection")
 
 
@@ -85,7 +86,7 @@ class CapabilityNegotiateMessage(BaseModel):
     supported_capabilities: List[CapabilityType] = Field(..., description="Supported capabilities")
     required_capabilities: List[CapabilityType] = Field(..., description="Required capabilities from peer")
     priority: int = Field(default=1, ge=1, le=10, description="Negotiation priority")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Message timestamp")
+    timestamp: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Message timestamp")
     signature: str = Field(..., description="Ed25519 signature of message")
     nonce: str = Field(..., description="Cryptographic nonce for replay protection")
 
@@ -95,7 +96,7 @@ class TrustEstablishMessage(BaseModel):
     trust_score: float = Field(..., ge=0.0, le=1.0, description="Proposed trust score")
     trust_reasons: List[str] = Field(..., description="Reasons for trust score")
     expiration: datetime = Field(..., description="Trust score expiration")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Message timestamp")
+    timestamp: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Message timestamp")
     signature: str = Field(..., description="Ed25519 signature of message")
     nonce: str = Field(..., description="Cryptographic nonce for replay protection")
 
@@ -106,7 +107,7 @@ class FederationConfirmMessage(BaseModel):
     member_cells: List[str] = Field(..., description="Member cell IDs")
     coordinator_cell: str = Field(..., description="Coordinator cell ID")
     terms: Dict[str, Any] = Field(..., description="Federation terms")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Message timestamp")
+    timestamp: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Message timestamp")
     signature: str = Field(..., description="Ed25519 signature of message")
     nonce: str = Field(..., description="Cryptographic nonce for replay protection")
 
@@ -119,8 +120,8 @@ class HandshakeSession(BaseModel):
     responder_cell_id: str = Field(..., description="Responder cell ID")
     current_state: HandshakeState = Field(default=HandshakeState.UNINITIALIZED, description="Current handshake state")
     step_index: int = Field(default=0, description="Current step index")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Session creation time")
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last update time")
+    created_at: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Session creation timestamp")
+    updated_at: datetime = Field(default_factory=lambda: get_federation_clock().now(), description="Last update time")
 
 
 class FederationIdentityMessage(BaseModel):

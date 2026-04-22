@@ -11,11 +11,13 @@ import ulid
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.clock import utc_now
+from exoarmur.federation.clock import get_federation_clock
 from exoarmur.feature_flags.resolver import (
     load_v2_core_types,
     load_v2_diagnostics,
     load_v2_entry_gate,
 )
+from exoarmur.replay.canonical_utils import stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -319,7 +321,7 @@ class AuditLogger:
                 'event_type': 'test_audit_event',
                 'component': 'test_consumer',
                 'action': 'simulated_action',
-                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'timestamp': get_federation_clock().now().isoformat(),
                 'metadata': {
                     'source': 'V2_consumer_test',
                     'version': '1.0'
@@ -338,8 +340,8 @@ class AuditLogger:
                     execution_id=v2_core_types.ExecutionID(execution_ulid),
                     module_id=v2_core_types.ModuleID(audit_ulid),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                    deterministic_seed=v2_core_types.DeterministicSeed(hash("audit_processing") % (2**63)),
-                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash("audit_processing"), 16) % (2**63)),
+                    logical_timestamp=int(utc_now().timestamp()),
                     dependency_hash="audit_processing"
                 ),
                 action_data={

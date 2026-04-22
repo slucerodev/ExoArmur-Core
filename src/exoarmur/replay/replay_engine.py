@@ -22,6 +22,7 @@ from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.audit.audit_normalizer import CanonicalAuditEnvelope
 from exoarmur.execution_boundary_v2.schema_migrations import SchemaMigrations, MigrationError
 from exoarmur.execution_boundary_v2.utils.canonicalization import compute_replay_hash_with_migration
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 # Import system components for reconstruction
 from spec.contracts.models_v1 import LocalDecisionV1, ExecutionIntentV1
@@ -313,7 +314,7 @@ class ReplayEngine:
         
         # Get the first successful report as baseline
         baseline_report = None
-        for report in reports.values():
+        for _, report in deterministic_iter_dict(reports):
             if report.result == ReplayResult.SUCCESS:
                 baseline_report = report
                 break
@@ -323,7 +324,7 @@ class ReplayEngine:
             return issues
         
         # Compare all reports against baseline
-        for scenario, report in reports.items():
+        for scenario, report in deterministic_iter_dict(reports):
             if report.result != ReplayResult.SUCCESS:
                 issues.append(f"Replay failed for scenario {scenario}: {report.result}")
                 continue
@@ -666,7 +667,7 @@ class ReplayEngine:
             # Verify safety gate consistency
             if report.safety_gate_verdicts:
                 report.safety_gate_verified = True
-                for event_id, verdict in report.safety_gate_verdicts.items():
+                for event_id, verdict in deterministic_iter_dict(report.safety_gate_verdicts):
                     if verdict not in ["allow", "deny", "require_human", "require_quorum"]:
                         report.add_warning(f"Unexpected safety verdict: {verdict}")
                         report.safety_gate_verified = False

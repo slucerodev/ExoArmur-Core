@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import uuid
+from exoarmur.federation.clock import get_federation_clock
 
 
 class CoordinationType(str, Enum):
@@ -67,7 +68,7 @@ class CoordinationAnnouncement(BaseModel):
     owner_cell_id: str
     coordination_type: CoordinationType
     scope: CoordinationScope
-    announced_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    announced_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     capabilities: List[str] = Field(default_factory=list)
     requirements: List[str] = Field(default_factory=list)
     expiration_timestamp: datetime
@@ -75,10 +76,10 @@ class CoordinationAnnouncement(BaseModel):
     @field_validator('expiration_timestamp')
     @classmethod
     def validate_expiration(cls, v, info):
-        if v <= datetime.now(timezone.utc):
+        if v <= get_federation_clock().now():
             raise ValueError("Expiration must be in the future")
         # Max 24 hour coordination announcements
-        max_duration = datetime.now(timezone.utc) + timedelta(hours=24)
+        max_duration = get_federation_clock().now() + timedelta(hours=24)
         if v > max_duration:
             raise ValueError("Expiration too far in future")
         return v
@@ -94,7 +95,7 @@ class CoordinationClaim(BaseModel):
     owner_cell_id: str
     coordination_type: CoordinationType
     scope: CoordinationScope
-    claimed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    claimed_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     expiration_timestamp: datetime
     coordination_role: CoordinationRole
     claimed_resources: List[str] = Field(default_factory=list)
@@ -102,10 +103,10 @@ class CoordinationClaim(BaseModel):
     @field_validator('expiration_timestamp')
     @classmethod
     def validate_expiration(cls, v, info):
-        if v <= datetime.now(timezone.utc):
+        if v <= get_federation_clock().now():
             raise ValueError("Expiration must be in the future")
         # Max 1 hour coordination claims
-        max_duration = datetime.now(timezone.utc) + timedelta(hours=1)
+        max_duration = get_federation_clock().now() + timedelta(hours=1)
         if v > max_duration:
             raise ValueError("Claim duration too long")
         return v
@@ -120,7 +121,7 @@ class CoordinationRelease(BaseModel):
     coordination_id: str
     owner_cell_id: str
     coordination_type: CoordinationType
-    released_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    released_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     release_reason: str = Field(max_length=200)
     final_state: CoordinationState
 
@@ -136,7 +137,7 @@ class CoordinationObservation(BaseModel):
     coordination_id: Optional[str] = None
     observation_type: str
     observed_data: Dict[str, Any] = Field(default_factory=dict)
-    observed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    observed_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     confidence_score: float = Field(ge=0.0, le=1.0, default=0.8)
     observation_scope: CoordinationScope
     
@@ -159,7 +160,7 @@ class CoordinationIntentBroadcast(BaseModel):
     coordination_type: CoordinationType
     intent_type: str
     intent_data: Dict[str, Any] = Field(default_factory=dict)
-    broadcast_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    broadcast_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     valid_until: datetime
     target_cells: List[str] = Field(default_factory=list)
     priority: int = Field(ge=1, le=10, default=5)
@@ -167,10 +168,10 @@ class CoordinationIntentBroadcast(BaseModel):
     @field_validator('valid_until')
     @classmethod
     def validate_valid_until(cls, v):
-        if v <= datetime.now(timezone.utc):
+        if v <= get_federation_clock().now():
             raise ValueError("Intent must be valid in the future")
         # Max 4 hour intent validity
-        max_duration = datetime.now(timezone.utc) + timedelta(hours=4)
+        max_duration = get_federation_clock().now() + timedelta(hours=4)
         if v > max_duration:
             raise ValueError("Intent validity too long")
         return v
@@ -183,7 +184,7 @@ class CoordinationEvent(BaseModel):
     coordination_id: str
     owner_cell_id: str
     coordination_type: CoordinationType
-    event_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    event_timestamp: datetime = Field(default_factory=lambda: get_federation_clock().now())
     event_data: Dict[str, Any] = Field(default_factory=dict)
     idempotency_key: Optional[str] = None
     
@@ -208,8 +209,8 @@ class CoordinationSession(BaseModel):
     coordination_type: CoordinationType
     scope: CoordinationScope
     state: CoordinationState = CoordinationState.UNCLAIMED
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
+    updated_at: datetime = Field(default_factory=lambda: get_federation_clock().now())
     expiration_timestamp: datetime
     participants: List[str] = Field(default_factory=list)
     observations: List[CoordinationObservation] = Field(default_factory=list)
@@ -222,7 +223,7 @@ class CoordinationSession(BaseModel):
     def validate_expiration(cls, v):
         # Allow creation with past timestamps for testing/cleanup scenarios
         # But warn if creating new sessions with past timestamps
-        now = datetime.now(timezone.utc)
+        now = get_federation_clock().now()
         if v <= now:
             # This is allowed but might indicate an issue for new sessions
             pass
@@ -234,7 +235,7 @@ class CoordinationSession(BaseModel):
     
     def is_expired(self) -> bool:
         """Check if session is expired"""
-        return datetime.now(timezone.utc) > self.expiration_timestamp
+        return get_federation_clock().now() > self.expiration_timestamp
     
     def can_participate(self, cell_id: str) -> bool:
         """Check if cell can participate in this coordination"""

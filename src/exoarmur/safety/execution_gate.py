@@ -7,6 +7,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
+from exoarmur.clock import utc_now
 from enum import Enum
 from dataclasses import dataclass
 
@@ -60,7 +61,7 @@ class GateResult:
     
     def __post_init__(self):
         if self.evaluated_at is None:
-            self.evaluated_at = datetime.now(timezone.utc)
+            self.evaluated_at = utc_now()
 
 
 class ExecutionGate:

@@ -4,8 +4,9 @@ Persistent storage for federation identities with deterministic behavior
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
+from exoarmur.federation.clock import get_federation_clock
 from dataclasses import dataclass
 import threading
 
@@ -80,7 +81,7 @@ class FederateIdentityStore:
         
         with self._lock:
             federate_id = identity.federate_id
-            now = datetime.now(timezone.utc)
+            now = get_federation_clock().now()
             
             # Always replace the identity entirely (contract-true behavior)
             self._identities[federate_id] = identity
@@ -104,7 +105,7 @@ class FederateIdentityStore:
         with self._lock:
             identity = self._identities.get(federate_id)
             if identity:
-                identity.last_seen = datetime.now(timezone.utc)
+                identity.last_seen = get_federation_clock().now()
                 return identity
             return None
     
@@ -204,8 +205,8 @@ class FederateIdentityStore:
                 correlation_id=session_id,
                 federate_id=initiator_cell_id,
                 state=HandshakeState.UNINITIALIZED,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                created_at=get_federation_clock().now(),
+                updated_at=get_federation_clock().now()
             )
             
             # Store session
@@ -255,7 +256,7 @@ class FederateIdentityStore:
             old_state = session.state
             session.state = new_state
             session.step_index += 1
-            session.updated_at = datetime.now(timezone.utc)
+            session.updated_at = get_federation_clock().now()
             
             logger.info(f"Updated session {session_id}: {old_state} -> {new_state}")
             return True
@@ -300,7 +301,7 @@ class FederateIdentityStore:
             return 0
         
         with self._lock:
-            now = datetime.now(timezone.utc)
+            now = get_federation_clock().now()
             cutoff = now - timedelta(hours=max_age_hours)
             
             expired_sessions = [
@@ -329,7 +330,7 @@ class FederateIdentityStore:
             return ""
         
         nonce = self._generate_nonce()
-        now = datetime.now(timezone.utc)
+        now = get_federation_clock().now()
         expires_at = now + timedelta(seconds=self._nonce_ttl_seconds)
         
         with self._lock:
@@ -371,7 +372,7 @@ class FederateIdentityStore:
                 return False
             
             # Check if nonce is expired
-            if nonce_record.expires_at < datetime.now(timezone.utc):
+            if nonce_record.expires_at < get_federation_clock().now():
                 return True  # Expired nonces are considered available
             
             # Check if nonce is already used
@@ -400,7 +401,7 @@ class FederateIdentityStore:
             
             if nonce_record is None:
                 # Create nonce record if it doesn't exist
-                now = datetime.now(timezone.utc)
+                now = get_federation_clock().now()
                 nonce_record = NonceRecord(
                     nonce=nonce,
                     federate_id=federate_id,
@@ -446,7 +447,7 @@ class FederateIdentityStore:
                 return False
             
             # Check if nonce is expired
-            if nonce_record.expires_at < datetime.now(timezone.utc):
+            if nonce_record.expires_at < get_federation_clock().now():
                 logger.warning(f"Nonce expired: {nonce}")
                 self._nonces.pop(nonce, None)
                 return False
@@ -463,7 +464,7 @@ class FederateIdentityStore:
     
     def _cleanup_expired_nonces(self) -> int:
         """Clean up expired nonces"""
-        now = datetime.now(timezone.utc)
+        now = get_federation_clock().now()
         expired_nonces = [
             nonce for nonce, record in self._nonces.items()
             if now > record.expires_at

@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from fastapi import HTTPException, Query
 from pydantic import BaseModel
 
-from exoarmur.federation.clock import Clock, FixedClock
+from exoarmur.federation.clock import Clock, FixedClock, get_federation_clock
 from exoarmur.federation.audit import AuditService
 from exoarmur.identity_containment.recommender import IdentityContainmentRecommender
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
@@ -18,6 +18,7 @@ from exoarmur.identity_containment.execution import IdentityContainmentExecutor
 from exoarmur.identity_containment.effector import SimulatedIdentityProviderEffector
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.replay.canonical_utils import stable_hash
 
 from spec.contracts.models_v1 import (
     IdentitySubjectV1,
@@ -312,8 +313,8 @@ class IdentityContainmentAPI:
                     execution_id=v2_core_types.ExecutionID("tick_processing" + "0" * 8),
                     module_id=v2_core_types.ModuleID("icw_tick_expiration"),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                    deterministic_seed=v2_core_types.DeterministicSeed(hash("tick_expiration") % (2**63)),
-                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash("tick_expiration"), 16) % (2**63)),
+                    logical_timestamp=int(get_federation_clock().now().timestamp()),
                     dependency_hash="icw_tick"
                 ),
                 action_data={
@@ -382,8 +383,8 @@ class IdentityContainmentAPI:
                     execution_id=v2_core_types.ExecutionID(approval_id[:26] + "0" * (26 - len(approval_id[:26]))),
                     module_id=v2_core_types.ModuleID("icw_containment_executor"),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                    deterministic_seed=v2_core_types.DeterministicSeed(hash(approval_id) % (2**63)),
-                    logical_timestamp=int(self.clock.now().timestamp()),
+                    deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash(approval_id), 16) % (2**63)),
+                    logical_timestamp=int(get_federation_clock().now().timestamp()),
                     dependency_hash="icw_execution"
                 ),
                 action_data={
@@ -411,7 +412,7 @@ class IdentityContainmentAPI:
                 "subject_id": result.result_data.get('subject_id', 'unknown'),
                 "provider": result.result_data.get('provider', 'unknown'),
                 "scope": result.result_data.get('scope', 'unknown'),
-                "applied_at": result.result_data.get('applied_at', datetime.now(timezone.utc).isoformat()),
+                "applied_at": result.result_data.get('applied_at', get_federation_clock().now().isoformat()),
                 "expires_at": result.result_data.get('expires_at', ''),
                 "approval_id": approval_id,
                 "v2_enforced": True,

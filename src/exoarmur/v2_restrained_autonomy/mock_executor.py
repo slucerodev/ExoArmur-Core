@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 import uuid
 
 from exoarmur.execution_boundary_v2.entry.v2_entry_gate import execute_module, ExecutionRequest
+from exoarmur.replay.canonical_utils import stable_hash
+from exoarmur.federation.clock import get_federation_clock
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +42,8 @@ class MockActionExecutor:
                     execution_id=ExecutionID(self._generate_execution_id()),
                     module_id=ModuleID(self._generate_module_ulid()),
                     module_version=ModuleVersion(1, 0, 0),
-                    deterministic_seed=DeterministicSeed(hash(endpoint_id + correlation_id) % (2**63)),
-                    logical_timestamp=int(datetime.now(timezone.utc).timestamp()),
+                    deterministic_seed=DeterministicSeed(int(stable_hash(endpoint_id + correlation_id), 16) % (2**63)),
+                    logical_timestamp=int(get_federation_clock().now().timestamp()),
                     dependency_hash="mock_execution"
                 ),
                 action_data={

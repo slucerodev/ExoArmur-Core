@@ -6,9 +6,11 @@ Detects deterministic conflicts between beliefs and observations.
 
 import hashlib
 import logging
-from datetime import datetime
-from typing import Dict, List, Any, Union
-
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional, Set, Union
+from dataclasses import dataclass, field
+from exoarmur.replay.canonical_utils import stable_hash
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 from spec.contracts.models_v1 import (
     BeliefV1,
     BeliefTelemetryV1,
@@ -56,8 +58,8 @@ class ConflictDetectionService:
         
         # Group beliefs by conflict key
         conflict_groups = self._group_beliefs_by_conflict(beliefs)
-        
-        for conflict_key, belief_group in conflict_groups.items():
+
+        for conflict_key, belief_group in deterministic_iter_dict(conflict_groups):
             if len(belief_group) < 2:
                 continue  # No conflict with single belief
             
@@ -309,7 +311,7 @@ class ConflictDetectionService:
         correlation_id = beliefs[0].correlation_id
         
         arbitration = ArbitrationV1(
-            arbitration_id=f"arb_{self.clock.now().strftime('%Y%m%d%H%M%S')}_{hash(conflict_key) % 10000:04d}",
+            arbitration_id=f"arb_{self.clock.now().strftime('%Y%m%d%H%M%S')}_{int(stable_hash(conflict_key), 16) % 10000:04d}",
             created_at_utc=self.clock.now(),
             status=ArbitrationStatus.OPEN,
             conflict_type=conflict_type,

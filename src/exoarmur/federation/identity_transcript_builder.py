@@ -12,6 +12,7 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
+from exoarmur.federation.clock import get_federation_clock
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ class TranscriptBuilder:
             raise ValueError("direction must be 'outgoing' or 'incoming'")
         
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = get_federation_clock().now()
         
         # Create transcript message
         transcript_msg = TranscriptMessage(
@@ -252,5 +253,5 @@ class TranscriptBuilder:
                 }
                 for msg in self.get_ordered_messages()
             ],
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": get_federation_clock().now().isoformat()
         }

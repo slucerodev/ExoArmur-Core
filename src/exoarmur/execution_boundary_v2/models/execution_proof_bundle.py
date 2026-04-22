@@ -17,6 +17,7 @@ from datetime import datetime
 from exoarmur.clock import utc_now
 from exoarmur.ids import make_bundle_id
 from ..utils.verdict_resolution import FinalVerdict
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 
 class ExecutionProofBundle(BaseModel):
@@ -86,7 +87,7 @@ class ExecutionProofBundle(BaseModel):
             elif hasattr(obj, 'value'):  # Handle enum objects
                 return obj.value
             elif isinstance(obj, dict):
-                return {k: serialize_datetime(v) for k, v in obj.items()}
+                return {k: serialize_datetime(v) for k, v in deterministic_iter_dict(obj)}
             elif isinstance(obj, list):
                 return [serialize_datetime(item) for item in obj]
             else:
@@ -168,7 +169,7 @@ class ExecutionProofBundle(BaseModel):
                 elif hasattr(obj, 'value'):
                     return obj.value
                 elif isinstance(obj, dict):
-                    return {k: serialize_datetime(v) for k, v in obj.items()}
+                    return {k: serialize_datetime(v) for k, v in deterministic_iter_dict(obj)}
                 elif isinstance(obj, list):
                     return [serialize_datetime(item) for item in obj]
                 else:
@@ -259,7 +260,7 @@ class ExecutionProofBundle(BaseModel):
         
         # Verify determinism
         determinism_results = self.verify_determinism()
-        if not all(determinism_results.values()):
+        if not all(result for _, result in deterministic_iter_dict(determinism_results)):
             return False
         
         return True

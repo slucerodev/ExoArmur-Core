@@ -9,6 +9,7 @@ Main coordinator for federation identity handshake with feature flag isolation
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+from exoarmur.federation.clock import get_federation_clock
 
 from .identity_handshake_state_machine import (
     IdentityHandshakeStateMachine,
@@ -187,7 +188,7 @@ class FederationIdentityManager:
                 "session_id": session_id,
                 "valid": False,
                 "reason": "V2 federation is disabled",
-                "validated_at": datetime.now(timezone.utc).isoformat()
+                "validated_at": get_federation_clock().now().isoformat()
             }
         
         if not self._audit_emitter:
@@ -195,7 +196,7 @@ class FederationIdentityManager:
                 "session_id": session_id,
                 "valid": False,
                 "reason": "Audit emitter not available",
-                "validated_at": datetime.now(timezone.utc).isoformat()
+                "validated_at": get_federation_clock().now().isoformat()
             }
         
         return self._audit_emitter.validate_audit_integrity(session_id, expected_step_count)

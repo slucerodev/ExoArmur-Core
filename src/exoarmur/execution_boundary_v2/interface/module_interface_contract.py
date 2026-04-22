@@ -10,6 +10,7 @@ import json
 
 from exoarmur.clock import utc_now
 from ..core.core_types import *
+from exoarmur.stability.deterministic_ordering import deterministic_iter_dict
 
 # === INTERFACE ENUMS ===
 
@@ -114,7 +115,7 @@ class ModuleInputSchema:
             if field_name not in parsed:
                 raise ValueError(f"Required field {field_name} missing")
         
-        for field_name, field_value in parsed.items():
+        for field_name, field_value in deterministic_iter_dict(parsed):
             if field_name in self.input_types:
                 schema_type = self.input_types[field_name]
                 self._validate_field_type(field_value, schema_type)
@@ -201,7 +202,7 @@ class ModuleOutputSchema:
             'serialization_format': self.serialization_format.value
         }
         
-        filtered_metadata = {k: v for k, v in custom_metadata.items() if k in self.metadata_fields}
+        filtered_metadata = {k: v for k, v in deterministic_iter_dict(custom_metadata) if k in self.metadata_fields}
         
         return {**base_metadata, **filtered_metadata}
     
@@ -274,13 +275,13 @@ class ModuleInterface:
             'module_version': str(self.module_version),
             'input_schema': {
                 'schema_version': self.input_schema.schema_version,
-                'input_types': {k: v.type_name for k, v in self.input_schema.input_types.items()},
+                'input_types': {k: v.type_name for k, v in deterministic_iter_dict(self.input_schema.input_types)},
                 'required_fields': list(self.input_schema.required_fields),
                 'serialization_format': self.input_schema.serialization_format.value
             },
             'output_schema': {
                 'schema_version': self.output_schema.schema_version,
-                'output_types': {k: v.type_name for k, v in self.output_schema.output_types.items()},
+                'output_types': {k: v.type_name for k, v in deterministic_iter_dict(self.output_schema.output_types)},
                 'serialization_format': self.output_schema.serialization_format.value
             },
             'state_model': {

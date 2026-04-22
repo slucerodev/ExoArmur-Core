@@ -9,6 +9,7 @@ Main coordinator for federation coordination with feature flag isolation
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta
+from exoarmur.federation.clock import get_federation_clock
 
 from .coordination_state_machine import (
     CoordinationStateMachine,
@@ -107,7 +108,7 @@ class FederationCoordinationManager:
             )
             
             # Create announcement
-            expiration_timestamp = datetime.now(timezone.utc) + timedelta(hours=expiration_hours)
+            expiration_timestamp = get_federation_clock().now() + timedelta(hours=expiration_hours)
             
             announcement = CoordinationAnnouncement(
                 owner_cell_id=owner_cell_id,
@@ -168,7 +169,7 @@ class FederationCoordinationManager:
                     message="Coordination not found"
                 )
             
-            expiration_timestamp = datetime.now(timezone.utc) + timedelta(hours=expiration_hours)
+            expiration_timestamp = get_federation_clock().now() + timedelta(hours=expiration_hours)
             
             # Create scope from session
             from .coordination_models_v2 import CoordinationScope
@@ -345,7 +346,7 @@ class FederationCoordinationManager:
             )
         
         try:
-            valid_until = datetime.now(timezone.utc) + timedelta(hours=valid_hours)
+            valid_until = get_federation_clock().now() + timedelta(hours=valid_hours)
             
             intent = CoordinationIntentBroadcast(
                 broadcaster_cell_id=broadcaster_cell_id,
@@ -429,7 +430,7 @@ class FederationCoordinationManager:
                 "coordination_id": coordination_id,
                 "valid": False,
                 "reason": "Audit emitter not available",
-                "validated_at": datetime.now(timezone.utc).isoformat()
+                "validated_at": get_federation_clock().now().isoformat()
             }
         
         return self._audit_emitter.validate_coordination_audit_integrity(coordination_id, expected_event_count)
@@ -474,7 +475,7 @@ class FederationCoordinationManager:
             return {
                 "status": "disabled",
                 "v2_coordination_enabled": False,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": get_federation_clock().now().isoformat()
             }
         
         if not self._state_machine:
@@ -482,7 +483,7 @@ class FederationCoordinationManager:
                 "status": "unhealthy",
                 "v2_coordination_enabled": True,
                 "reason": "State machine not available",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": get_federation_clock().now().isoformat()
             }
         
         summary = self.get_coordination_summary()
@@ -503,7 +504,7 @@ class FederationCoordinationManager:
             "v2_coordination_enabled": True,
             "reason": reason,
             "summary": summary,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": get_federation_clock().now().isoformat()
         }
     
     async def start_background_tasks(self):

@@ -15,7 +15,7 @@ from spec.contracts.models_v1 import (
     IdentityContainmentAppliedRecordV1,
     IdentityContainmentRevertedRecordV1
 )
-from exoarmur.federation.clock import Clock
+from exoarmur.federation.clock import Clock, get_federation_clock
 from exoarmur.ids import make_id
 from exoarmur.federation.audit import AuditService, AuditEventType
 from exoarmur.feature_flags.resolver import load_v2_core_types, load_v2_diagnostics, load_v2_entry_gate
@@ -23,6 +23,7 @@ from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.identity_containment.effector import IdentityContainmentEffector
 from exoarmur.identity_containment.intent_service import IdentityContainmentIntentService
 from exoarmur.safety import GateDecision
+from exoarmur.replay.canonical_utils import stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ class IdentityContainmentExecutor:
                 execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
                 module_id=v2_core_types.ModuleID(make_id("identity_containment_apply", {"intent_id": intent.intent_id})),
                 module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id) % (2**63)),
+                deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash(intent.intent_id), 16) % (2**63)),
                 logical_timestamp=int(self.clock.now().timestamp()),
                 dependency_hash=intent.metadata.get("intent_hash")
             ),
@@ -200,7 +201,7 @@ class IdentityContainmentExecutor:
                     execution_id=v2_core_types.ExecutionID(intent.intent_id[:26] + "0" * (26 - len(intent.intent_id[:26]))),
                     module_id=v2_core_types.ModuleID(make_id("identity_containment_revert", {"intent_id": intent.intent_id, "reason": reason})),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                    deterministic_seed=v2_core_types.DeterministicSeed(hash(intent.intent_id + reason) % (2**63)),
+                    deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash(intent.intent_id + reason), 16) % (2**63)),
                     logical_timestamp=int(self.clock.now().timestamp()),
                     dependency_hash=intent_hash
                 ),
@@ -261,7 +262,7 @@ class IdentityContainmentExecutor:
                     execution_id=v2_core_types.ExecutionID("expiration_processing" + "0" * 8),
                     module_id=v2_core_types.ModuleID(make_id("identity_containment_expire", {"batch_processing": True})),
                     module_version=v2_core_types.ModuleVersion(1, 0, 0),
-                    deterministic_seed=v2_core_types.DeterministicSeed(hash("expiration_processing") % (2**63)),
+                    deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash("expiration_processing"), 16) % (2**63)),
                     logical_timestamp=int(self.clock.now().timestamp()),
                     dependency_hash="system_expiration"
                 ),

@@ -21,6 +21,9 @@ from typing import Dict, Any, List, Optional
 # Import clock for deterministic time handling
 from exoarmur.clock import deterministic_timestamp
 from exoarmur.stability.asyncio_policy import ensure_default_event_loop_policy
+from exoarmur.stability.env_parity import enforce_determinism_requirements, DeterminismRequirementError
+from exoarmur.stability.runtime_determinism_guard import enable_runtime_guards
+from exoarmur.replay.canonical_utils import stable_hash
 
 # Import contract models
 from spec.contracts.models_v1 import TelemetryEventV1, AuditRecordV1
@@ -422,7 +425,7 @@ async def _execute_intent_via_v2_entry_gate(execution_intent, safety_verdict) ->
             execution_id=v2_core_types.ExecutionID(execution_intent.intent_id[:26]),
             module_id=v2_core_types.ModuleID(execution_intent.intent_id[:26]),
             module_version=v2_core_types.ModuleVersion(1, 0, 0),
-            deterministic_seed=v2_core_types.DeterministicSeed(hash(execution_intent.intent_id) % (2**63)),
+            deterministic_seed=v2_core_types.DeterministicSeed(int(stable_hash(execution_intent.intent_id), 16) % (2**63)),
             logical_timestamp=int(utc_now().timestamp()),
             dependency_hash=execution_intent.correlation_id or "default"
         ),
@@ -496,7 +499,7 @@ def bootstrap_system_via_v2_entry_gate(nats_client_config: Optional[Dict[str, An
             execution_id=ExecutionID(execution_ulid),
             module_id=ModuleID(bootstrap_ulid),
             module_version=ModuleVersion(1, 0, 0),
-            deterministic_seed=DeterministicSeed(hash("system_bootstrap") % (2**63)),
+            deterministic_seed=DeterministicSeed(int(stable_hash("system_bootstrap"), 16) % (2**63)),
             logical_timestamp=int(utc_now().timestamp()),
             dependency_hash="system_bootstrap"
         ),
@@ -577,6 +580,21 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
 async def lifespan(app: FastAPI):
     """Initialize and cleanup components on app lifespan."""
     global nats_client, background_tasks
+
+    # Enforce determinism requirements at startup - fail fast if not met
+    try:
+        enforce_determinism_requirements()
+    except DeterminismRequirementError as exc:
+        logger.critical(f"DETERMINISM REQUIREMENT FAILED: {exc}")
+        raise RuntimeError(
+            f"System cannot start: determinism requirements not met. "
+            f"{exc.requirement} required but got {exc.actual!r}. "
+            f"Set environment variable {exc.requirement} and restart."
+        ) from exc
+
+    # Enable runtime determinism guards to detect wall-clock usage in protected contexts
+    enable_runtime_guards()
+    logger.info("Runtime determinism guards enabled")
 
     # Set deterministic event loop policy at application startup (not import time)
     # This ensures consistent behavior without affecting test collection
