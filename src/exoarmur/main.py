@@ -43,7 +43,8 @@ except ImportError:
         raise HTTPException(status_code=503, detail="ICW API not initialized")
 
 # Import API models
-from exoarmur.api_models import TelemetryIngestResponseV1, AuditResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1
+from exoarmur.api_models import TelemetryIngestResponseV1, AuditResponseV1, ApprovalActionRequestV1, ApprovalResponseV1, ApprovalStatusResponseV1, AuditBundleResponseV1
+from exoarmur import __version__
 
 # Import internal modules
 from exoarmur.perception.validator import TelemetryValidator
@@ -984,6 +985,90 @@ async def get_audit_records(correlation_id: str):
         
     except Exception as e:
         logger.error(f"Failed to retrieve audit records for correlation {correlation_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/v1/audit/{correlation_id}/bundle", response_model=AuditBundleResponseV1)
+async def get_audit_bundle(correlation_id: str):
+    """Get audit bundle for replay - deterministic, replay-complete bundle"""
+    global audit_logger
+    
+    try:
+        logger.info(f"Retrieving audit bundle for correlation {correlation_id}")
+        
+        audit_records = audit_logger.get_audit_records(correlation_id)
+        
+        if not audit_records:
+            logger.info(f"No audit records found for correlation {correlation_id}")
+            raise HTTPException(status_code=404, detail="Audit bundle not found")
+        
+        # Convert AuditRecordV1 instances to dicts for serialization
+        audit_records_dicts = [record.model_dump() for record in audit_records]
+        
+        # Compute deterministic bundle digest using JSON string
+        import json
+        canonical_bundle_str = json.dumps({
+            "correlation_id": correlation_id,
+            "records": audit_records_dicts,
+            "count": len(audit_records)
+        }, sort_keys=True)
+        
+        # Use SHA256 for digest
+        import hashlib
+        canonical_bundle = hashlib.sha256(canonical_bundle_str.encode()).hexdigest()
+        
+        # Extract input_hash from first record if available
+        input_hash = ""
+        execution_hash = ""
+        for record in audit_records:
+            if record.event_kind == "telemetry_ingest":
+                input_hash = record.hashes.get("sha256", "")
+            if record.event_kind == "execution_trace":
+                execution_hash = record.hashes.get("sha256", "")
+        
+        # Compute execution_hash from all records if not found
+        if not execution_hash:
+            records_str = json.dumps(audit_records_dicts, sort_keys=True)
+            execution_hash = hashlib.sha256(records_str.encode()).hexdigest()
+        
+        # Persist bundle to disk for CLI replay (internal use only)
+        import os
+        bundle_dir = "/tmp/exoarmur_bundles"
+        os.makedirs(bundle_dir, exist_ok=True)
+        bundle_path = os.path.join(bundle_dir, f"{correlation_id}.json")
+        
+        bundle_data = {
+            "correlation_id": correlation_id,
+            "audit_bundle_digest": canonical_bundle,
+            "core_version": __version__,
+            "input_hash": input_hash,
+            "execution_hash": execution_hash,
+            "audit_records": audit_records_dicts,
+            "retrieved_at": utc_now().isoformat()
+        }
+        
+        with open(bundle_path, 'w') as f:
+            json.dump(bundle_data, f, indent=2)
+        
+        logger.info(f"Persisted audit bundle internally to {bundle_path}")
+        
+        response = AuditBundleResponseV1(
+            correlation_id=correlation_id,
+            audit_bundle_digest=canonical_bundle,
+            core_version=__version__,
+            input_hash=input_hash,
+            execution_hash=execution_hash,
+            audit_records=audit_records_dicts,
+            retrieved_at=utc_now()
+        )
+        
+        logger.info(f"Retrieved audit bundle for correlation {correlation_id} with digest {canonical_bundle[:16]}...")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve audit bundle for correlation {correlation_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

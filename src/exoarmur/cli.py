@@ -617,5 +617,330 @@ def prove_determinism(runs: int, mode: str, input_hash: str, include_failure_dem
         traceback.print_exc()
         sys.exit(1)
 
+@main.command()
+@click.option('--bundle', '-b', required=True, help='Path to audit bundle JSON file')
+@click.option('--json', 'json_output', is_flag=True, help='Output results in JSON format')
+def replay(bundle: str, json_output: bool):
+    """Replay audit bundle deterministically and output result"""
+    _ensure_windows_utf8_output()
+    
+    try:
+        from exoarmur.replay.replay_engine import ReplayEngine
+        from exoarmur.replay.canonical_utils import to_canonical_event
+        from exoarmur.replay.event_envelope import CanonicalEvent
+        from exoarmur import __version__
+        import ulid
+        
+        # Load bundle
+        with open(bundle, 'r') as f:
+            bundle_data = json.load(f)
+        
+        # Check core version compatibility FIRST
+        bundle_core_version = bundle_data.get('core_version', '0.0.0')
+        if bundle_core_version != __version__:
+            result = {
+                "run_id": str(ulid.ULID()),
+                "target": {"correlation_id": bundle_data.get('correlation_id', '')},
+                "core_version": __version__,
+                "audit_bundle_digest": bundle_data.get('audit_bundle_digest', ''),
+                "input_hash": bundle_data.get('input_hash', ''),
+                "execution_hash": bundle_data.get('execution_hash', ''),
+                "replay_hash": None,
+                "verdict": "STALE_CORE_VERSION",
+                "stages": [
+                    {"stage": "intent", "status": "absent"},
+                    {"stage": "policy", "status": "absent"},
+                    {"stage": "gate", "status": "absent"},
+                    {"stage": "executor", "status": "absent"},
+                    {"stage": "evidence", "status": "absent"},
+                ],
+                "started_at": bundle_data.get('retrieved_at', ''),
+                "finished_at": bundle_data.get('retrieved_at', ''),
+            }
+            if json_output:
+                click.echo(json.dumps(result))
+            else:
+                click.echo(json.dumps(result, indent=2))
+            sys.exit(1)
+        
+        # Extract audit records
+        audit_records = bundle_data.get('audit_records', [])
+        if not audit_records:
+            click.echo("Error: No audit records in bundle", err=True)
+            sys.exit(1)
+        
+        # Convert to canonical events
+        canonical_events = []
+        for i, record_data in enumerate(audit_records):
+            try:
+                canonical_event = to_canonical_event(record_data, sequence_number=i)
+                canonical_events.append(CanonicalEvent(**canonical_event))
+            except Exception as e:
+                click.echo(f"Error converting record {i}: {e}", err=True)
+                sys.exit(1)
+        
+        # Run replay
+        correlation_id = bundle_data.get('correlation_id', 'unknown')
+        engine = ReplayEngine({correlation_id: canonical_events})
+        report = engine.replay_correlation(correlation_id)
+        
+        # Compute replay hash using JSON string
+        import hashlib
+        replay_data = {
+            "correlation_id": correlation_id,
+            "result": report.result.value,
+            "total_events": report.total_events,
+            "processed_events": report.processed_events,
+            "intent_hash_verified": report.intent_hash_verified,
+            "safety_gate_verified": report.safety_gate_verified,
+            "audit_integrity_verified": report.audit_integrity_verified,
+        }
+        replay_data_str = json.dumps(replay_data, sort_keys=True)
+        replay_hash = hashlib.sha256(replay_data_str.encode()).hexdigest()
+        
+        # Determine verdict - NO UNKNOWN ALLOWED
+        if report.result.value == "success" and report.intent_hash_verified and report.safety_gate_verified:
+            verdict = "MATCH"
+            exit_code = 0
+        elif report.result.value in ["hash_mismatch", "partial", "failure"]:
+            # Any non-success state is a mismatch
+            verdict = "MISMATCH"
+            exit_code = 1
+        else:
+            # Any truly indeterminate state throws - no fallback
+            raise ValueError(f"Indeterminate replay state: result={report.result.value}, intent_verified={report.intent_hash_verified}, gate_verified={report.safety_gate_verified}")
+        
+        # Build stages from report
+        stages = []
+        stage_order = ["intent", "policy", "gate", "executor", "evidence"]
+        for stage_name in stage_order:
+            if stage_name == "intent":
+                status = "match" if report.intent_hash_verified else "mismatch"
+            elif stage_name == "gate":
+                status = "match" if report.safety_gate_verified else "mismatch"
+            else:
+                status = "match" if report.audit_integrity_verified else "absent"
+            stages.append({"stage": stage_name, "status": status})
+        
+        # Build result
+        result = {
+            "run_id": str(ulid.ULID()),
+            "target": {"correlation_id": correlation_id},
+            "core_version": __version__,
+            "audit_bundle_digest": bundle_data.get('audit_bundle_digest', ''),
+            "input_hash": bundle_data.get('input_hash', ''),
+            "execution_hash": bundle_data.get('execution_hash', ''),
+            "replay_hash": replay_hash,
+            "verdict": verdict,
+            "stages": stages,
+            "started_at": bundle_data.get('retrieved_at', ''),
+            "finished_at": bundle_data.get('retrieved_at', ''),
+        }
+        
+        # Add mismatch details if MISMATCH
+        if verdict == "MISMATCH":
+            # Find first divergence stage
+            first_divergence = None
+            for stage in stages:
+                if stage["status"] == "mismatch":
+                    first_divergence = stage["stage"]
+                    break
+            result["mismatch"] = {
+                "first_divergence_stage": first_divergence or "unknown",
+                "expected_hash": bundle_data.get('execution_hash', ''),
+                "actual_hash": replay_hash
+            }
+        
+        # Output result
+        if json_output:
+            click.echo(json.dumps(result))
+        else:
+            click.echo(json.dumps(result, indent=2))
+        
+        # Enforce exit codes
+        sys.exit(exit_code)
+        
+    except FileNotFoundError:
+        click.echo(f"Error: Bundle file not found: {bundle}", err=True)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        click.echo(f"Error: Invalid JSON in bundle: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error: Replay failed: {e}", err=True)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+@main.command()
+@click.option('--determinism-load', is_flag=True, help='Run determinism under load test')
+@click.option('--throughput', is_flag=True, help='Run throughput and latency test')
+@click.option('--replay', is_flag=True, help='Run replay/verification benchmark')
+@click.option('--noise', is_flag=True, help='Run noise resistance benchmark')
+@click.option('--all', is_flag=True, help='Run all benchmarks')
+@click.option('--concurrency', default='10,50,100,500,1000', help='Comma-separated concurrency levels (default: 10,50,100,500,1000)')
+@click.option('--runs', default=100, help='Number of runs per level (default: 100)')
+@click.option('--json', 'json_output', is_flag=True, help='Output results in JSON format')
+@click.option('--minimal', is_flag=True, help='Output minimal high-signal format')
+def benchmark(determinism_load: bool, throughput: bool, replay: bool, noise: bool, all: bool, concurrency: str, runs: int, json_output: bool, minimal: bool):
+    """Run performance and determinism benchmarks"""
+    _ensure_windows_utf8_output()
+    
+    try:
+        from exoarmur.benchmark.benchmark_runner import BenchmarkRunner
+        from exoarmur.stability.deterministic_ordering import DeterminismViolationError
+        
+        # Parse concurrency levels
+        concurrency_levels = [int(c.strip()) for c in concurrency.split(',')]
+        
+        # Determine which benchmarks to run
+        run_all = all or not (determinism_load or throughput or replay or noise)
+        
+        results = {}
+        
+        if run_all or determinism_load:
+            try:
+                runner = BenchmarkRunner()
+                determinism_results = runner.run_determinism_load_test(
+                    concurrency_levels=concurrency_levels,
+                    runs_per_level=runs
+                )
+                results['determinism'] = [r.__dict__ for r in determinism_results]
+            except DeterminismViolationError as e:
+                click.echo(f"❌ Determinism load test failed: {e}")
+                sys.exit(1)
+        
+        if run_all or throughput:
+            try:
+                runner = BenchmarkRunner()
+                throughput_results = runner.run_throughput_test(
+                    concurrency_levels=[c for c in concurrency_levels if c <= 100],
+                    runs=runs * 10  # More runs for throughput
+                )
+                results['throughput'] = [r.__dict__ for r in throughput_results]
+            except Exception as e:
+                click.echo(f"❌ Throughput test failed: {e}")
+                results['throughput'] = None
+        
+        if run_all or replay:
+            try:
+                runner = BenchmarkRunner()
+                replay_result = runner.run_replay_benchmark(runs=runs)
+                results['replay'] = replay_result.__dict__
+            except Exception as e:
+                click.echo(f"❌ Replay benchmark failed: {e}")
+                results['replay'] = None
+        
+        if run_all or noise:
+            try:
+                runner = BenchmarkRunner()
+                noise_results = runner.run_noise_benchmark(noise_levels=[1, 10, 100])
+                results['noise'] = [r.__dict__ for r in noise_results]
+            except DeterminismViolationError as e:
+                click.echo(f"❌ Noise benchmark failed: {e}")
+                sys.exit(1)
+        
+        # Output results
+        if json_output:
+            click.echo(json.dumps(results, indent=2, default=str))
+        elif minimal:
+            # Minimal high-signal output
+            # Determinism
+            if 'determinism' in results and results['determinism']:
+                click.echo("DETERMINISM")
+                click.echo("-" * 11)
+                r = results['determinism'][-1]  # Highest concurrency
+                click.echo(f"Concurrency: {r['concurrency_level']}")
+                click.echo(f"Executions: {r['total_executions']}")
+                click.echo(f"Unique Hashes: {r['unique_hash_count']}")
+                click.echo(f"STATUS: {'PASS' if r['status'] == 'DETERMINISTIC' else 'FAIL'}")
+            
+            # Performance
+            if 'throughput' in results and results['throughput']:
+                click.echo()
+                click.echo("PERFORMANCE")
+                click.echo("-" * 11)
+                r = results['throughput'][-1]  # Highest concurrency
+                click.echo(f"Throughput: {r['executions_per_second']:.2f} exec/sec")
+                click.echo(f"p95: {r['latency_p95_ms']:.2f} ms")
+            
+            # Replay
+            if 'replay' in results and results['replay']:
+                click.echo()
+                click.echo("REPLAY")
+                click.echo("-" * 6)
+                r = results['replay']
+                click.echo(f"Replay: {r['replay_time_avg_ms']:.2f} ms")
+            
+            # Noise
+            if 'noise' in results and results['noise']:
+                click.echo()
+                click.echo("NOISE")
+                click.echo("-" * 5)
+                r = results['noise'][0]  # First noise level
+                click.echo(f"Stable: {'YES' if r['hash_stable'] else 'NO'}")
+        else:
+            # Text output (concise format)
+            click.echo()
+            click.echo("=" * 60)
+            click.echo("EXOARMUR BENCHMARK RESULTS")
+            click.echo("=" * 60)
+            
+            # Determinism load test results
+            if 'determinism' in results and results['determinism']:
+                click.echo()
+                click.echo("DETERMINISM UNDER LOAD")
+                click.echo("-" * 60)
+                for r in results['determinism'][-1:]:  # Show highest concurrency
+                    click.echo(f"Concurrency: {r['concurrency_level']}")
+                    click.echo(f"Executions: {r['total_executions']}")
+                    click.echo(f"Unique Hashes: {r['unique_hash_count']}")
+                    click.echo(f"Failures: {r['failures']}")
+                    click.echo(f"STATUS: {r['status']}")
+            
+            # Throughput results
+            if 'throughput' in results and results['throughput']:
+                click.echo()
+                click.echo("THROUGHPUT")
+                click.echo("-" * 60)
+                for r in results['throughput'][-1:]:  # Show highest concurrency
+                    click.echo(f"Throughput: {r['executions_per_second']:.2f} exec/sec")
+                    click.echo(f"p50: {r['latency_p50_ms']:.2f} ms")
+                    click.echo(f"p95: {r['latency_p95_ms']:.2f} ms")
+                    click.echo(f"p99: {r['latency_p99_ms']:.2f} ms")
+            
+            # Replay results
+            if 'replay' in results and results['replay']:
+                click.echo()
+                click.echo("REPLAY PERFORMANCE")
+                click.echo("-" * 60)
+                r = results['replay']
+                click.echo(f"Execution: {r['execution_time_avg_ms']:.2f} ms")
+                click.echo(f"Replay: {r['replay_time_avg_ms']:.2f} ms")
+                click.echo(f"Verification: {r['verification_time_avg_ms']:.2f} ms")
+            
+            # Noise results
+            if 'noise' in results and results['noise']:
+                click.echo()
+                click.echo("NOISE RESISTANCE")
+                click.echo("-" * 60)
+                for r in results['noise']:
+                    click.echo(f"Noise Level: {r['noise_level']}")
+                    click.echo(f"Hash Stable: {'YES' if r['hash_stable'] else 'NO'}")
+                    click.echo(f"Latency Impact: {r['latency_impact_percent']:.2f}%")
+        
+        sys.exit(0)
+        
+    except ImportError as e:
+        click.echo("❌ Benchmark module not available")
+        click.echo(f"Import error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"❌ Benchmark failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
 if __name__ == '__main__':
     main()

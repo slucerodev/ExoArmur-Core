@@ -101,6 +101,25 @@ class ErrorResponseV1(BaseModel):
         return value.isoformat()
 
 
+class AuditBundleResponseV1(BaseModel):
+    """Response model for GET /v1/audit/{id}/bundle"""
+    
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    
+    correlation_id: str = Field(description="Correlation identifier")
+    audit_bundle_digest: str = Field(description="Digest of the audit bundle")
+    core_version: str = Field(description="Core version that produced this bundle")
+    input_hash: str = Field(description="Hash of the input payload")
+    execution_hash: str = Field(description="Hash of the execution trace")
+    path: Optional[str] = Field(default=None, description="Path to the bundle file if persisted")
+    audit_records: List[Dict[str, Any]] = Field(description="Full audit records for replay")
+    retrieved_at: datetime = Field(description="When the bundle was retrieved")
+    
+    @field_serializer('retrieved_at')
+    def serialize_datetime(self, value: datetime) -> str:
+        return value.isoformat()
+
+
 # Export all models
 __all__ = [
     'TelemetryIngestResponseV1',
@@ -108,5 +127,6 @@ __all__ = [
     'ApprovalResponseV1',
     'ApprovalStatusResponseV1',
     'AuditResponseV1', 
-    'ErrorResponseV1'
+    'ErrorResponseV1',
+    'AuditBundleResponseV1'
 ]
