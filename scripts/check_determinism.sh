@@ -114,6 +114,35 @@ else
 fi
 echo ""
 
+# 9. Optional: Run determinism load benchmark (NON-BLOCKING)
+echo "Step 9: Running determinism load benchmark (NON-BLOCKING)..."
+echo "This step validates determinism under load but does not fail on performance numbers"
+if command -v exoarmur &> /dev/null; then
+    exoarmur benchmark --determinism-load --concurrency 10,50 --runs 50
+    BENCHMARK_EXIT=$?
+    if [ $BENCHMARK_EXIT -eq 0 ]; then
+        echo -e "${GREEN}✓ Determinism load benchmark passed${NC}"
+    else
+        echo -e "${YELLOW}⚠ Determinism load benchmark failed (NON-BLOCKING)${NC}"
+        echo -e "${YELLOW}  This may indicate a determinism issue - investigate if performance is critical${NC}"
+        # Do NOT set FAILED=1 - this is non-blocking
+    fi
+else
+    echo -e "${YELLOW}⚠ exoarmur CLI not available - skipping benchmark${NC}"
+fi
+echo ""
+
+# 10. Optional: Run benchmark consistency validation (NON-BLOCKING)
+echo "Step 10: Running benchmark consistency validation (NON-BLOCKING)..."
+echo "This step validates benchmark consistency across multiple runs but does not fail CI on performance"
+if [ -f "scripts/validate_benchmark_consistency.sh" ]; then
+    bash scripts/validate_benchmark_consistency.sh || echo -e "${YELLOW}⚠ Benchmark consistency validation skipped or failed (NON-BLOCKING)${NC}"
+    # Do NOT set FAILED=1 - this is non-blocking
+else
+    echo -e "${YELLOW}⚠ Benchmark consistency script not found - skipping${NC}"
+fi
+echo ""
+
 # Summary
 echo "========================================"
 echo "DETERMINISM GATE SUMMARY"

@@ -58,7 +58,7 @@ def check_proof_snapshot_exists(repo_root: Path) -> bool:
     snapshot_paths = [
         repo_root / "PROOF_SNAPSHOT.md",
         repo_root / "docs" / "PROOF_SNAPSHOT.md",
-        repo_root / "spec" / "PROOF_SNAPSHOT.md",
+        repo_root / "src" / "spec" / "PROOF_SNAPSHOT.md",
     ]
     
     for path in snapshot_paths:

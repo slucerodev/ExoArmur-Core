@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ci-scc-guard
+        name: CI SCC Guard
+        entry: python ci_scc_guard.py src ci_scc_config.yaml
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -1,0 +1,111 @@
+# CI SCC Guard Configuration
+
+# Declared SCCs (legitimate strongly connected components)
+# If SCC is declared, internal cycles are allowed
+sccs:
+  - id: "audit_replay_core"
+    modules:
+      - "audit/*"
+      - "replay/*"
+    layer: "L2"
+    entry_point: "replay/replay_engine.py"
+    description: "Core audit-replay subsystem"
+  
+  - id: "sdk_public_api"
+    modules:
+      - "sdk/*"
+    layer: "L4"
+    entry_point: "sdk/public_api.py"
+    description: "Public SDK API"
+  
+  - id: "main_entry"
+    modules:
+      - "main"
+      - "main.py"
+    layer: "L6"
+    entry_point: "main.py"
+    description: "Main entry point"
+  
+  - id: "cli_entry"
+    modules:
+      - "cli"
+      - "cli.py"
+    layer: "L6"
+    entry_point: "cli.py"
+    description: "CLI entry point"
+  
+  - id: "execution_boundary_v2"
+    modules:
+      - "execution_boundary_v2/*"
+    layer: "L5"
+    entry_point: "execution_boundary_v2/entry/v2_entry_gate.py"
+    description: "V2 execution boundary"
+
+# Layer definitions
+layers:
+  L0:
+    - "spec/contracts/*"
+  L1:
+    - "audit/*"
+    - "perception/*"
+    - "analysis/*"
+  L2:
+    - "decision/*"
+    - "beliefs/*"
+    - "collective_confidence/*"
+    - "feature_flags/*"
+  L3:
+    - "replay/*"
+    - "safety/*"
+  L4:
+    - "sdk/*"
+    - "control_plane/*"
+    - "execution/*"
+  L5:
+    - "execution_boundary_v2/*"
+  L6:
+    - "main.py"
+    - "cli.py"
+
+# Cross-SCC constraints
+cross_scc_rules:
+  allow_same_layer: true
+  allow_adjacent_layers: true
+  allow_non_adjacent_layers: true
+  allow_downward_layers: true
+  # Special case: V2 (execution_boundary_v2) may import from any lower layer
+  v2_allow_downward: true
+  v2_allow_non_adjacent: true
+
+# V2 boundary whitelist (SCC-level)
+v2_approved_sccs:
+  - "sdk_public_api"
+  - "audit_replay_core"
+  - "main_entry"
+  - "cli_entry"
+  - "execution_boundary_v2"
+  - "default_L2"
+  - "default_L3"
+  - "default_L4"
+
+# V2 access rules per SCC
+v2_access_rules:
+  - scc_id: "sdk_public_api"
+    scope: "full"
+    allowed_symbols: ["*"]
+  - scc_id: "audit_replay_core"
+    scope: "limited"
+    allowed_symbols:
+      - "SchemaMigrations"
+      - "MigrationError"
+      - "compute_replay_hash_with_migration"
+
+# Bridge module detection (config-driven only)
+bridge_detection:
+  forbidden_patterns: []
+
+# Cycle tolerance (SCC-scoped, not global)
+cycle_tolerance:
+  mode: "scc_scoped"
+  intra_scc: "allowed"
+  cross_scc: "forbidden"
