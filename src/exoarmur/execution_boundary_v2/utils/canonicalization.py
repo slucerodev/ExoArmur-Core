@@ -7,10 +7,10 @@ comprehensive governance verdict tracking and executor sandboxing.
 Enhanced with forensic-grade replay verification support and schema versioning.
 """
 
-import hashlib
 import json
 from typing import Any, Dict, Union, Optional
 
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 from ..models.action_intent import ActionIntent
 from ..models.policy_decision import PolicyDecision
@@ -45,11 +45,13 @@ def to_canonical_dict(obj: Any) -> Dict[str, Any]:
     def serialize_value(value):
         if hasattr(value, 'isoformat'):
             return None  # Exclude timestamps for determinism
-        elif hasattr(value, 'value'):  # Handle enum objects
+        elif isinstance(value, type):
+            return None  # Exclude class/type objects (e.g. __objclass__ leaks from enum instance __dict__)
+        elif hasattr(value, 'value') and not isinstance(value, (str, bytes, int, float, bool)):
             return value.value
         elif isinstance(value, dict):
             return {k: serialize_value(v) for k, v in value.items() 
-                   if k not in timestamp_fields}
+                   if k not in timestamp_fields and not isinstance(v, type)}
         elif isinstance(value, list):
             return [serialize_value(item) for item in value]
         else:
@@ -57,48 +59,6 @@ def to_canonical_dict(obj: Any) -> Dict[str, Any]:
     
     return {k: serialize_value(v) for k, v in result.items() 
             if k not in timestamp_fields}
-
-
-def canonical_json(data: Dict[str, Any]) -> bytes:
-    """Generate canonical JSON bytes with deterministic serialization.
-    
-    Args:
-        data: Dictionary to serialize
-        
-    Returns:
-        UTF-8 encoded JSON bytes with sorted keys and consistent formatting
-    """
-    # Custom serializer for datetime and enum objects
-    def json_serializer(obj):
-        if hasattr(obj, 'isoformat'):
-            return obj.isoformat()
-        elif hasattr(obj, 'value'):  # Handle enum objects
-            return obj.value
-        elif hasattr(obj, '__dict__'):
-            return obj.__dict__
-        else:
-            return str(obj)
-    
-    return json.dumps(
-        data,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        default=json_serializer
-    ).encode('utf-8')
-
-
-def compute_replay_hash(data: Dict[str, Any]) -> str:
-    """Compute SHA-256 hash of canonical JSON data for replay verification.
-    
-    Args:
-        data: Dictionary to hash
-        
-    Returns:
-        Hexadecimal SHA-256 hash
-    """
-    canonical_bytes = canonical_json(data)
-    return hashlib.sha256(canonical_bytes).hexdigest()
 
 
 def bundle_inputs_hash(
@@ -164,7 +124,7 @@ def bundle_inputs_hash(
         "executor_failure_evidence": canonical_executor_failure_evidence,
     }
     
-    return compute_replay_hash(bundle_data)
+    return stable_hash(canonical_json(bundle_data))
 
 
 def canonicalize_bundle_with_migration(bundle_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -209,7 +169,7 @@ def compute_replay_hash_with_migration(bundle_dict: Dict[str, Any]) -> str:
         MigrationError: If migration fails or version unsupported
     """
     migrated_bundle = canonicalize_bundle_with_migration(bundle_dict)
-    return compute_replay_hash(migrated_bundle)
+    return stable_hash(canonical_json(migrated_bundle))
 
 
 def verify_canonicalization(data: Dict[str, Any]) -> bool:
@@ -264,11 +224,11 @@ def compute_integrity_checksum(data: Dict[str, Any]) -> str:
     # Create a simplified version for integrity checking
     integrity_data = {
         "keys": sorted(data.keys()),
-        "hashes": {k: compute_replay_hash(v) if isinstance(v, dict) else str(v) 
+        "hashes": {k: stable_hash(canonical_json(v)) if isinstance(v, dict) else str(v) 
                  for k, v in data.items()}
     }
     
-    return compute_replay_hash(integrity_data)
+    return stable_hash(canonical_json(integrity_data))
 
 
 def canonical_diff(original: Dict[str, Any], modified: Dict[str, Any]) -> Dict[str, Any]:

@@ -7,6 +7,13 @@ Now includes schema versioning and migration support for proof bundles.
 # INTERNAL MODULE: Not part of the public SDK surface.
 # Use exoarmur.sdk.public_api instead.
 # This module is an implementation detail and may change without notice.
+
+V1->V2 BOUNDARY (canonical edge):
+    This module is a declared V1->V2 dependency edge, restricted to importing
+    the canonical bundle-hash authority:
+      - exoarmur.execution_boundary_v2.schema_migrations.SchemaMigrations
+      - exoarmur.execution_boundary_v2.utils.canonicalization.compute_replay_hash_with_migration
+    No other V1 modules may import from exoarmur.execution_boundary_v2.*.
 """
 
 import logging

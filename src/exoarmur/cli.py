@@ -617,6 +617,126 @@ def prove_determinism(runs: int, mode: str, input_hash: str, include_failure_dem
         traceback.print_exc()
         sys.exit(1)
 
+def _is_execution_proof_bundle(bundle_data: dict) -> bool:
+    """Detect whether a loaded bundle is an SDK-produced ExecutionProofBundle.
+
+    SDK bundles nest the canonical payload under ``bundle`` and include
+    ``schema_version`` and ``execution_trace``. Audit-record-shaped bundles
+    place records at top-level and carry ``core_version``.
+    """
+    inner = bundle_data.get("bundle") if isinstance(bundle_data, dict) else None
+    if not isinstance(inner, dict):
+        return False
+    return "schema_version" in inner and "execution_trace" in inner
+
+
+def _replay_execution_proof_bundle(bundle_data: dict, json_output: bool) -> int:
+    """Replay path for SDK ExecutionProofBundle format.
+
+    Reconstructs the bundle via ``ExecutionProofBundle.model_validate`` and
+    delegates hash verification to ``verify_replay_hash`` so that the exact
+    same canonical field set is used by both the producer and the verifier.
+    Returns the process exit code.
+    """
+    from exoarmur.execution_boundary_v2.models.execution_proof_bundle import (
+        ExecutionProofBundle,
+    )
+    from exoarmur.execution_boundary_v2.utils.canonicalization import (
+        compute_replay_hash_with_migration,
+    )
+    from exoarmur.execution_boundary_v2.schema_migrations import MigrationError
+    from exoarmur import __version__
+    import ulid
+
+    inner = bundle_data["bundle"]
+    trace = inner.get("execution_trace") or {}
+    correlation_id = trace.get("correlation_id") or inner.get("bundle_id", "")
+    stored_hash = inner.get("replay_hash", "")
+
+    try:
+        bundle_model = ExecutionProofBundle.model_validate(inner)
+        hash_match = bundle_model.verify_replay_hash()
+        # Recompute canonical hash for reporting (same authority as verify_replay_hash)
+        canonical_bundle = {
+            "schema_version": bundle_model.schema_version,
+            "bundle_version": bundle_model.bundle_version,
+            "intent": bundle_model.intent,
+            "policy_decision": bundle_model.policy_decision,
+            "safety_verdict": bundle_model.safety_verdict,
+            "final_verdict": bundle_model.final_verdict.value if hasattr(bundle_model.final_verdict, "value") else bundle_model.final_verdict,
+            "approval_records": bundle_model.approval_records,
+            "execution_trace": bundle_model.execution_trace,
+            "executor_result": bundle_model.executor_result,
+            "governance_evidence": bundle_model.governance_evidence,
+            "resolution_evidence": bundle_model.resolution_evidence,
+            "executor_capabilities": bundle_model.executor_capabilities,
+            "validation_evidence": bundle_model.validation_evidence,
+            "executor_failure_evidence": bundle_model.executor_failure_evidence,
+        }
+        computed_hash = compute_replay_hash_with_migration(canonical_bundle)
+    except MigrationError as e:
+        click.echo(f"Error: Bundle migration failed: {e}", err=True)
+        return 1
+    except Exception as e:
+        click.echo(f"Error: Bundle validation failed: {e}", err=True)
+        return 1
+
+    events = trace.get("events") or []
+    event_stages = {str(ev.get("stage", "")): ev for ev in events}
+
+    # Map canonical stages to SDK stage names present in the trace.
+    stage_map = {
+        "intent": ["intent_received", "intent"],
+        "policy": ["policy_evaluated", "policy"],
+        "gate": ["safety_evaluated", "gate"],
+        "executor": ["executor_invoked", "executor"],
+        "evidence": ["verdict_resolved", "evidence"],
+    }
+
+    stages = []
+    for stage_name, candidates in stage_map.items():
+        event = None
+        for key in candidates:
+            if key in event_stages:
+                event = event_stages[key]
+                break
+        if event is None:
+            stages.append({"stage": stage_name, "status": "absent"})
+        else:
+            status = "match" if hash_match and event.get("ok", True) else ("mismatch" if not hash_match else "match")
+            stages.append({"stage": stage_name, "status": status})
+
+    verdict = "MATCH" if hash_match else "MISMATCH"
+    exit_code = 0 if hash_match else 1
+
+    result = {
+        "run_id": str(ulid.ULID()),
+        "target": {"correlation_id": correlation_id},
+        "core_version": __version__,
+        "audit_bundle_digest": inner.get("bundle_checksum", ""),
+        "input_hash": "",
+        "execution_hash": computed_hash,
+        "replay_hash": computed_hash,
+        "verdict": verdict,
+        "stages": stages,
+        "started_at": inner.get("bundle_created_at", ""),
+        "finished_at": inner.get("bundle_created_at", ""),
+    }
+    if verdict == "MISMATCH":
+        first_divergence = next((s["stage"] for s in stages if s["status"] == "mismatch"), "unknown")
+        result["mismatch"] = {
+            "first_divergence_stage": first_divergence,
+            "expected_hash": stored_hash,
+            "actual_hash": computed_hash,
+        }
+
+    if json_output:
+        click.echo(json.dumps(result))
+    else:
+        click.echo(json.dumps(result, indent=2))
+    return exit_code
+
+
 @main.command()
 @click.option('--bundle', '-b', required=True, help='Path to audit bundle JSON file')
 @click.option('--json', 'json_output', is_flag=True, help='Output results in JSON format')
@@ -634,7 +754,11 @@ def replay(bundle: str, json_output: bool):
         # Load bundle
         with open(bundle, 'r') as f:
             bundle_data = json.load(f)
-        
+
+        # Dispatch: SDK ExecutionProofBundle vs audit-record bundle
+        if _is_execution_proof_bundle(bundle_data):
+            sys.exit(_replay_execution_proof_bundle(bundle_data, json_output))
+
         # Check core version compatibility FIRST
         bundle_core_version = bundle_data.get('core_version', '0.0.0')
         if bundle_core_version != __version__:

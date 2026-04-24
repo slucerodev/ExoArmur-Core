@@ -79,60 +79,41 @@ class ExecutionProofBundle(BaseModel):
                audit_stream_id: Optional[str] = None,
                audit_event_count: int = 0) -> "ExecutionProofBundle":
         """Create execution proof bundle with deterministic ID and enhanced verification."""
-        
-        # Helper function to convert datetime objects to ISO strings for JSON serialization
-        def serialize_datetime(obj):
-            if hasattr(obj, 'isoformat'):
-                return obj.isoformat()
-            elif hasattr(obj, 'value'):  # Handle enum objects
-                return obj.value
-            elif isinstance(obj, dict):
-                return {k: serialize_datetime(v) for k, v in deterministic_iter_dict(obj)}
-            elif isinstance(obj, list):
-                return [serialize_datetime(item) for item in obj]
-            else:
-                return obj
-        
-        # Create canonical representation for hash computation
-        canonical_data = {
+        # Use canonical L1 hash authority (S4/S6 convergence) to compute replay hash.
+        from ..utils.canonicalization import compute_replay_hash_with_migration
+        from exoarmur.replay.canonical_utils import canonical_json, stable_hash
+
+        canonical_bundle = {
             "schema_version": "2.0",
             "bundle_version": "v1",
-            "intent": serialize_datetime(intent),
-            "policy_decision": serialize_datetime(policy_decision),
-            "safety_verdict": serialize_datetime(safety_verdict),
-            "final_verdict": final_verdict.value,
-            "approval_records": serialize_datetime(approval_records or []),
-            "execution_trace": serialize_datetime(execution_trace or {}),
-            "executor_result": serialize_datetime(executor_result or {}),
-            "governance_evidence": serialize_datetime(governance_evidence or {}),
-            "resolution_evidence": serialize_datetime(resolution_evidence or {}),
-            "executor_capabilities": serialize_datetime(executor_capabilities or {}),
-            "validation_evidence": serialize_datetime(validation_evidence or {}),
-            "executor_failure_evidence": serialize_datetime(executor_failure_evidence or {}),
+            "intent": intent,
+            "policy_decision": policy_decision,
+            "safety_verdict": safety_verdict,
+            "final_verdict": final_verdict.value if hasattr(final_verdict, "value") else final_verdict,
+            "approval_records": approval_records or [],
+            "execution_trace": execution_trace or {},
+            "executor_result": executor_result or {},
+            "governance_evidence": governance_evidence or {},
+            "resolution_evidence": resolution_evidence or {},
+            "executor_capabilities": executor_capabilities or {},
+            "validation_evidence": validation_evidence or {},
+            "executor_failure_evidence": executor_failure_evidence or {},
         }
-        
-        # Generate canonical hash
-        import json
-        import hashlib
-        canonical_json_bytes = json.dumps(canonical_data, sort_keys=True, separators=(",", ":")).encode()
-        replay_hash = hashlib.sha256(canonical_json_bytes).hexdigest()
-        
+        replay_hash = compute_replay_hash_with_migration(canonical_bundle)
+
         # Generate bundle ID from intent_id only (not replay_hash to avoid circular dependency)
         intent_id = intent.get("intent_id", "unknown")
         bundle_id = make_bundle_id(intent_id, "deterministic-bundle")
-        
-        # Generate bundle checksum
-        bundle_data = {
+
+        # Generate bundle checksum via the canonical primitives.
+        bundle_checksum = stable_hash(canonical_json({
             "bundle_id": bundle_id,
             "bundle_version": "v1",
             "replay_hash": replay_hash,
-            "final_verdict": final_verdict.value,
+            "final_verdict": final_verdict.value if hasattr(final_verdict, "value") else final_verdict,
             "intent": intent_id,
-            "correlation_id": intent.get("correlation_id", "unknown")
-        }
-        bundle_checksum = hashlib.sha256(
-            json.dumps(bundle_data, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+            "correlation_id": intent.get("correlation_id", "unknown"),
+        }))
         
         return cls(
             bundle_id=bundle_id,
@@ -159,43 +140,26 @@ class ExecutionProofBundle(BaseModel):
     def verify_replay_hash(self) -> bool:
         """Verify replay hash matches canonical bundle data."""
         try:
-            import json
-            import hashlib
-            
-            # Must match the serialization used by create()
-            def serialize_datetime(obj):
-                if hasattr(obj, 'isoformat'):
-                    return obj.isoformat()
-                elif hasattr(obj, 'value'):
-                    return obj.value
-                elif isinstance(obj, dict):
-                    return {k: serialize_datetime(v) for k, v in deterministic_iter_dict(obj)}
-                elif isinstance(obj, list):
-                    return [serialize_datetime(item) for item in obj]
-                else:
-                    return obj
-            
-            # Create canonical representation (must match create() exactly)
-            canonical_data = {
+            # Canonical hash authority (must match create()).
+            from ..utils.canonicalization import compute_replay_hash_with_migration
+
+            canonical_bundle = {
                 "schema_version": self.schema_version,
                 "bundle_version": self.bundle_version,
-                "intent": serialize_datetime(self.intent),
-                "policy_decision": serialize_datetime(self.policy_decision),
-                "safety_verdict": serialize_datetime(self.safety_verdict),
-                "final_verdict": self.final_verdict.value,
-                "approval_records": serialize_datetime(self.approval_records),
-                "execution_trace": serialize_datetime(self.execution_trace),
-                "executor_result": serialize_datetime(self.executor_result),
-                "governance_evidence": serialize_datetime(self.governance_evidence),
-                "resolution_evidence": serialize_datetime(self.resolution_evidence),
-                "executor_capabilities": serialize_datetime(self.executor_capabilities),
-                "validation_evidence": serialize_datetime(self.validation_evidence),
-                "executor_failure_evidence": serialize_datetime(self.executor_failure_evidence),
+                "intent": self.intent,
+                "policy_decision": self.policy_decision,
+                "safety_verdict": self.safety_verdict,
+                "final_verdict": self.final_verdict.value if hasattr(self.final_verdict, "value") else self.final_verdict,
+                "approval_records": self.approval_records,
+                "execution_trace": self.execution_trace,
+                "executor_result": self.executor_result,
+                "governance_evidence": self.governance_evidence,
+                "resolution_evidence": self.resolution_evidence,
+                "executor_capabilities": self.executor_capabilities,
+                "validation_evidence": self.validation_evidence,
+                "executor_failure_evidence": self.executor_failure_evidence,
             }
-            
-            # Generate canonical hash
-            canonical_json_bytes = json.dumps(canonical_data, sort_keys=True, separators=(",", ":")).encode()
-            computed_hash = hashlib.sha256(canonical_json_bytes).hexdigest()
+            computed_hash = compute_replay_hash_with_migration(canonical_bundle)
             
             return computed_hash == self.replay_hash
             

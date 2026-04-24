@@ -9,7 +9,6 @@ import logging
 from datetime import timedelta
 from typing import Dict, Optional, Tuple
 import hashlib
-import json
 from unittest.mock import Mock
 
 from spec.contracts.models_v1 import (
@@ -21,31 +20,9 @@ from exoarmur.federation.clock import Clock
 from exoarmur.federation.audit import AuditService, AuditEventType
 from exoarmur.safety.safety_gate import SafetyGate
 from exoarmur.control_plane.approval_service import ApprovalService, ApprovalRequest
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 logger = logging.getLogger(__name__)
-
-
-class CanonicalJSON:
-    """Utility for canonical JSON serialization"""
-    
-    @staticmethod
-    def serialize(data: Dict) -> str:
-        """Serialize data in canonical JSON format"""
-        def sort_dict(obj):
-            if isinstance(obj, dict):
-                return {k: sort_dict(v) for k, v in sorted(obj.items())}
-            elif isinstance(obj, list):
-                return [sort_dict(item) for item in obj]
-            else:
-                return obj
-        
-        return json.dumps(sort_dict(data), separators=(',', ':'), ensure_ascii=True)
-    
-    @staticmethod
-    def stable_hash(data: Dict) -> str:
-        """Generate stable hash from canonical JSON"""
-        canonical = CanonicalJSON.serialize(data)
-        return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
 
 class IntentStore:
@@ -117,7 +94,7 @@ class IdentityContainmentIntentService:
     
     def _create_intent_hash(self, intent_data: Dict) -> str:
         """Create stable hash from intent data"""
-        return CanonicalJSON.stable_hash(intent_data)
+        return stable_hash(canonical_json(intent_data))
     
     def _recommendation_to_intent_data(self, recommendation: IdentityContainmentRecommendationV1) -> Dict:
         """Convert recommendation to intent data for hashing"""

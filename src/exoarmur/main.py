@@ -1,6 +1,11 @@
 """
 ExoArmur Core FastAPI service — deterministic governance and replayable audit layer for execution
 Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
+
+V1->V2 BOUNDARY (canonical edge):
+    This module is a declared V1->V2 dependency edge, restricted to the
+    violation detector at exoarmur.execution_boundary_v2.detection. No other
+    V1 modules may import from exoarmur.execution_boundary_v2.*.
 """
 
 from __future__ import annotations

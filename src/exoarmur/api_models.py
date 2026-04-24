@@ -111,7 +111,6 @@ class AuditBundleResponseV1(BaseModel):
     core_version: str = Field(description="Core version that produced this bundle")
     input_hash: str = Field(description="Hash of the input payload")
     execution_hash: str = Field(description="Hash of the execution trace")
-    path: Optional[str] = Field(default=None, description="Path to the bundle file if persisted")
     audit_records: List[Dict[str, Any]] = Field(description="Full audit records for replay")
     retrieved_at: datetime = Field(description="When the bundle was retrieved")
     
