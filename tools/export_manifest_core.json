@@ -7,7 +7,6 @@
     "tools",
     "src",
     "tests",
-    "spec",
     "pyproject.toml",
     "README.md",
     "LICENSE",

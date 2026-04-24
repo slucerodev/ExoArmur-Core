@@ -163,7 +163,7 @@ if flags.is_v2_federation_enabled():
 ### Contract Syntax Validation
 ```bash
 # Validate YAML contracts
-python -c "import yaml; yaml.safe_load(open('spec/contracts/federation_v2.yaml'))"
+python -c "import yaml; yaml.safe_load(open('src/spec/contracts/federation_v2.yaml'))"
 
 # Validate Python contracts
 python -c "import spec.contracts.models_v1"

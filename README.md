@@ -160,6 +160,26 @@ REPLAY_VERDICT=PASS
 The same demo is executed in CI on every push — see the `V2 Restrained
 Autonomy Demo Smoke` job in [`.github/workflows/v2-demo-smoke.yml`](.github/workflows/v2-demo-smoke.yml).
 
+## Benchmark Proof
+
+Validate deterministic execution under high concurrency:
+
+```bash
+exoarmur benchmark --determinism-load --runs 100 --concurrency 500
+```
+
+Expected output:
+```
+DETERMINISM
+-----------
+Concurrency: 500
+Executions: 100
+Unique Hashes: 1
+STATUS: PASS
+```
+
+This proves that hash consistency holds even under extreme concurrent load. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md) for full benchmark suite documentation.
+
 ## CI
 
 Every push runs:
