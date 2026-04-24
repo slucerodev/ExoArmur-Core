@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 # Add src and spec to path for imports
 
-from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, ExecutionIntentV1
+from spec.contracts.models_v1 import TelemetryEventV1, ExecutionIntentV1
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 from exoarmur.execution.execution_kernel import ExecutionKernel
 from exoarmur.control_plane.approval_service import ApprovalService
@@ -94,7 +94,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def sample_local_decision(self):
         """Sample local decision"""
-        from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
+        from spec.contracts.models_v1 import LocalDecisionV1
         return LocalDecisionV1(
             schema_version="1.0.0",
             decision_id="01J4NR5X9Z8GABCDEF12345679",  # Valid ULID
@@ -119,7 +119,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def sample_local_decision_suspicious(self):
         """Sample local decision for A1/A2/A3 actions"""
-        from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
+        from spec.contracts.models_v1 import LocalDecisionV1
         return LocalDecisionV1(
             schema_version="1.0.0",
             decision_id="01J4NR5X9Z8GABCDEF12345680",  # Valid ULID

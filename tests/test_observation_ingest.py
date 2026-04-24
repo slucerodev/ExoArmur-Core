@@ -6,7 +6,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import Mock, patch
 
-from exoarmur.spec.contracts.models_v1 import (
+from spec.contracts.models_v1 import (
     ObservationV1,
     ObservationType,
     TelemetrySummaryPayloadV1,
@@ -104,7 +104,7 @@ def create_mock_identity(test_federate_identity):
 
 def create_mock_confirmed_session():
     """Create a mock handshake session in CONFIRMED state"""
-    from exoarmur.spec.contracts.models_v1 import HandshakeState
+    from spec.contracts.models_v1 import HandshakeState
     mock_session = Mock()
     mock_session.state = HandshakeState.CONFIRMED
     return mock_session

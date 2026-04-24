@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from exoarmur.replay.canonical_utils import canonical_json, stable_hash, to_canonical_event
 from exoarmur.replay.event_envelope import CanonicalEvent
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayResult
-from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+from spec.contracts.models_v1 import AuditRecordV1
 
 CORRELATION_ID = "determinism-corr"
 

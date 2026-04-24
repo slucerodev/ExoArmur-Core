@@ -367,7 +367,7 @@ class TestToCanonicalEvent:
     
     def test_canonical_event_projection_strips_wall_clock(self):
         """Test canonical projection removes wall-clock fields"""
-        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+        from spec.contracts.models_v1 import AuditRecordV1
         
         record = AuditRecordV1(
             schema_version="1.0.0",
@@ -397,7 +397,7 @@ class TestToCanonicalEvent:
     
     def test_canonical_event_payload_extraction(self):
         """Test payload extraction from different reference formats"""
-        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+        from spec.contracts.models_v1 import AuditRecordV1
         
         # Test with kind.ref format
         record1 = AuditRecordV1(
@@ -456,7 +456,7 @@ class TestToCanonicalEvent:
     
     def test_canonical_event_payload_hash_computation(self):
         """Test payload hash is computed correctly"""
-        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+        from spec.contracts.models_v1 import AuditRecordV1
         
         record = AuditRecordV1(
             schema_version="1.0.0",
@@ -485,7 +485,7 @@ class TestToCanonicalEvent:
     
     def test_canonical_event_field_fallbacks(self):
         """Test field extraction with fallbacks"""
-        from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+        from spec.contracts.models_v1 import AuditRecordV1
         
         record = AuditRecordV1(
             schema_version="1.0.0",

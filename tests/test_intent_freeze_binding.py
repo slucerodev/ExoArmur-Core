@@ -17,7 +17,7 @@ from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.safety.safety_gate import SafetyGate, SafetyVerdict, PolicyState, TrustState, EnvironmentState
 from exoarmur.execution.execution_kernel import ExecutionKernel
-from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
+from spec.contracts.models_v1 import TelemetryEventV1, LocalDecisionV1
 
 
 class TestIntentFreezeBinding:

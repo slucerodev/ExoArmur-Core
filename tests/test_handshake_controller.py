@@ -18,7 +18,7 @@ from tests.federation_fixtures import (
     mock_feature_flags_enabled
 )
 
-from exoarmur.spec.contracts.models_v1 import (
+from spec.contracts.models_v1 import (
     HandshakeState,
     FederationRole,
     CellStatus

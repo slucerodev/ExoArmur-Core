@@ -22,7 +22,7 @@ from exoarmur.control_plane.approval_service import ApprovalService, ApprovalCon
 from exoarmur.control_plane.control_api import ControlAPI, ControlAPIConfig
 from exoarmur.control_plane.operator_interface import OperatorInterface, OperatorConfig
 
-from exoarmur.spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
+from spec.contracts.models_v1 import TelemetryEventV1, BeliefV1, ExecutionIntentV1
 
 
 @pytest.mark.v2_acceptance

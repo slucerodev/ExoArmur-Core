@@ -15,7 +15,7 @@ from exoarmur.replay.event_envelope import CanonicalEvent, EnvelopeValidationErr
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport, ReplayResult, ReplayEngineError
 from exoarmur.control_plane.intent_store import IntentStore
 from exoarmur.control_plane.approval_service import ApprovalService
-from exoarmur.spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
+from spec.contracts.models_v1 import AuditRecordV1, ExecutionIntentV1, TelemetryEventV1
 
 
 class TestReplayEngineDeterminism:

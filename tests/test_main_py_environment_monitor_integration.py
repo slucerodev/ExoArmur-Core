@@ -194,7 +194,7 @@ class TestMainPyEnvironmentMonitorIntegration:
         from exoarmur.safety.safety_gate import SafetyGate
         from exoarmur.collective_confidence.aggregator import CollectiveState
         from exoarmur.safety.safety_gate import PolicyState, TrustState
-        from exoarmur.spec.contracts.models_v1 import LocalDecisionV1
+        from spec.contracts.models_v1 import LocalDecisionV1
         
         safety_gate = SafetyGate()
         environment_monitor = EnvironmentMonitor()

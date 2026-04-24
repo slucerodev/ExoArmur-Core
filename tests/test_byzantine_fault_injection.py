@@ -26,7 +26,7 @@ from exoarmur.replay.event_envelope import CanonicalEvent
 # Import contract models
 import sys
 import os
-from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+from spec.contracts.models_v1 import AuditRecordV1
 
 
 class TestByzantineFaultInjector:

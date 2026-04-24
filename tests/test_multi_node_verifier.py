@@ -21,7 +21,7 @@ from exoarmur.replay.replay_engine import ReplayEngine, ReplayResult
 # Import contract models
 import sys
 import os
-from exoarmur.spec.contracts.models_v1 import AuditRecordV1
+from spec.contracts.models_v1 import AuditRecordV1
 
 
 class TestMultiNodeReplayVerifier:
