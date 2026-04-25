@@ -5,11 +5,10 @@ Purely derivative transformation for unified audit representation
 
 import logging
 from typing import Dict, Any, Optional, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from spec.contracts.models_v1 import AuditRecordV1
-from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class CanonicalAuditEnvelope:
         if self.canonical_hashes is None:
             self.canonical_hashes = {}
         if self.normalized_at is None:
-            self.normalized_at = utc_now()
+            self.normalized_at = datetime.now(timezone.utc)
 
 
 class AuditNormalizer:
@@ -142,7 +141,7 @@ class AuditNormalizer:
             canonical_hashes=canonical_hashes,
             
             # Normalization metadata (defaults will be applied)
-            normalized_at=utc_now(),
+            normalized_at=datetime.now(timezone.utc),
             normalizer_version=self.normalizer_version,
             
             # Ordering
@@ -185,7 +184,7 @@ class AuditNormalizer:
             canonical_hashes=audit_record.canonical_hashes,
             
             # Normalization metadata (updated)
-            normalized_at=utc_now(),
+            normalized_at=datetime.now(timezone.utc),
             normalizer_version=self.normalizer_version,
             
             # Ordering (preserved)
@@ -311,7 +310,7 @@ class AuditNormalizer:
                 source_format='v1',
                 source_hashes=audit_record.hashes,
                 canonical_hashes={'fallback': True},
-                normalized_at=utc_now(),
+                normalized_at=datetime.now(timezone.utc),
                 normalizer_version=self.normalizer_version,
                 ordering_key=self._generate_ordering_key(audit_record) if preserve_ordering else ""
             )
@@ -332,7 +331,7 @@ class AuditNormalizer:
                 source_format='canonical',
                 source_hashes=audit_record.source_hashes,
                 canonical_hashes={'fallback': True},
-                normalized_at=utc_now(),
+                normalized_at=datetime.now(timezone.utc),
                 normalizer_version=self.normalizer_version,
                 ordering_key=audit_record.ordering_key if preserve_ordering else ""
             )

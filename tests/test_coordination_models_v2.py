@@ -16,6 +16,7 @@ from exoarmur.federation.coordination.coordination_models_v2 import (
     CoordinationRelease, CoordinationObservation, CoordinationIntentBroadcast,
     CoordinationEvent, CoordinationSession
 )
+from exoarmur.federation.clock import get_federation_clock
 
 
 class TestCoordinationModels:
@@ -58,13 +59,13 @@ class TestCoordinationModels:
             scope=scope,
             capabilities=["federation", "compute"],
             requirements=["trust-score>0.7"],
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=12)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=12)
         )
         
         assert announcement.owner_cell_id == "cell-1"
         assert announcement.coordination_type == CoordinationType.AVAILABILITY_ANNOUNCEMENT
         assert len(announcement.capabilities) == 2
-        assert announcement.expiration_timestamp > datetime.now(timezone.utc)
+        assert announcement.expiration_timestamp > get_federation_clock().now()
         assert announcement.coordination_id is not None
     
     def test_coordination_announcement_expiration_validation(self):
@@ -80,16 +81,16 @@ class TestCoordinationModels:
                 owner_cell_id="cell-1",
                 coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
                 scope=scope,
-                expiration_timestamp=datetime.now(timezone.utc) - timedelta(hours=1)
+                expiration_timestamp=get_federation_clock().now() - timedelta(hours=1)
             )
         
-        # Too far in future should fail
+        # Too far in future should fail (use 25 hours to exceed 24 hour limit)
         with pytest.raises(ValidationError, match="Expiration too far in future"):
             CoordinationAnnouncement(
                 owner_cell_id="cell-1",
                 coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
                 scope=scope,
-                expiration_timestamp=datetime.now(timezone.utc) + timedelta(days=2)
+                expiration_timestamp=get_federation_clock().now() + timedelta(hours=25)
             )
     
     def test_coordination_claim_creation(self):
@@ -105,13 +106,13 @@ class TestCoordinationModels:
             scope=scope,
             coordination_role=CoordinationRole.COORDINATOR,
             claimed_resources=["compute"],
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         assert claim.owner_cell_id == "cell-1"
         assert claim.coordination_role == CoordinationRole.COORDINATOR
         assert len(claim.claimed_resources) == 1
-        assert claim.expiration_timestamp > datetime.now(timezone.utc)
+        assert claim.expiration_timestamp > get_federation_clock().now()
     
     def test_coordination_release_creation(self):
         """Test coordination release creation"""
@@ -175,14 +176,14 @@ class TestCoordinationModels:
             intent_data={"target_instances": 5},
             target_cells=["cell-2", "cell-3"],
             priority=7,
-            valid_until=datetime.now(timezone.utc) + timedelta(hours=2)
+            valid_until=get_federation_clock().now() + timedelta(hours=2)
         )
         
         assert intent.broadcaster_cell_id == "cell-1"
         assert intent.intent_type == "scale_up"
         assert intent.target_cells == ["cell-2", "cell-3"]
         assert intent.priority == 7
-        assert intent.valid_until > datetime.now(timezone.utc)
+        assert intent.valid_until > get_federation_clock().now()
     
     def test_coordination_intent_priority_validation(self):
         """Test coordination intent priority validation"""
@@ -208,7 +209,7 @@ class TestCoordinationModels:
             coordinator_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=1)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=1)
         )
         
         assert session.coordination_id == "test-session-123"
@@ -232,7 +233,7 @@ class TestCoordinationModels:
             coordinator_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) - timedelta(hours=1)
+            expiration_timestamp=get_federation_clock().now() - timedelta(hours=1)
         )
         
         assert expired_session.is_expired()
@@ -277,7 +278,7 @@ class TestCoordinationModelSerialization:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=1)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=1)
         )
         
         # Test JSON serialization
@@ -305,7 +306,7 @@ class TestCoordinationModelSerialization:
             coordinator_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=1)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=1)
         )
         
         # Test JSON serialization
@@ -336,7 +337,7 @@ class TestCoordinationFeatureFlagIsolation:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=1)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=1)
         )
         
         claim_scope = CoordinationScope(
@@ -350,7 +351,7 @@ class TestCoordinationFeatureFlagIsolation:
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=claim_scope,
             coordination_role=CoordinationRole.PARTICIPANT,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         # All should work without any feature flag dependencies

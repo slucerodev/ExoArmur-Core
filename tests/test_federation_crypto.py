@@ -234,6 +234,7 @@ class TestProtocolEnforcement:
     def test_valid_signed_message_is_accepted(self, identity_store, key_pair, federate_identity):
         """Test that valid signed messages are accepted"""
         import secrets
+        from exoarmur.federation.clock import get_federation_clock
         
         # Clear any existing nonces to ensure clean state
         identity_store._nonces.clear()
@@ -258,10 +259,13 @@ class TestProtocolEnforcement:
             message=signed_message,
             expected_key_id=key_pair.key_id,
             public_key=key_pair.public_key,
-            nonce_store=identity_store
+            nonce_store=identity_store,
+            clock=get_federation_clock()
         )
         
-        assert is_valid is True
+        if not is_valid:
+            print(f"Verification failed with error: {error}")
+        assert is_valid is True, f"Verification failed: {error}"
         assert error is None
     
     def test_invalid_signature_is_rejected(self, identity_store, key_pair, federate_identity):
@@ -319,12 +323,13 @@ class TestProtocolEnforcement:
     def test_nonce_reuse_is_rejected(self, identity_store, key_pair, federate_identity):
         """Test that nonce reuse is rejected"""
         import secrets
+        from exoarmur.federation.clock import get_federation_clock
         
         # Clear any existing nonces to ensure clean state
         identity_store._nonces.clear()
         
         # Generate unique nonce for this test
-        unique_nonce = f"test-nonce-reuse-{secrets.token_urlsafe(8)}"
+        unique_nonce = f"test-nonce-{secrets.token_urlsafe(8)}"
         
         message = create_identity_exchange_message(
             federate_id="cell-us-east-1-cluster-01-node-01",
@@ -344,7 +349,8 @@ class TestProtocolEnforcement:
             message=signed_message,
             expected_key_id=key_pair.key_id,
             public_key=key_pair.public_key,
-            nonce_store=identity_store
+            nonce_store=identity_store,
+            clock=get_federation_clock()
         )
         
         assert is_valid1 is True
@@ -355,7 +361,8 @@ class TestProtocolEnforcement:
             message=signed_message,
             expected_key_id=key_pair.key_id,
             public_key=key_pair.public_key,
-            nonce_store=identity_store
+            nonce_store=identity_store,
+            clock=get_federation_clock()
         )
         
         assert is_valid2 is False

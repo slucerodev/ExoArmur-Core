@@ -10,6 +10,7 @@ from enum import Enum
 from dataclasses import dataclass
 from collections import deque
 
+import time as _time
 from exoarmur.clock import utc_now
 
 logger = logging.getLogger(__name__)
@@ -81,12 +82,14 @@ class TokenBucket:
         self.burst = burst  # Maximum tokens
         self.window_size = window_size  # Window size in seconds
         self.tokens = burst  # Start with full burst
-        self.last_refill = utc_now().timestamp()
+        # Rate limiting is a runtime mechanism and must use wall-clock time,
+        # since it meters real elapsed time (independent of deterministic replay clock).
+        self.last_refill = _time.monotonic()
         self._lock = asyncio.Lock()
     
     def _refill_tokens(self):
         """Refill tokens based on elapsed time"""
-        now = utc_now().timestamp()
+        now = _time.monotonic()
         elapsed = now - self.last_refill
         
         # Calculate tokens to add

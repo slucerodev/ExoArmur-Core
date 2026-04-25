@@ -235,7 +235,7 @@ class RetryManager:
         if policy.jitter_enabled:
             jitter_range = delay * policy.jitter_factor
             # Deterministic jitter based on attempt number (not random)
-            jitter = (stable_hash(str(attempt)) % 1000 / 1000.0) * 2 * jitter_range - jitter_range
+            jitter = (int(stable_hash(str(attempt)), 16) % 1000 / 1000.0) * 2 * jitter_range - jitter_range
             delay = max(0, delay + jitter)
         
         return delay

@@ -16,6 +16,7 @@ from exoarmur.federation.crypto import (
 )
 from exoarmur.federation.messages import create_identity_exchange_message
 from exoarmur.federation.federate_identity_store import FederateIdentityStore
+from exoarmur.federation.clock import get_federation_clock
 from spec.contracts.models_v1 import (
     FederateIdentityV1,
     FederationRole,
@@ -37,7 +38,7 @@ class TestProtocolEnforcer:
     @pytest.fixture
     def protocol_enforcer(self, identity_store):
         """Test protocol enforcer"""
-        return ProtocolEnforcer(identity_store)
+        return ProtocolEnforcer(identity_store, clock=get_federation_clock())
     
     @pytest.fixture
     def key_pair(self):
@@ -164,7 +165,7 @@ class TestProtocolEnforcer:
     def test_timestamp_skew_is_rejected(self, protocol_enforcer, key_pair, federate_identity):
         """Test that timestamp skew is rejected"""
         # Create message with old timestamp
-        old_timestamp = datetime.now(timezone.utc) - timedelta(hours=1)
+        old_timestamp = get_federation_clock().now() - timedelta(hours=1)
         
         message = create_identity_exchange_message(
             federate_id="cell-us-east-1-cluster-01-node-01",

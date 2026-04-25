@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 from enum import Enum
 
-from exoarmur.replay.canonical_utils import to_canonical_event, stable_hash
+from exoarmur.replay.canonical_utils import to_canonical_event, stable_hash, canonical_json
 from .event_envelope import CanonicalEvent
 from .multi_node_verifier import MultiNodeReplayVerifier, DivergenceReport, ConsensusResult
 

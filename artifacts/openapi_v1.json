@@ -296,6 +296,62 @@
         "title": "ArbitrationStatus",
         "type": "string"
       },
+      "AuditBundleResponseV1": {
+        "additionalProperties": false,
+        "description": "Response model for GET /v1/audit/{id}/bundle",
+        "properties": {
+          "audit_bundle_digest": {
+            "description": "Digest of the audit bundle",
+            "title": "Audit Bundle Digest",
+            "type": "string"
+          },
+          "audit_records": {
+            "description": "Full audit records for replay",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Audit Records",
+            "type": "array"
+          },
+          "core_version": {
+            "description": "Core version that produced this bundle",
+            "title": "Core Version",
+            "type": "string"
+          },
+          "correlation_id": {
+            "description": "Correlation identifier",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "execution_hash": {
+            "description": "Hash of the execution trace",
+            "title": "Execution Hash",
+            "type": "string"
+          },
+          "input_hash": {
+            "description": "Hash of the input payload",
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "retrieved_at": {
+            "description": "When the bundle was retrieved",
+            "title": "Retrieved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "correlation_id",
+          "audit_bundle_digest",
+          "core_version",
+          "input_hash",
+          "execution_hash",
+          "audit_records",
+          "retrieved_at"
+        ],
+        "title": "AuditBundleResponseV1",
+        "type": "object"
+      },
       "AuditResponseV1": {
         "additionalProperties": false,
         "description": "Response model for GET /v1/audit/{correlation_id}",
@@ -1741,6 +1797,46 @@
           }
         },
         "summary": "Get Audit Records"
+      }
+    },
+    "/v1/audit/{correlation_id}/bundle": {
+      "get": {
+        "description": "Get audit bundle for replay - deterministic, replay-complete bundle",
+        "operationId": "get_audit_bundle_v1_audit__correlation_id__bundle_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correlation_id",
+            "required": true,
+            "schema": {
+              "title": "Correlation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditBundleResponseV1"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Audit Bundle"
       }
     },
     "/v1/telemetry/ingest": {

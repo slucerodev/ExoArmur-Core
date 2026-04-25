@@ -29,34 +29,68 @@ def canonical_json(data: Union[Dict[str, Any], list, str, int, float, bool, None
     Returns:
         Canonical JSON string
     """
-    def _canonicalize(value):
-        if isinstance(value, dict):
-            # Sort keys and canonicalize values
-            return {k: _canonicalize(v) for k, v in sorted(value.items())}
-        elif isinstance(value, list):
-            # Canonicalize list elements
-            return [_canonicalize(item) for item in value]
-        elif isinstance(value, datetime):
-            # Normalize datetime to UTC ISO format
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
+    def _canonicalize(value, visited=None):
+        if visited is None:
+            visited = set()
+        
+        # Track object identity to prevent infinite recursion
+        value_id = id(value)
+        if value_id in visited:
+            return "[CIRCULAR_REFERENCE]"
+        visited.add(value_id)
+        
+        try:
+            if isinstance(value, dict):
+                # Sort keys and canonicalize values
+                return {k: _canonicalize(v, visited) for k, v in sorted(value.items())}
+            elif isinstance(value, list):
+                # Canonicalize list elements
+                return [_canonicalize(item, visited) for item in value]
+            elif isinstance(value, datetime):
+                # Normalize datetime to UTC ISO format
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
+                else:
+                    value = value.astimezone(timezone.utc)
+                return value.isoformat().replace('+00:00', 'Z')
+            elif isinstance(value, float):
+                # Ensure consistent float representation
+                if value != value:  # NaN
+                    return "null"
+                if value == float('inf'):
+                    return "null"
+                if value == float('-inf'):
+                    return "null"
+                # Round to avoid floating point precision issues
+                return round(value, 12)
+            elif hasattr(value, 'value') and not isinstance(value, (str, bytes, int, float, bool)):
+                # Handle enum objects (has .value attribute but is not a primitive)
+                return _canonicalize(value.value, visited)
+            elif hasattr(value, '__dict__'):
+                # Handle objects with __dict__ (convert to dict and canonicalize)
+                # Filter out non-serializable attributes (methods, functions, descriptors, etc.)
+                obj_dict = {}
+                for k, v in value.__dict__.items():
+                    # Skip callable attributes (methods, functions)
+                    if callable(v):
+                        continue
+                    # Skip descriptor types
+                    if type(v).__name__ in ('getset_descriptor', 'member_descriptor', 'method_descriptor', 'wrapper_descriptor', 'builtin_function_or_method'):
+                        continue
+                    obj_dict[k] = v
+                return _canonicalize(obj_dict, visited)
+            elif type(value).__name__ == 'mappingproxy':
+                # Handle mappingproxy (read-only dict proxy, used for class __dict__)
+                return _canonicalize(dict(value), visited)
+            elif type(value).__name__ in ('getset_descriptor', 'member_descriptor', 'method_descriptor', 'wrapper_descriptor'):
+                # Skip Python descriptor types (not data)
+                return f"[{type(value).__name__}]"
+            elif isinstance(value, (str, int, bool)) or value is None:
+                return value
             else:
-                value = value.astimezone(timezone.utc)
-            return value.isoformat().replace('+00:00', 'Z')
-        elif isinstance(value, float):
-            # Ensure consistent float representation
-            if value != value:  # NaN
-                return "null"
-            if value == float('inf'):
-                return "null"
-            if value == float('-inf'):
-                return "null"
-            # Round to avoid floating point precision issues
-            return round(value, 12)
-        elif isinstance(value, (str, int, bool)) or value is None:
-            return value
-        else:
-            raise ValueError(f"Unsupported type for canonicalization: {type(value)}")
+                raise ValueError(f"Unsupported type for canonicalization: {type(value)}")
+        finally:
+            visited.remove(value_id)
     
     try:
         canonical_data = _canonicalize(data)

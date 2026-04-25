@@ -20,6 +20,7 @@ from exoarmur.federation.coordination.coordination_models_v2 import (
     CoordinationScope, CoordinationAnnouncement, CoordinationClaim,
     CoordinationRelease, CoordinationObservation, CoordinationIntentBroadcast
 )
+from exoarmur.federation.clock import get_federation_clock, set_federation_clock, FixedClock
 
 
 class TestCoordinationStateMachine:
@@ -54,7 +55,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         result = machine.create_announcement(announcement)
@@ -89,7 +90,7 @@ class TestCoordinationStateMachine:
                 owner_cell_id="cell-1",
                 coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
                 scope=scope,
-                expiration_timestamp=datetime.now(timezone.utc) - timedelta(hours=1)
+                expiration_timestamp=get_federation_clock().now() - timedelta(hours=1)
             )
     
     def test_claim_coordination_success(self):
@@ -106,7 +107,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement_result = machine.create_announcement(announcement)
@@ -125,7 +126,7 @@ class TestCoordinationStateMachine:
             scope=claim_scope,
             coordination_role=CoordinationRole.COORDINATOR,
             claimed_resources=["compute"],
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         result = machine.claim_coordination(claim)
@@ -156,7 +157,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement_result = machine.create_announcement(announcement)
@@ -174,7 +175,7 @@ class TestCoordinationStateMachine:
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=claim_scope,
             coordination_role=CoordinationRole.COORDINATOR,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         result1 = machine.claim_coordination(claim1)
@@ -187,7 +188,7 @@ class TestCoordinationStateMachine:
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=claim_scope,
             coordination_role=CoordinationRole.PARTICIPANT,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         result2 = machine.claim_coordination(claim2)
@@ -209,7 +210,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement_result = machine.create_announcement(announcement)
@@ -226,7 +227,7 @@ class TestCoordinationStateMachine:
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=claim_scope,
             coordination_role=CoordinationRole.COORDINATOR,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         machine.claim_coordination(claim)
@@ -265,7 +266,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement_result = machine.create_announcement(announcement)
@@ -282,7 +283,7 @@ class TestCoordinationStateMachine:
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=claim_scope,
             coordination_role=CoordinationRole.COORDINATOR,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(minutes=30)
+            expiration_timestamp=get_federation_clock().now() + timedelta(minutes=30)
         )
         
         machine.claim_coordination(claim)
@@ -315,7 +316,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement_result = machine.create_announcement(announcement)
@@ -358,7 +359,7 @@ class TestCoordinationStateMachine:
             intent_data={"target_instances": 5},
             target_cells=["cell-2", "cell-3"],
             priority=7,
-            valid_until=datetime.now(timezone.utc) + timedelta(hours=2)
+            valid_until=get_federation_clock().now() + timedelta(hours=2)
         )
         
         result = machine.broadcast_intent(intent)
@@ -380,7 +381,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         result = machine.create_announcement(announcement)
@@ -427,14 +428,14 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope1,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         announcement2 = CoordinationAnnouncement(
             owner_cell_id="cell-2",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope2,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         result1 = machine.create_announcement(announcement1)
@@ -475,7 +476,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         machine.create_announcement(announcement)
@@ -493,7 +494,7 @@ class TestCoordinationStateMachine:
             owner_cell_id="cell-2",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         machine.create_announcement(announcement2)
@@ -508,6 +509,10 @@ class TestCoordinationStateMachineCleanup:
     @pytest.mark.asyncio
     async def test_expired_session_cleanup(self):
         """Test cleanup of expired sessions"""
+        # Set up a fixed clock for deterministic testing
+        fixed_clock = FixedClock()
+        set_federation_clock(fixed_clock)
+        
         config = CoordinationConfig(cleanup_interval_seconds=1)  # Fast cleanup for testing
         machine = CoordinationStateMachine(config)
         
@@ -521,7 +526,7 @@ class TestCoordinationStateMachineCleanup:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.TEMPORARY_COORDINATION,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(seconds=2)  # Expire quickly
+            expiration_timestamp=get_federation_clock().now() + timedelta(seconds=2)  # Expire quickly
         )
         
         result = machine.create_announcement(announcement)
@@ -536,8 +541,11 @@ class TestCoordinationStateMachineCleanup:
         # Start cleanup task
         await machine.start_cleanup_task()
         
-        # Wait for expiration and cleanup
-        await asyncio.sleep(3)
+        # Advance clock past expiration
+        fixed_clock.advance(timedelta(seconds=3))
+        
+        # Wait for cleanup to process
+        await asyncio.sleep(0.2)
         
         # Verify session is now expired
         session = machine._sessions.get(coordination_id)
@@ -562,7 +570,7 @@ class TestCoordinationStateMachineCleanup:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         machine.create_announcement(announcement)
@@ -599,7 +607,7 @@ class TestCoordinationStateMachineFeatureFlagIsolation:
             owner_cell_id="cell-1",
             coordination_type=CoordinationType.AVAILABILITY_ANNOUNCEMENT,
             scope=scope,
-            expiration_timestamp=datetime.now(timezone.utc) + timedelta(hours=6)
+            expiration_timestamp=get_federation_clock().now() + timedelta(hours=6)
         )
         
         result = machine.create_announcement(announcement)

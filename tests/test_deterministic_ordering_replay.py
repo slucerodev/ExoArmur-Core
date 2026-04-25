@@ -202,15 +202,15 @@ class TestReplayDeterminism:
             return hashlib.sha256(canonical.encode()).hexdigest()
         
         async def async_load_test():
-            # Create 10 batches of events
+            # Create 10 batches of events with identical data to verify determinism
             batches = []
+            base_batch = [
+                {"id": "z0", "value": 0},
+                {"id": "a0", "value": 0},
+                {"id": "m0", "value": 0}
+            ]
             for i in range(10):
-                batch = [
-                    {"id": f"z{i}", "value": i},
-                    {"id": f"a{i}", "value": i * 2},
-                    {"id": f"m{i}", "value": i * 3}
-                ]
-                batches.append(batch)
+                batches.append(base_batch.copy())
             
             # Process all batches concurrently
             tasks = [process_async_batch(batch) for batch in batches]

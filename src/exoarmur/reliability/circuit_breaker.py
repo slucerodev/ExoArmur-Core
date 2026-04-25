@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List, Callable, TypeVar, Set
 from enum import Enum
 from dataclasses import dataclass
 
+import time as _time
 from exoarmur.clock import utc_now
 from exoarmur.replay.canonical_utils import stable_hash
 
@@ -88,6 +89,9 @@ class CircuitBreaker:
         self._success_count = 0
         self._last_failure_time = None
         self._last_success_time = None
+        # Monotonic clock for time-based recovery transitions (wall-clock, not replay).
+        # Reliability timing must reflect real elapsed time, independent of deterministic clock.
+        self._last_failure_monotonic: Optional[float] = None
         
         # History for monitoring
         self._state_history: List[CircuitStateTransition] = []
@@ -139,6 +143,7 @@ class CircuitBreaker:
         now = utc_now()
         self._failure_history.append(now)
         self._last_failure_time = now
+        self._last_failure_monotonic = _time.monotonic()
         self._failure_count += 1
         
         # Clean old failures outside window
@@ -170,10 +175,12 @@ class CircuitBreaker:
     
     def _should_try_half_open(self) -> bool:
         """Check if circuit should try half-open state"""
-        if self._last_failure_time is None:
+        if self._last_failure_monotonic is None:
             return False
         
-        elapsed = (utc_now() - self._last_failure_time).total_seconds()
+        # Use wall-clock monotonic time so recovery_timeout reflects real elapsed time,
+        # not deterministic replay time which does not advance during asyncio.sleep().
+        elapsed = _time.monotonic() - self._last_failure_monotonic
         return elapsed >= self.config.recovery_timeout
     
     async def _change_state(self, new_state: CircuitState, reason: str):

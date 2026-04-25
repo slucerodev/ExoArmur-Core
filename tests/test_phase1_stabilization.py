@@ -55,7 +55,11 @@ class TestPhase1Stabilization:
         # Endpoint should either work or fail gracefully, not crash the server
         assert response.status_code in [200, 500]
         if response.status_code == 200:
-            assert response.json() == {"audit_records": []}
+            body = response.json()
+            assert body["audit_records"] == []
+            # Allow additional metadata fields (additive change)
+            assert "correlation_id" in body
+            assert "total_count" in body
     
     def test_read_only_endpoints_documentation(self):
         """Verify routing documentation is present in read-only endpoints"""
