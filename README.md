@@ -7,7 +7,13 @@
 [![Version](https://img.shields.io/badge/version-2.1.0-green)](https://github.com/slucerodev/ExoArmur-Core/releases)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Codespaces-purple)](https://codespaces.new/slucerodev/ExoArmur-Core)
 
-**Deterministic execution governance for AI agents.** Every action passes through a policy gate, produces a cryptographic audit trail, and is deterministically replayable.
+**A governance layer for AI agents that enforces policy before execution, produces cryptographic audit trails, and enables deterministic replay.**
+
+ExoArmur sits between your AI decision layer and execution targets. It ensures every action is:
+- **Policy-gated** — evaluated before it runs
+- **Auditable** — cryptographically traceable to original intent
+- **Replayable** — deterministic reconstruction of execution traces
+- **Approvable** — can be queued for human operator review
 
 🚀 **[Try the Live Demo](https://codespaces.new/slucerodev/ExoArmur-Core)** — One-click browser environment, no installation needed.
 
@@ -18,14 +24,80 @@
 
 ---
 
-## 5-Minute Proof
+## Quick Start
+
+Install and run in 30 seconds:
 
 ```bash
 pip install exoarmur-core
 python examples/quickstart_replay.py
 ```
 
-Or inline:
+**Expected output:** `Replay result: success`
+
+For a guided setup with verification, run:
+```bash
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+./scripts/quickstart.sh
+```
+
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions.
+
+---
+
+## Integration in 30 Lines
+
+Wrap your existing actions with ExoArmur governance:
+
+```python
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+from exoarmur.execution_boundary_v2.action_intent import ActionIntent
+
+# Initialize the governance pipeline
+pipeline = ProxyPipeline()
+
+# Wrap your action
+intent = ActionIntent(
+    action_type="file_write",
+    parameters={"path": "/tmp/data.txt", "content": "hello"},
+    context={"user_id": "user-123"}
+)
+
+# Execute with governance (policy, safety, audit)
+result = pipeline.execute_with_trace(intent)
+print(f"Result: {result.status}")  # APPROVED or DENIED
+# Audit trail automatically captured and replayable
+```
+
+---
+
+## Golden Demo (Full Governance Pipeline)
+
+The canonical demo exercises the complete execution boundary: policy evaluation, denial before side effects, audit trail emission, and cryptographic replay verification.
+
+```bash
+pip install exoarmur-core
+python demos/canonical_truth_reconstruction_demo.py
+```
+
+**Expected output** (deterministic, identical across runs):
+```
+Proof bundle written: .../demos/canonical_proof_bundle.json
+Proof bundle replay hash: 7eb0f264dd6d6e67925ece66ec2218ac73716ae6bc8a770ef84a8defd28bf47b
+DEMO_RESULT=DENIED
+ACTION_EXECUTED=false
+AUDIT_STREAM_ID=canonical-truth-reconstruction-demo
+REPLAY_VERDICT=PASS
+```
+
+This demo runs in CI on every push — see [`.github/workflows/v2-demo-smoke.yml`](.github/workflows/v2-demo-smoke.yml).
+
+---
+
+## 5-Minute Proof
+
+Or try the replay engine inline:
 
 ```python
 from exoarmur import ReplayEngine
@@ -49,7 +121,7 @@ print("Replay result:", getattr(report.result, "value", report.result))
 print("Failures:", report.failures or "none")
 ```
 
-Run the full suite (1047 tests, three-run stability gate) with the same dependency set CI uses:
+Run the full suite (1166 tests, three-run stability gate) with the same dependency set CI uses:
 
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core.git
@@ -135,31 +207,6 @@ V2 capabilities default to **off**:
 | `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | Governance control plane |
 | `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | Human approval gate |
 
-## Governance Pipeline Demo
-
-The canonical Golden Demo exercises the full execution boundary end-to-end: a
-simulated AI agent requests a file-system action outside its authorized root,
-the policy decision point denies it before any side effect, the audit trail is
-emitted, and a cryptographic proof bundle is built and re-verified via replay
-in the same process. Runs from a fresh clone with no external services:
-
-```bash
-python demos/canonical_truth_reconstruction_demo.py
-```
-
-Expected output (deterministic, byte-identical across runs):
-```
-Proof bundle written: .../demos/canonical_proof_bundle.json
-Proof bundle replay hash: 7eb0f264dd6d6e67925ece66ec2218ac73716ae6bc8a770ef84a8defd28bf47b
-DEMO_RESULT=DENIED
-ACTION_EXECUTED=false
-AUDIT_STREAM_ID=canonical-truth-reconstruction-demo
-REPLAY_VERDICT=PASS
-```
-
-The same demo is executed in CI on every push — see the `V2 Restrained
-Autonomy Demo Smoke` job in [`.github/workflows/v2-demo-smoke.yml`](.github/workflows/v2-demo-smoke.yml).
-
 ## Benchmark Proof
 
 Validate deterministic execution under high concurrency:
@@ -188,7 +235,7 @@ Every push runs:
 - **Security Scan** — CodeQL + pip-audit
 - **V2 Demo Smoke Test** — full governance pipeline end-to-end
 
-Current: **1047 passing, 9 skipped, 3 xfailed**. Skipped tests require optional external components (live NATS demo, filesystem/HTTP executor plugins, PoD provider, external waiver file). No external infrastructure required for the core suite.
+Current: **1166 passing, 10 skipped, 3 xfailed**. Skipped tests require optional external components (live NATS demo, filesystem/HTTP executor plugins, PoD provider, external waiver file). No external infrastructure required for the core suite.
 
 ## Live Demo (Requires NATS JetStream)
 
@@ -199,6 +246,7 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 
 ## Documentation
 
+- [Security & Threat Model](SECURITY.md) — Security policy, threat model, and vulnerability reporting
 - [Architecture](docs/ARCHITECTURE.md) — Full system architecture
 - [The ExoArmur Doctrine](docs/DOCTRINE.md) — Verified claims and compliance
 - [Doctrine Verification](docs/DOCTRINE_VERIFICATION.md) — Test evidence and status

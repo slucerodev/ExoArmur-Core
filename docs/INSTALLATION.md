@@ -155,8 +155,8 @@ python scripts/verify_installation.sh
 
 # Expected output:
 # ✅ Python 3.12.3 (>= 3.8)
-# ✅ ExoArmur v2.0.0 installed
-# ✅ CLI available: ExoArmur v2.0.0
+# ✅ ExoArmur v2.1.0 installed
+# ✅ CLI available: ExoArmur v2.1.0
 # ✅ All dependencies available
 # ✅ Core functionality working
 # ✅ Feature flags working

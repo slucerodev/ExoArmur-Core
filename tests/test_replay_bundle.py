@@ -124,7 +124,7 @@ def test_cli_replay_with_empty_bundle():
     bundle = {
         "correlation_id": "test-id",
         "audit_bundle_digest": "test-digest",
-        "core_version": "2.0.0",  # Match actual version to avoid STALE_CORE_VERSION
+        "core_version": "2.1.0",  # Match actual version to avoid STALE_CORE_VERSION
         "input_hash": "input-hash",
         "execution_hash": "exec-hash",
         "audit_records": [],
@@ -216,7 +216,7 @@ def test_cli_replay_output_format():
     bundle = {
         "correlation_id": "test-id",
         "audit_bundle_digest": "test-digest",
-        "core_version": "2.0.0",  # Match actual version
+        "core_version": "2.1.0",  # Match actual version
         "input_hash": "input-hash",
         "execution_hash": "exec-hash",
         "audit_records": [

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Consolidated milestone covering module-boundary enforcement, determinism gates,
 V2 Control Plane, and federation coherence work. Test suite expanded from the
-focused ~177-test v0.3.0 suite to **1033+ passing tests** with a three-run
+focused ~177-test v0.3.0 suite to **1166 passing tests** with a three-run
 deterministic stability gate.
 
 This entry also documents a version-numbering reset: work between v0.3.0 and

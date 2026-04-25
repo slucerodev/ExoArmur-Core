@@ -131,7 +131,7 @@ pytest tests/test_v2_feature_flag_isolation.py -v
 ### Full Test Suite
 ```bash
 pytest -q
-# Example snapshot (v2.0.0): 1026+ passed, 7 skipped, 11 xfailed
+# Example snapshot (v2.1.0): 1166 passed, 10 skipped, 3 xfailed
 # Skips are expected for optional modules (PoD/DPO), live NATS demo, and schema waivers.
 ```
 

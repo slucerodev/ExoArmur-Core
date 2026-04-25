@@ -12,7 +12,7 @@
 | **Announced adopters / pilots** | None — seeking first integration |
 | **External security audit** | Not yet conducted |
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
-| **Test suite** | 1041 passing / 9 skipped / 3 xfailed, three-run stability gate |
+| **Test suite** | 1166 passing / 10 skipped / 3 xfailed, three-run stability gate |
 | **CI workflows** | 10 active (see `.github/workflows/`) |
 | **Licensing** | Apache-2.0 |
 

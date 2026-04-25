@@ -2,7 +2,7 @@
 
 ## Current Stable Scope
 
-ExoArmur Core v2.0.0 provides deterministic governance and replayable audit capabilities for autonomous systems.
+ExoArmur Core v2.1.0 provides deterministic governance and replayable audit capabilities for autonomous systems.
 
 **Currently Verified Repository Scope:**
 - Deterministic execution pipeline with ProxyPipeline boundary
