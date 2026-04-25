@@ -1,19 +1,10 @@
 {
+  "_comment": "Boundary manifest: core/modules import-isolation policy. The modules_root and module_prefixes entries are forward-looking placeholders. V2 capability modules (BFT, Temporal, Analyst, Forensics, PoD, etc.) are delivered as separate installable packages that register via the exoarmur.* entry-point groups in src/exoarmur/plugins/registry.py, NOT bundled under modules/. allowed_core_externals enumerates the subset that core may import directly when installed.",
   "core_paths": [
     "src/exoarmur"
   ],
   "modules_root": "modules",
-  "module_prefixes": {
-    "EXAMPLE_MODULE_TEMPLATE": [
-      "exoarmur_example_module_template"
-    ],
-    "exoarmur_control_plane": [
-      "exoarmur_control_plane"
-    ],
-    "exoarmur_exolock": [
-      "exoarmur_exolock"
-    ]
-  },
+  "module_prefixes": {},
   "allowed_core_prefixes": [
     "exoarmur"
   ],
