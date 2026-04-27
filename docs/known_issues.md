@@ -27,7 +27,7 @@ The following integration-style tests are affected:
   - `TestThinVerticalSlice::test_health_endpoint`
   - `TestThinVerticalSlice::test_telemetry_ingest_endpoint`
   - `TestThinVerticalSlice::test_audit_retrieval_endpoint`
-  - `TestThinVerticalSlice::test_admo_flow_audit_chain`
+  - `TestThinVerticalSlice::test_admo_flow_audit_chain` 
   - `TestThinVerticalSlice::test_telemetry_validation_error_handling`
   - `TestThinVerticalSlice::test_different_severity_levels`
   - `TestThinVerticalSlice::test_idempotency_in_integration`

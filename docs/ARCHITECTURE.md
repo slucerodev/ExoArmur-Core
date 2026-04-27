@@ -1,4 +1,4 @@
-# ExoArmur ADMO Architecture
+# ExoArmur Core Architecture
 
 ## Boundary Definition
 

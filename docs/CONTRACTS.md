@@ -1,4 +1,4 @@
-# ExoArmur ADMO Contracts
+# ExoArmur Core Contracts
 
 ## Contract Index
 
@@ -8,7 +8,7 @@ V1 contracts are locked in this repository and protected by contract tests and t
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `models_v1.py` | Pydantic v2 data models for all ADMO data types | ✅ Locked |
+| `models_v1.py` | Pydantic v2 data models for all Core data types | ✅ Locked |
 | `nats_jetstream_v1.yaml` | NATS JetStream configuration for mesh communication | ✅ Locked |
 | `policy_bundle_v1.yaml` | Signed tenant policy bundle format and enforcement | ✅ Locked |
 | `safety_gate_v1.yaml` | Deterministic safety gate rules and verdict contract | ✅ Locked |

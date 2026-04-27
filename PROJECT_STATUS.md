@@ -54,7 +54,7 @@ technical overview.
 
 Development on `main` is guided by a phased plan: hardening of determinism and
 contract discipline → control-plane completeness → federation maturity →
-evolution toward the broader ADMO (Autonomous Defense Mesh Organism) vision.
+reserved extension surfaces for future private modules and advanced deployment modes.
 
 See [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) for the current phase board
 and [`docs/ROADMAP.md`](docs/ROADMAP.md) for near-term planning.

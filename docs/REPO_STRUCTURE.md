@@ -157,7 +157,7 @@ ExoArmur/
 ### Contracts (`spec/contracts/`)
 
 **V1 Contracts (Locked - Immutable)**:
-- `models_v1.py`: Core ADMO data models (TelemetryEventV1, BeliefV1, etc.)
+- `models_v1.py`: Core data models (TelemetryEventV1, BeliefV1, etc.)
 
 **V2 Contracts**:
 - `models_v2_*.py`: V2 contract models (ExecutionProofBundle, etc.)

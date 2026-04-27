@@ -207,13 +207,15 @@ Security teams can evaluate their current stack within 48 hours:
 
 ---
 
-## What Comes Next — ADMO
+## What Comes Next — Future Extensions
 
-ExoArmur is the single‑node proof.
+ExoArmur Core is the single‑node proof.
 
-ADMO extends this into:
+Future reserved extension surfaces may include:
 - federated deterministic nodes
 - signed belief propagation
+
+Details are intentionally omitted from this repository.
 - sovereignty‑preserving coordination
 - cross‑domain verifiable defense behavior
 

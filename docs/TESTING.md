@@ -1,4 +1,4 @@
-# ExoArmur ADMO Testing
+# ExoArmur Core Testing
 
 ## Test Taxonomy
 
