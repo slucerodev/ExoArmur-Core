@@ -1,0 +1,7 @@
+{
+  "intent_id": "minimal-test-intent",
+  "action_type": "delete",
+  "target": "/tmp/test-file.txt",
+  "final_status": "deny",
+  "events_count": 1
+}

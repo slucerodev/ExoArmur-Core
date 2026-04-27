@@ -1,0 +1,7 @@
+{
+  "intent_id": "boundary-case-intent",
+  "action_type": "delete",
+  "target": "/tmp/boundary-case-file.txt",
+  "final_status": "deny",
+  "events_count": 0
+}
