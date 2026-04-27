@@ -147,3 +147,15 @@ junit.xml
 
 # Dashboard UI lives in its own repository (slucerodev/ExoArmur-Dashboard)
 dashboard/
+
+# Frontend / Node.js build artifacts (defensive, in case frontend work occurs in Core)
+node_modules/
+.next/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Suspicious PostScript file accidentally committed (ImageMagick artifact)
+ulid

@@ -241,7 +241,7 @@ provide_recommendations() {
     
     if ! command_exists exoarmur; then
         echo "• Ensure pip install directory is in your PATH"
-        echo "• Try: python -m pip install --user exoarmur-core"
+        echo "• Install from private evaluation repository (see docs/INSTALLATION.md)"
     fi
     
     echo ""

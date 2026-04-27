@@ -22,11 +22,16 @@ def start_api_server():
     env = os.environ.copy()
     env['PYTHONHASHSEED'] = '0'
     
+    # Get repo root for path resolution
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent
+    src_path = repo_root / "src"
+    
     cmd = [
         ".venv/bin/python", "-c", 
-        """
+        f"""
 import sys
-sys.path.insert(0, '/home/oem/CascadeProjects/ExoArmur/src')
+sys.path.insert(0, '{src_path}')
 from exoarmur.demo_api import app
 import uvicorn
 uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")

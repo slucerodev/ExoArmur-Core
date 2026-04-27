@@ -19,13 +19,15 @@
 >
 > Quick start:
 > ```
-> pip install exoarmur-core
-> exoarmur demo     # watch an AI action get blocked by policy
-> exoarmur proof    # generate a cryptographic proof bundle
-> exoarmur health   # governed runtime health check
+> git clone https://github.com/slucerodev/ExoArmur-Core.git
+> cd ExoArmur-Core
+> python -m venv .venv
+> source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+> pip install -e ".[dev]"
+> python examples/quickstart_replay.py
 > ```
 >
-> Repo: https://github.com/slucerodev/ExoArmur-Core
+> Repo: https://github.com/slucerodev/ExoArmur-Core (contact for evaluation access)
 >
 > Built this because I couldn't find anything that actually *enforces* governance at execution time — most "AI safety" tooling is observability after the fact. Happy to answer questions about the architecture.
 

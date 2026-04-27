@@ -6,20 +6,29 @@
 - **Python 3.10+** (tested on 3.10–3.12)
 - **pip** (Python package manager)
 - **512MB RAM** minimum
+- **Authorized evaluation access** — this repository is distributed under a proprietary evaluation license
 
-### One-Command Installation
+### Authorized Evaluator Installation
+
+ExoArmur Core is currently distributed as a private evaluation repository. Installation requires authorized access to this repository.
+
 ```bash
-pip install exoarmur-core
+# Clone the repository (requires authorized access)
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Verify installation
+python examples/quickstart_replay.py
 ```
 
-### Verify Installation
-```bash
-# Check if everything is working
-python scripts/verify_installation.sh
-
-# Or run the quick start demo
-python scripts/quick_start.py
-```
+**Important**: Access to and use of ExoArmur Core is governed by the LICENSE file in this repository. Distribution, public posting, or commercial use requires explicit written agreement.
 
 ---
 
@@ -44,24 +53,24 @@ python scripts/quick_start.py
 
 ## 🛠️ Installation Methods
 
-### Method 1: pip install (Recommended)
+### Method 1: Authorized Repository Clone (Recommended)
+
+This is the current distribution method for authorized evaluators.
+
 ```bash
-# Standard installation
-pip install exoarmur-core
+# Clone the repository (requires authorized access)
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
 
-# With development tools
-pip install exoarmur-core[dev]
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# With V2 capabilities
-# V2 capabilities require no additional pip extras.
-# They are activated via environment variables at runtime:
-# EXOARMUR_FLAG_V2_FEDERATION_ENABLED=true
-# EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED=true
-# EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED=true
-pip install exoarmur-core
+# Install in development mode
+pip install -e ".[dev]"
 
-# Everything
-pip install exoarmur-core[dev]
+# Run tests
+pytest -q
 ```
 
 ### Method 2: Development Installation
@@ -81,29 +90,23 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-### Method 3: Docker Installation
-```bash
-# Pull the image
-docker pull exoarmur/exoarmur-core:latest
+### Method 3: Docker Installation (Not Currently Available)
 
-# Run the container
-docker run -it --rm exoarmur/exoarmur-core:latest
-
-# Or with volume mount
-docker run -it --rm -v $(pwd):/workspace exoarmur/exoarmur-core:latest
-```
+Docker images are not currently publicly distributed. For authorized evaluators requiring containerized deployment, contact the maintainer for access instructions.
 
 ### Method 4: Conda Installation
+
+Conda installation is not currently available. Use the authorized repository clone method with a conda-managed Python environment:
+
 ```bash
 # Create conda environment
 conda create -n exoarmur python=3.12
 conda activate exoarmur
 
-# Install from PyPI
-pip install exoarmur-core
-
-# Or install with conda-forge (if available)
-conda install -c conda-forge exoarmur-core
+# Clone and install from repository
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+pip install -e ".[dev]"
 ```
 
 ---
@@ -196,7 +199,6 @@ pytest -q tests/test_v2_restrained_autonomy.py
 ```bash
 # Use python3 instead
 python3 --version
-python3 -m pip install exoarmur-core
 
 # Or add python to PATH
 export PATH="/usr/local/bin:$PATH"
@@ -205,40 +207,35 @@ export PATH="/usr/local/bin:$PATH"
 #### Issue: "ModuleNotFoundError: No module named 'exoarmur'"
 **Solution:**
 ```bash
-# Check if package is installed
-python3 -m pip list | grep exoarmur
+# Ensure you're in the repository directory and virtual environment is active
+cd ExoArmur-Core
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Reinstall if needed
-python3 -m pip uninstall exoarmur-core
-python3 -m pip install exoarmur-core
+# Reinstall in development mode
+pip install -e ".[dev]"
 
-# Or try user installation
-python3 -m pip install --user exoarmur-core
+# Verify installation
+python -c "import exoarmur; print(exoarmur.__version__)"
 ```
 
 #### Issue: "exoarmur: command not found"
 **Solution:**
 ```bash
-# Check pip install location
-python3 -c "import site; print(site.USER_SCRIPTS)"
+# Use python -m instead
+python -m exoarmur --version
 
-# Add to PATH
-export PATH="$(python3 -c "import site; print(site.USER_SCRIPTS)"):$PATH"
-
-# Or use python -m
-python3 -m exoarmur --version
+# Or ensure virtual environment is active
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+exoarmur --version
 ```
 
 #### Issue: Permission denied
 **Solution:**
 ```bash
-# Use user installation
-python3 -m pip install --user exoarmur-core
-
-# Or use virtual environment
+# Use virtual environment (recommended)
 python3 -m venv .venv
 source .venv/bin/activate
-pip install exoarmur-core
+pip install -e ".[dev]"
 ```
 
 #### Issue: SSL certificate errors
@@ -247,11 +244,10 @@ pip install exoarmur-core
 # Update pip
 python3 -m pip install --upgrade pip
 
-# Use trusted hosts
-python3 -m pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org exoarmur-core
-
-# Or use conda
-conda install -c conda-forge exoarmur-core
+# If cloning from GitHub fails due to SSL, configure git:
+git config --global http.sslVerify false
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+git config --global http.sslVerify true
 ```
 
 ### Platform-Specific Issues
@@ -263,14 +259,14 @@ xcode-select --install
 
 # For M1/M2 Macs, use:
 softwareupdate --install-rosetta --agree-to-license
-arch -x86_64 python3 -m pip install exoarmur-core
+arch -x86_64 python3 -m pip install -e ".[dev]"
 ```
 
 #### Windows
 ```bash
 # Use PowerShell instead of Command Prompt
 # Install from PowerShell:
-python -m pip install exoarmur-core
+python -m pip install -e ".[dev]"
 
 # If you get DLL errors, install Microsoft C++ Build Tools:
 # https://visualstudio.microsoft.com/visual-cpp-build-tools/
@@ -293,14 +289,15 @@ sudo yum install python3-devel python3-pip gcc
 
 ### Upgrade from Previous Version
 ```bash
-# Check current version
-exoarmur --version
+# Pull latest changes from repository
+git pull origin main
 
-# Upgrade to latest
-pip install --upgrade exoarmur-core
+# Update dependencies
+pip install -e ".[dev]"
 
 # Verify upgrade
-exoarmur health
+python -m pytest -q
+python examples/quickstart_replay.py
 ```
 
 ### Upgrade from Development Installation
@@ -321,24 +318,18 @@ pytest -q
 
 ### Remove Package
 ```bash
-# Uninstall package
-pip uninstall exoarmur-core
+# Exit virtual environment
+deactivate  # On Windows: deactivate
+
+# Remove virtual environment
+rm -rf .venv
 
 # Remove configuration
 rm -rf ~/.exoarmur
 
-# Remove virtual environment (if used)
-deactivate  # Exit virtual environment
-rm -rf .venv
-```
-
-### Clean Up Docker
-```bash
-# Remove Docker image
-docker rmi exoarmur/exoarmur-core:latest
-
-# Remove all ExoArmur containers
-docker rm $(docker ps -a -q --filter ancestor=exoarmur/exoarmur-core)
+# Remove repository clone
+cd ..
+rm -rf ExoArmur-Core
 ```
 
 ---
@@ -366,14 +357,13 @@ exoarmur --help
 ```
 
 ### 3. Read Documentation
-- [Main Documentation](https://slucerodev.github.io/ExoArmur-Core/)
-- [API Reference](https://slucerodev.github.io/ExoArmur-Core/docs/api/)
-- [Examples](https://github.com/slucerodev/ExoArmur-Core/tree/main/examples)
+- [README.md](../README.md) — Main project documentation
+- [PROJECT_STATUS.md](../PROJECT_STATUS.md) — Current status and phase information
+- [docs/](./) — Additional documentation
 
-### 4. Join the Community
-- [GitHub Discussions](https://github.com/slucerodev/ExoArmur-Core/discussions)
-- [Issues](https://github.com/slucerodev/ExoArmur-Core/issues)
-- [Contributing Guide](https://github.com/slucerodev/ExoArmur-Core/blob/main/CONTRIBUTING.md)
+### 4. Evaluation Support
+- For authorized evaluators, contact the maintainer for support
+- See [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup
 
 ---
 
@@ -383,15 +373,8 @@ If you encounter issues:
 
 1. **Check the troubleshooting section** above
 2. **Run the verification script**: `python scripts/verify_installation.sh`
-3. **Search existing issues**: https://github.com/slucerodev/ExoArmur-Core/issues
-4. **Create a new issue**: https://github.com/slucerodev/ExoArmur-Core/issues/new
-5. **Join the discussion**: https://github.com/slucerodev/ExoArmur-Core/discussions
-
-### Support Information
-- **Documentation**: https://slucerodev.github.io/ExoArmur-Core/docs/
-- **Issues**: https://github.com/slucerodev/ExoArmur-Core/issues
-- **Discussions**: https://github.com/slucerodev/ExoArmur-Core/discussions
-- **Email**: team@exoarmur.dev
+3. **Review the documentation**: [README.md](../README.md), [PROJECT_STATUS.md](../PROJECT_STATUS.md)
+4. For authorized evaluators, contact the maintainer directly
 
 ---
 

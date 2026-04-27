@@ -3,8 +3,12 @@
 This document describes the split-ready layout and the exact export process for
 ExoArmur Core and proprietary modules.
 
+> **Note**: This document describes the architectural separation pattern. ExoArmur Core
+> is currently distributed as a private evaluation repository with a proprietary license.
+> See `docs/DISTRIBUTION_NOTICE.md` for current distribution posture.
+
 ## Goals
-- Keep **Core** Apache-2.0 and standalone.
+- Keep **Core** standalone with clear separation from proprietary modules.
 - Allow **modules** to be exported into their own repos with full history.
 - Enforce hard boundaries so cross-module imports fail fast.
 

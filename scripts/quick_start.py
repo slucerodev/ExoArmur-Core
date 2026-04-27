@@ -192,7 +192,7 @@ def run_cli_demos():
         except subprocess.TimeoutExpired:
             print("⚠️  Command timed out")
         except FileNotFoundError:
-            print("⚠️  CLI not found - install with: pip install exoarmur-core")
+            print("⚠️  CLI not found - install from private evaluation repository")
         except Exception as e:
             print(f"⚠️  CLI error: {e}")
         

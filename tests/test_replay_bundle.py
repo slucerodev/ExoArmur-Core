@@ -89,11 +89,13 @@ def test_cli_replay_with_invalid_bundle():
         invalid_bundle = f.name
     
     try:
+        # Get repo root for cwd
+        repo_root = Path(__file__).parent.parent
         result = subprocess.run(
             ["python", "-m", "exoarmur.cli", "replay", "--bundle", invalid_bundle, "--json"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(repo_root)
         )
         assert result.returncode != 0
         assert "Error" in result.stderr
@@ -105,11 +107,13 @@ def test_cli_replay_with_missing_bundle():
     """Test that CLI replay fails with missing bundle file"""
     import subprocess
     
+    # Get repo root for cwd
+    repo_root = Path(__file__).parent.parent
     result = subprocess.run(
         ["python", "-m", "exoarmur.cli", "replay", "--bundle", "/nonexistent/bundle.json", "--json"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(repo_root)
     )
     assert result.returncode != 0
     assert "not found" in result.stderr.lower()
@@ -136,11 +140,13 @@ def test_cli_replay_with_empty_bundle():
         empty_bundle = f.name
     
     try:
+        # Get repo root for cwd
+        repo_root = Path(__file__).parent.parent
         result = subprocess.run(
             ["python", "-m", "exoarmur.cli", "replay", "--bundle", empty_bundle, "--json"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(repo_root)
         )
         assert result.returncode != 0
         assert "No audit records" in result.stderr
@@ -189,11 +195,13 @@ def test_cli_replay_stale_core_version():
         stale_bundle = f.name
     
     try:
+        # Get repo root for cwd
+        repo_root = Path(__file__).parent.parent
         result = subprocess.run(
             ["python", "-m", "exoarmur.cli", "replay", "--bundle", stale_bundle, "--json"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(repo_root)
         )
         assert result.returncode != 0
         
@@ -247,11 +255,13 @@ def test_cli_replay_output_format():
         valid_bundle = f.name
     
     try:
+        # Get repo root for cwd
+        repo_root = Path(__file__).parent.parent
         result = subprocess.run(
             ["python", "-m", "exoarmur.cli", "replay", "--bundle", valid_bundle, "--json"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(repo_root)
         )
         
         # Check both stdout and stderr for JSON output

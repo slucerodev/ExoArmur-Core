@@ -1,8 +1,8 @@
 # ExoArmur Phase Status
 
-**Last Updated**: April 12, 2026
-**Current Version**: 2.1.0 (published to PyPI)
-**Test Suite**: 1,039 passed · 11 skipped · 3 xfailed · 0 failures
+**Last Updated**: April 27, 2026
+**Current Version**: 2.1.0 (private evaluation)
+**Test Suite**: 1,166 passed · 10 skipped · 3 xfailed · 0 failures
 
 ---
 
@@ -15,7 +15,7 @@
 - Cryptographic proof bundles (`ExecutionProofBundle`) with SHA-256 replay hash verification
 - SDK public API: `run_governed_execution`, `verify_governance_integrity`, `replay_governed_execution`
 - CLI: `exoarmur verify-all`, `exoarmur demo`, `exoarmur proof`, `exoarmur health`, `exoarmur evidence`
-- Published to PyPI: `pip install exoarmur-core`
+- Distribution: Private evaluation repository (authorized access only)
 
 **V1 is immutable. No changes to the V1 pipeline are permitted under any circumstances.**
 
@@ -147,8 +147,8 @@ V1 Pipeline (unchanged)
 
 | Metric | Count |
 |--------|-------|
-| Total passing | 1,039 |
-| Skipped (infra/env dependent) | 11 |
+| Total passing | 1,166 |
+| Skipped (infra/env dependent) | 10 |
 | Expected failures (acceptance gates) | 3 |
 | Failures | 0 |
 
@@ -181,8 +181,7 @@ V1 Pipeline (unchanged)
 - Phase 2B federation layer — complete, feature-flagged
 - Phase 2C human-in-the-loop arbitration — complete, feature-flagged
 - Phase 3 control plane — complete, operator auth + approval workflows + federation API
-- Published on PyPI: `exoarmur-core 2.1.0`
-- Installable via `pipx install exoarmur-core`
+- Distribution: Private evaluation repository (authorized access only)
 
 ## What ExoArmur Is Not (April 2026)
 

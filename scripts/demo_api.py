@@ -212,9 +212,11 @@ async def get_demo_data():
     """
     try:
         # Load golden artifacts if available
-        artifacts_path = "/home/oem/CascadeProjects/ExoArmur/tests/artifacts/demo_canonical_events.json"
+        script_dir = Path(__file__).parent
+        repo_root = script_dir.parent
+        artifacts_path = repo_root / "tests" / "artifacts" / "demo_canonical_events.json"
         
-        if os.path.exists(artifacts_path):
+        if artifacts_path.exists():
             with open(artifacts_path, 'r') as f:
                 events = json.load(f)
         else:
