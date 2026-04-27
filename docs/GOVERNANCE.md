@@ -23,7 +23,7 @@ components that are intentionally optional:
 | `tests/test_plugin_registry.py` | PoD provider not installed | Install PoD provider |
 | `tests/test_schema_snapshots.py` | No schema change waivers file found | Only runs when waivers file is committed |
 
-**Current expected counts:** 1041 passing, **9 skipped (all from catalog above)**, 3 xfailed.
+**Current expected counts:** 1166 passing, **10 skipped (all from catalog above)**, 3 xfailed.
 Any new skip reason that is not in this catalog is a governance violation
 and must either be added here (with approval) or eliminated.
 
@@ -129,7 +129,7 @@ pytest -q -rxX
 **Expected output:**
 - `pytest.skip` grep: only inside tests listed in the Allowed Skip Catalog
 - `allow_module_level=True` grep: no results
-- pytest summary: `1041 passed, 9 skipped, 3 xfailed, 0 failed, 0 errors`
+- pytest summary: `1166 passed, 10 skipped, 3 xfailed, 0 failed, 0 errors`
 - Each skip message must match one of the reasons in the Allowed Skip Catalog
 - xfail reasons: only future implementation gates
 

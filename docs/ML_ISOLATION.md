@@ -89,7 +89,7 @@ assert not recommendation.is_binding  # Cannot execute directly
 ### Test: ML Disable Test
 
 ```bash
-cd /home/oem/CascadeProjects/ExoArmur && python -m pytest tests/test_ml_isolation.py -v
+python -m pytest tests/test_ml_isolation.py -v
 ```
 
 **Expected Result:**

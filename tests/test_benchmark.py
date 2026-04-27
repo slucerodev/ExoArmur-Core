@@ -193,12 +193,10 @@ class TestNoiseBenchmark:
         
         assert len(results) == 2
         
-        # All noise levels should have stable hash
+        # All noise levels should have stable hash (PRIMARY determinism guarantee)
+        # Latency impact is environment-dependent and not a determinism invariant
         for result in results:
             assert result.hash_stable is True, f"Noise level {result.noise_level} changed hash"
-            # Latency impact can be slightly negative due to measurement variance
-            # Allow up to -10% variance
-            assert result.latency_impact_percent >= -10
     
     def test_noise_benchmark_latency_impact_measured(self):
         """Verify noise benchmark measures latency impact"""

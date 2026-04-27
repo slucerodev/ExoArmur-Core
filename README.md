@@ -46,29 +46,36 @@ See [docs/QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions.
 
 ---
 
-## Integration in 30 Lines
+## Integration Example
 
-Wrap your existing actions with ExoArmur governance:
+The primary public API is the deterministic replay engine:
 
 ```python
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
-from exoarmur.execution_boundary_v2.action_intent import ActionIntent
+from exoarmur import ReplayEngine
+from exoarmur.replay.event_envelope import CanonicalEvent
+import hashlib, json
 
-# Initialize the governance pipeline
-pipeline = ProxyPipeline()
-
-# Wrap your action
-intent = ActionIntent(
-    action_type="file_write",
-    parameters={"path": "/tmp/data.txt", "content": "hello"},
-    context={"user_id": "user-123"}
+# Construct a canonical event with cryptographic payload hash
+payload = {"kind": "inline", "ref": {"event_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}}
+event = CanonicalEvent(
+    event_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    event_type="belief_creation_started",
+    actor="demo",
+    correlation_id="corr-1",
+    payload=payload,
+    payload_hash=hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest(),
 )
 
-# Execute with governance (policy, safety, audit)
-result = pipeline.execute_with_trace(intent)
-print(f"Result: {result.status}")  # APPROVED or DENIED
-# Audit trail automatically captured and replayable
+# Replay deterministically from the audit trail
+engine = ReplayEngine(audit_store={"corr-1": [event]})
+report = engine.replay_correlation("corr-1")
+print("Replay result:", getattr(report.result, "value", report.result))
+print("Failures:", report.failures or "none")
 ```
+
+**Note:** The V2 execution boundary (`ProxyPipeline`, `ActionIntent`) is an internal implementation detail. For agent framework integrations, see the examples in the `examples/` directory.
 
 ---
 

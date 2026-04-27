@@ -231,7 +231,7 @@ provide_recommendations() {
     echo "==============================="
     
     if ! command_exists python3; then
-        echo "• Install Python 3.8+: https://www.python.org/downloads/"
+        echo "• Install Python 3.10+: https://www.python.org/downloads/"
     fi
     
     if ! python3 -c "import exoarmur" 2>/dev/null; then

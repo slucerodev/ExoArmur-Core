@@ -41,10 +41,10 @@ def run_canonical_demo():
     """Execute canonical demo scenario"""
     try:
         # Run canonical demo using the examples/demo_standalone.py
-        demo_path = Path('/home/oem/CascadeProjects/ExoArmur/examples/demo_standalone.py')
+        demo_path = Path('examples/demo_standalone.py')
         result = subprocess.run([
             'python3', str(demo_path)
-        ], capture_output=True, text=True, cwd='/home/oem/CascadeProjects/ExoArmur', timeout=30)
+        ], capture_output=True, text=True, timeout=30)
         
         if result.returncode == 0:
             return True, result.stdout

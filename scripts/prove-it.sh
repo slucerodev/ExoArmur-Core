@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 
 correlation_id = "$CORRELATION_ID"
 audit_bundle_digest = "test_bundle_digest_" + correlation_id
-core_version = "2.0.0"
+core_version = "2.1.0"
 input_hash = "input_hash_" + correlation_id
 execution_hash = "execution_hash_" + correlation_id
 

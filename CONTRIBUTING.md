@@ -22,7 +22,7 @@ ExoArmur Core is built on three fundamental principles:
 ## Development Setup
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.10+
 - Git
 - Docker (optional, for live demos)
 

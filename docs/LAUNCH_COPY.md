@@ -14,8 +14,8 @@
 > - **Deterministic replay** — reconstruct any past decision byte-for-byte from its audit trail
 > - **Policy enforcement** — actions are DENIED or ALLOWED before execution, not logged after
 > - **Proof bundles** — `exoarmur proof` outputs a cryptographically verifiable artifact anyone can validate
-> - **Feature-flag gated V2** — Byzantine fault-tolerant consensus, causal counterfactual reasoning, and identity containment scaffolded behind flags
-> - **1,027 tests passing**, zero CVEs
+> - **Feature-flag gated V2** — replay determinism diffing, identity containment scaffolded behind flags
+> - **1,166 tests passing** (1166 passed, 10 skipped, 3 xfailed), zero CVEs
 >
 > Quick start:
 > ```
@@ -62,11 +62,11 @@
 >
 > Your agent can *propose* an action. ExoArmur decides whether it *executes*.
 >
-> Open source. 1,027 tests. Zero CVEs.
+> Open source. 1,166 tests (1166 passed, 10 skipped, 3 xfailed). Zero CVEs.
 > → github.com/slucerodev/ExoArmur-Core
 
 **Tweet 5 (CTA):**
-> Full architecture: deterministic replay engine, policy decision point, safety gate, identity containment, Byzantine fault-tolerant consensus (gated).
+> Full architecture: deterministic replay engine, policy decision point, safety gate, identity containment, replay determinism diffing (gated).
 >
 > If you're building agents that touch production systems, you need this layer.
 >
@@ -96,7 +96,7 @@
 > # → If denied: trace.final_verdict == FinalVerdict.DENY, action never ran
 > ```
 >
-> Open source, 1,027 tests passing, zero CVEs.
+> Open source, 1,166 tests passing (1166 passed, 10 skipped, 3 xfailed), zero CVEs.
 > https://github.com/slucerodev/ExoArmur-Core
 >
 > Happy to answer questions or help with integration.

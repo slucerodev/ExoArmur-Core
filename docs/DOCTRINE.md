@@ -282,7 +282,7 @@ And once measured:
 **Overall Assessment: 6/6 requirements verified — FULL DACT v0.1 COMPLIANCE ACHIEVED.**
 
 ### Test Metrics
-- **Test Count:** 1035 passing, 8 skipped, 3 xfailed
+- **Test Count:** 1166 passing, 10 skipped, 3 xfailed
 - **Determinism Check:** 0 violations in core modules
 - **Environment Parity:** Validated with PYTHONHASHSEED=0
 - **Replay Hash Consistency:** 100% across all test runs
@@ -291,7 +291,7 @@ And once measured:
 
 ```bash
 # Run the proof command to verify deterministic replay
-cd /home/oem/CascadeProjects/ExoArmur && exoarmur proof
+exoarmur proof
 
 # Expected output includes:
 # - Replay Hash: 7e90a4d9bb988557...

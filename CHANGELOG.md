@@ -23,7 +23,7 @@ are captured in git history rather than as separate releases.
 - **Core Invariant Gates** CI workflow — three-run deterministic stability
 - **Module Boundary Enforcement** CI workflow — architectural invariants
 - **CodeQL** security analysis + **pip-audit** dependency scanning
-- **Multi-Platform Tests** CI — Python 3.8–3.12 × Linux/macOS/Windows
+- **Multi-Platform Tests** CI — Python 3.10–3.12 × Linux/macOS/Windows
 - **V2 Demo Smoke** CI — end-to-end governance pipeline
 - **V2 Visibility API** — additive, graceful-empty router for dashboard
 - `CrossCellAggregator` for federation control-plane coherence
@@ -98,7 +98,7 @@ ExoArmur Core v0.3.0 represents a major milestone with comprehensive infrastruct
 
 ### 🏗️ Infrastructure
 - **Multi-Platform CI/CD**
-  - Testing matrix: Python 3.8-3.12 on Linux, Windows, macOS
+  - Testing matrix: Python 3.10-3.12 on Linux, Windows, macOS
   - Automated build and artifact generation
   - Cross-platform compatibility verification
   - Performance benchmarking across platforms
@@ -132,7 +132,7 @@ ExoArmur Core v0.3.0 represents a major milestone with comprehensive infrastruct
 ### 📈 Metrics & Statistics
 - **177 passing tests** (up from 667 in v0.2.0 due to focused test suite)
 - **Multi-platform support** (Linux, Windows, macOS)
-- **Python 3.8-3.12 compatibility**
+- **Python 3.10-3.12 compatibility**
 - **<100ms decision latency** for standard operations
 - **100% deterministic behavior** verified
 

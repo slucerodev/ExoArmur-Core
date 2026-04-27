@@ -1273,7 +1273,7 @@ if __name__ == "__main__":
         sys.exit(0)
     
     if len(sys.argv) > 1 and sys.argv[1] in ["--version", "-v"]:
-        print("ExoArmur Core v2.0.0")
+        print("ExoArmur Core v2.1.0")
         sys.exit(0)
     
     logger.info("Starting ExoArmur FastAPI service")

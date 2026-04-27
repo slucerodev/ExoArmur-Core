@@ -10,7 +10,7 @@ This document validates the claims in The ExoArmur Doctrine (Industry Version) a
 
 **Verification:**
 ```bash
-cd /home/oem/CascadeProjects/ExoArmur && exoarmur proof 2>&1 | grep "Replay Hash"
+exoarmur proof 2>&1 | grep "Replay Hash"
 ```
 
 **Results:**
