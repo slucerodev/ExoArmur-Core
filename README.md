@@ -1,11 +1,7 @@
 # ExoArmur Core
 
 [![CI](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml/badge.svg)](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml)
-[![PyPI](https://img.shields.io/pypi/v/exoarmur-core)](https://pypi.org/project/exoarmur-core/)
-[![Python](https://img.shields.io/pypi/pyversions/exoarmur-core)](https://pypi.org/project/exoarmur-core/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1.0-green)](https://github.com/slucerodev/ExoArmur-Core/releases)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Codespaces-purple)](https://codespaces.new/slucerodev/ExoArmur-Core)
 
 **A governance layer for AI agents that enforces policy before execution, produces cryptographic audit trails, and enables deterministic replay.**
 
@@ -26,10 +22,12 @@ ExoArmur sits between your AI decision layer and execution targets. It ensures e
 
 ## Quick Start
 
-Install and run in 30 seconds:
+For authorized evaluators, clone and run locally:
 
 ```bash
-pip install exoarmur-core
+git clone https://github.com/slucerodev/ExoArmur-Core.git
+cd ExoArmur-Core
+pip install -e .
 python examples/quickstart_replay.py
 ```
 
@@ -84,7 +82,6 @@ print("Failures:", report.failures or "none")
 The canonical demo exercises the complete execution boundary: policy evaluation, denial before side effects, audit trail emission, and cryptographic replay verification.
 
 ```bash
-pip install exoarmur-core
 python demos/canonical_truth_reconstruction_demo.py
 ```
 
@@ -266,18 +263,16 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ExoArmur-Core is proprietary software. Access is by explicit permission only.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Evaluation use is permitted only under the repository LICENSE or a signed written agreement.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+No production, redistribution, sublicensing, or commercial use is permitted without a separate written agreement.
+
+Earlier public distributions, if any, remain under their original published terms. This license applies to this repository and future distributions unless superseded by a signed written agreement.
+
+For licensing, pilot, partnership, or acquisition discussions, contact the repository owner.
 
 ## Contributing
 
-Issues and PRs welcome. All contributions must pass the full gate suite including the three-run stability check (`python scripts/infra/stability_ci.py`).
+Contributions are accepted only by written agreement. Submitted changes require explicit IP/licensing agreement before acceptance.

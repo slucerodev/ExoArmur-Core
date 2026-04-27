@@ -1,10 +1,12 @@
 ---
 name: Security concern
-about: Report a security vulnerability or security-related issue
+about: Report a security vulnerability or security-related issue (authorized evaluators only)
 title: '[SECURITY] '
 labels: security
 assignees: ''
 ---
+
+**Note:** This repository is in private evaluation mode. Issue submission is for authorized evaluators only. For licensing, pilot, partnership, or acquisition discussions, contact the repository owner.
 
 **⚠️ IMPORTANT: For sensitive security issues, please use GitHub Security Advisory instead of this public issue.**
 

@@ -3,12 +3,12 @@
 ## Hacker News — Show HN Post
 
 **Title:**
-> Show HN: ExoArmur – deterministic execution governance for AI agents (open source)
+> Show HN: ExoArmur – deterministic execution governance for AI agents (private evaluation)
 
 **Body:**
 > AI agents are making real decisions — deleting files, calling APIs, sending messages — and most frameworks give you zero verifiable proof of what actually happened or why.
 >
-> ExoArmur is an open-source governance substrate that sits between your AI agent and the real world. Every action passes through a policy gate, produces an immutable audit record, and can be cryptographically replayed to prove the decision was correct.
+> ExoArmur is a governance substrate that sits between your AI agent and the real world. Every action passes through a policy gate, produces an immutable audit record, and can be cryptographically replayed to prove the decision was correct.
 >
 > Key properties:
 > - **Deterministic replay** — reconstruct any past decision byte-for-byte from its audit trail
@@ -62,8 +62,8 @@
 >
 > Your agent can *propose* an action. ExoArmur decides whether it *executes*.
 >
-> Open source. 1,166 tests (1166 passed, 10 skipped, 3 xfailed). Zero CVEs.
-> → github.com/slucerodev/ExoArmur-Core
+> Private evaluation available. 1,166 tests (1166 passed, 10 skipped, 3 xfailed). Zero CVEs.
+> → github.com/slucerodev/ExoArmur-Core (contact for evaluation access)
 
 **Tweet 5 (CTA):**
 > Full architecture: deterministic replay engine, policy decision point, safety gate, identity containment, replay determinism diffing (gated).
@@ -76,7 +76,7 @@
 
 ## LangChain / AutoGen Community Posts (Discord / Reddit r/LangChain)
 
-**Subject:** Built a governance enforcement layer for LangChain/AutoGen agents — open source
+**Subject:** Built a governance enforcement layer for LangChain/AutoGen agents — private evaluation
 
 **Body:**
 > Been building agents that call real APIs and noticed there's no standard way to:
@@ -96,7 +96,7 @@
 > # → If denied: trace.final_verdict == FinalVerdict.DENY, action never ran
 > ```
 >
-> Open source, 1,166 tests passing (1166 passed, 10 skipped, 3 xfailed), zero CVEs.
-> https://github.com/slucerodev/ExoArmur-Core
+> Private evaluation, 1,166 tests passing (1166 passed, 10 skipped, 3 xfailed), zero CVEs.
+> https://github.com/slucerodev/ExoArmur-Core (contact for evaluation access)
 >
 > Happy to answer questions or help with integration.

@@ -6,7 +6,7 @@
 
 | Dimension | Status |
 |---|---|
-| **Stage** | Single-maintainer reference implementation |
+| **Stage** | Private reference implementation, buyer/pilot evaluation ready |
 | **Current version** | `2.1.0` (see `pyproject.toml`) |
 | **Organizational sponsors** | None |
 | **Announced adopters / pilots** | None — seeking first integration |
@@ -14,7 +14,7 @@
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
 | **Test suite** | 1166 passing / 10 skipped / 3 xfailed, three-run stability gate |
 | **CI workflows** | 10 active (see `.github/workflows/`) |
-| **Licensing** | Apache-2.0 |
+| **Licensing** | Proprietary evaluation license (see LICENSE) |
 
 ## What ExoArmur is
 
@@ -61,16 +61,16 @@ and [`docs/ROADMAP.md`](docs/ROADMAP.md) for near-term planning.
 
 ## How to evaluate this repository
 
-If you are a prospective adopter or reviewer:
+If you are a prospective buyer, pilot evaluator, or reviewer:
 
-1. Read [`README.md`](README.md) and run the 5-minute quickstart
-2. Read [`ARCHITECTURE.md`](ARCHITECTURE.md) for the layered model
-3. Read [`SECURITY.md`](SECURITY.md) for the threat-model and responsible-disclosure policy
-4. Inspect [`.github/workflows/`](.github/workflows/) to see what CI actually enforces
-5. Inspect [`spec/contracts/`](spec/contracts/) for the immutable V1 data shapes
-6. Run `pip install -r requirements.lock && pip install --no-deps -e ".[dev]" && python -m pytest -q` to reproduce the test suite (same command CI runs)
+1. Contact the repository owner for evaluation authorization
+2. Review [`README.md`](README.md) and run the quickstart locally
+3. Read [`ARCHITECTURE.md`](ARCHITECTURE.md) for the layered model
+4. Read [`SECURITY.md`](SECURITY.md) for the threat-model and evaluation access terms
+5. Inspect [`.github/workflows/`](.github/workflows/) to see what CI actually enforces
+6. Inspect [`spec/contracts/`](spec/contracts/) for the immutable V1 data shapes
+7. Run `pip install -r requirements.lock && pip install --no-deps -e ".[dev]" && python -m pytest -q` to reproduce the test suite (same command CI runs)
 
 ## Contact
 
-See `README.md` for contribution guidelines. Security issues: follow the
-coordinated-disclosure process in [`SECURITY.md`](SECURITY.md).
+For licensing, pilot, partnership, or acquisition discussions, contact the repository owner. Security issues: follow the private disclosure process in [`SECURITY.md`](SECURITY.md).

@@ -15,8 +15,10 @@ the release security gate verifies current working tree cleanliness.
 
 | Version        | Supported |
 | -------------- | --------- |
-| Architecture / Contract: v1.0.0 | Security fixes and backported criticals |
-| Package (pip): 2.1.0 | Security fixes and backported criticals |
+| Architecture / Contract: v1.0.0 | Security fixes and backported criticals (private evaluation) |
+| Package (pip): 2.1.0 | Security fixes and backported criticals (private evaluation) |
+
+**Evaluation Access Note:** Current private evaluation version is 2.1.0. Evaluation access does not grant production use rights. Production deployment requires a separate written agreement.
 
 ## Reporting a Vulnerability
 

@@ -1,10 +1,12 @@
 ---
 name: Integration question
-about: Ask a question about integrating ExoArmur into your system
+about: Ask a question about integrating ExoArmur into your system (authorized evaluators only)
 title: '[INTEGRATION] '
 labels: question, integration
 assignees: ''
 ---
+
+**Note:** This repository is in private evaluation mode. Issue submission is for authorized evaluators only. For licensing, pilot, partnership, or acquisition discussions, contact the repository owner.
 
 **Context**
 Describe your system and how you plan to integrate ExoArmur:
