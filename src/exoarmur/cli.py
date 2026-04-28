@@ -738,6 +738,49 @@ def _replay_execution_proof_bundle(bundle_data: dict, json_output: bool) -> int:
 
 
 @main.command()
+@click.option('--bundle', '-b', required=True, help='Path to exported proof bundle JSON file')
+@click.option('--json', 'json_output', is_flag=True, help='Output results in JSON format')
+def verify_bundle(bundle: str, json_output: bool):
+    """Externally verify an exported proof bundle without executing runtime side effects"""
+    _ensure_windows_utf8_output()
+
+    from exoarmur.proof.external_verifier import (
+        ExternalVerificationResult,
+        format_key_value,
+        verify_bundle_file,
+    )
+
+    try:
+        result = verify_bundle_file(bundle)
+    except FileNotFoundError as exc:
+        result = ExternalVerificationResult(
+            verify_verdict="FAIL",
+            bundle_format="UNKNOWN",
+            hash_algorithm="sha256",
+            expected_hash="",
+            computed_hash="",
+            hash_match=False,
+            error=f"FILE_NOT_FOUND: {exc}",
+        )
+    except json.JSONDecodeError as exc:
+        result = ExternalVerificationResult(
+            verify_verdict="FAIL",
+            bundle_format="UNKNOWN",
+            hash_algorithm="sha256",
+            expected_hash="",
+            computed_hash="",
+            hash_match=False,
+            error=f"INVALID_JSON: {exc}",
+        )
+
+    if json_output:
+        click.echo(json.dumps(result.to_dict(), sort_keys=True))
+    else:
+        click.echo(format_key_value(result))
+    sys.exit(0 if result.passed else 1)
+
+
+@main.command()
 @click.option('--bundle', '-b', required=True, help='Path to audit bundle JSON file')
 @click.option('--json', 'json_output', is_flag=True, help='Output results in JSON format')
 def replay(bundle: str, json_output: bool):
