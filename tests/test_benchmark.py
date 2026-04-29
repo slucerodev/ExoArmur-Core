@@ -92,6 +92,22 @@ class TestDeterminismLoadTest:
         
         assert results[0].unique_hash_count == 1
 
+    def test_determinism_load_test_500_concurrency(self):
+        """Verify determinism holds at the required 500 concurrency level"""
+        runner = BenchmarkRunner()
+
+        results = runner.run_determinism_load_test(
+            concurrency_levels=[500],
+            runs_per_level=500,
+        )
+
+        result = results[0]
+        assert result.concurrency_level == 500
+        assert result.total_executions == 500
+        assert result.unique_hash_count == 1
+        assert result.failures == 0
+        assert result.status == "DETERMINISTIC"
+
 
 class TestThroughputTest:
     """Test throughput test runs without error"""
