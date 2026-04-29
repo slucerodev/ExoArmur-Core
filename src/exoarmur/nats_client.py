@@ -98,6 +98,17 @@ class ExoArmurNATSClient:
                     self.nc.close()
             self.connected = False
             logger.info("Disconnected from NATS")
+
+    def _schedule_publish_task(self, coro, operation: str) -> None:
+        task = asyncio.create_task(coro)
+
+        def _log_publish_result(done_task):
+            try:
+                done_task.result()
+            except Exception as e:
+                logger.error(f"{operation} failed asynchronously: {e}")
+
+        task.add_done_callback(_log_publish_result)
     
     async def ensure_streams(self) -> None:
         """Ensure required streams exist with timeout enforcement"""
@@ -267,34 +278,13 @@ class ExoArmurNATSClient:
     
     async def publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> bool:
         """Publish message to subject with timeout enforcement"""
-        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
-        
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
             return False
-        
-        timeout_mgr = get_timeout_manager()
-        
-        try:
-            # Use timeout enforcement for publishing
-            await timeout_mgr.execute_with_timeout(
-                category=TimeoutCategory.NATS_PUBLISH,
-                operation=f"Publish to {subject}",
-                coro=self._do_publish(subject, data, headers),
-                tenant_id=None,
-                correlation_id=None,
-                trace_id=None
-            )
-            
-            logger.debug(f"Published to {subject}")
-            return True
-            
-        except TimeoutError as e:
-            logger.error(f"Publish timed out: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to publish to {subject}: {e}")
-            return False
+
+        self._schedule_publish_task(self._do_publish(subject, data, headers), f"Publish to {subject}")
+        logger.debug(f"Scheduled publish to {subject}")
+        return True
     
     async def _do_publish(self, subject: str, data: bytes, headers: Optional[Dict[str, str]] = None) -> None:
         """Internal publish logic without timeout"""
@@ -302,8 +292,6 @@ class ExoArmurNATSClient:
     
     async def publish_belief(self, belief) -> bool:
         """Publish a BeliefV1 to JetStream with timeout enforcement"""
-        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
-        
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
             return False
@@ -311,29 +299,10 @@ class ExoArmurNATSClient:
         if not self.js:
             logger.error("JetStream context not initialized")
             return False
-        
-        timeout_mgr = get_timeout_manager()
-        
-        try:
-            # Use timeout enforcement for belief publishing
-            await timeout_mgr.execute_with_timeout(
-                category=TimeoutCategory.NATS_PUBLISH,
-                operation=f"Publish belief {belief.belief_id}",
-                coro=self._do_publish_belief(belief),
-                tenant_id=None,
-                correlation_id=None,
-                trace_id=None
-            )
-            
-            logger.debug(f"Published belief {belief.belief_id} to {self.subjects['beliefs_emit']}")
-            return True
-            
-        except TimeoutError as e:
-            logger.error(f"Belief publish timed out: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to publish belief: {e}")
-            return False
+
+        self._schedule_publish_task(self._do_publish_belief(belief), f"Publish belief {belief.belief_id}")
+        logger.debug(f"Scheduled belief {belief.belief_id} to {self.subjects['beliefs_emit']}")
+        return True
     
     async def _do_publish_belief(self, belief) -> None:
         """Internal belief publish logic without timeout"""
@@ -349,8 +318,6 @@ class ExoArmurNATSClient:
     
     async def publish_execution_intent(self, intent) -> bool:
         """Publish an ExecutionIntentV1 to JetStream with timeout enforcement"""
-        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
-        
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
             return False
@@ -358,29 +325,10 @@ class ExoArmurNATSClient:
         if not self.js:
             logger.error("JetStream context not initialized")
             return False
-        
-        timeout_mgr = get_timeout_manager()
-        
-        try:
-            # Use timeout enforcement for intent publishing
-            await timeout_mgr.execute_with_timeout(
-                category=TimeoutCategory.NATS_PUBLISH,
-                operation=f"Publish intent {intent.intent_id}",
-                coro=self._do_publish_execution_intent(intent),
-                tenant_id=None,
-                correlation_id=None,
-                trace_id=None
-            )
-            
-            logger.debug(f"Published intent {intent.intent_id} to {self.subjects['intents_execute']}")
-            return True
-            
-        except TimeoutError as e:
-            logger.error(f"Intent publish timed out: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to publish intent: {e}")
-            return False
+
+        self._schedule_publish_task(self._do_publish_execution_intent(intent), f"Publish intent {intent.intent_id}")
+        logger.debug(f"Scheduled intent {intent.intent_id} to {self.subjects['intents_execute']}")
+        return True
     
     async def _do_publish_execution_intent(self, intent) -> None:
         """Internal intent publish logic without timeout"""
@@ -396,8 +344,6 @@ class ExoArmurNATSClient:
     
     async def publish_audit_record(self, record) -> bool:
         """Publish an AuditRecordV1 to JetStream with timeout enforcement"""
-        from exoarmur.reliability import get_timeout_manager, TimeoutCategory, TimeoutError
-        
         if not self.nc or not self.connected:
             logger.error("Not connected to NATS")
             return False
@@ -405,32 +351,13 @@ class ExoArmurNATSClient:
         if not self.js:
             logger.error("JetStream context not initialized")
             return False
-        
-        timeout_mgr = get_timeout_manager()
-        
-        try:
-            # Use timeout enforcement for audit publishing
-            await timeout_mgr.execute_with_timeout(
-                category=TimeoutCategory.NATS_PUBLISH,
-                operation=f"Publish audit {record.audit_id}",
-                coro=self._do_publish_audit_record(record),
-                tenant_id=None,
-                correlation_id=None,
-                trace_id=None
-            )
-            
-            logger.debug(f"Published audit {record.audit_id} to {self.subjects['audit_append']}")
-            return True
-            
-        except TimeoutError as e:
-            logger.error(f"Audit publish timed out: {e}")
-            return False
-        except Exception as e:
-            logger.error(f"Failed to publish audit: {e}")
-            return False
+
+        self._schedule_publish_task(self._do_publish_audit_record(record), f"Publish audit {record.audit_id}")
+        logger.debug(f"Scheduled audit {record.audit_id} to {self.subjects['audit_append']}")
+        return True
     
     async def _do_publish_audit_record(self, record) -> None:
-        """Internal audit publish logic without timeout"""
+        """Internal audit record publish logic without timeout"""
         # Serialize audit record deterministically
         audit_data = record.model_dump(mode="json")
         audit_bytes = json.dumps(audit_data).encode('utf-8')

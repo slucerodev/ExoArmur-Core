@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Optional
+
+from exoarmur.execution_boundary_v2.models.execution_proof_bundle import (
+    ExecutionProofBundle,
+)
+from exoarmur.execution_boundary_v2.schema_migrations import MigrationError
+from exoarmur.execution_boundary_v2.utils.canonicalization import (
+    compute_replay_hash_with_migration,
+)
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
+
+
+@dataclass(frozen=True)
+class ExternalVerificationResult:
+    verify_verdict: str
+    bundle_format: str
+    hash_algorithm: str
+    expected_hash: str
+    computed_hash: str
+    hash_match: bool
+    checksum_expected: str = ""
+    checksum_computed: str = ""
+    checksum_match: Optional[bool] = None
+    error: str = ""
+
+    @property
+    def passed(self) -> bool:
+        return self.verify_verdict == "PASS"
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def load_bundle_file(bundle_path: str | Path) -> dict[str, Any]:
+    path = Path(bundle_path)
+    with path.open("r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Bundle root must be a JSON object, got {type(loaded).__name__}")
+    return loaded
+
+
+def verify_bundle_file(bundle_path: str | Path) -> ExternalVerificationResult:
+    return verify_bundle_data(load_bundle_file(bundle_path))
+
+
+def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResult:
+    try:
+        inner = _extract_execution_proof_bundle(bundle_data)
+        bundle_model = ExecutionProofBundle.model_validate(inner)
+        computed_hash = compute_replay_hash_with_migration(
+            _canonical_execution_proof_payload(bundle_model)
+        )
+        expected_hash = bundle_model.replay_hash
+        hash_match = computed_hash == expected_hash
+        checksum_expected = bundle_model.bundle_checksum or ""
+        checksum_computed = (
+            _compute_bundle_checksum(bundle_model) if checksum_expected else ""
+        )
+        checksum_match = (
+            checksum_computed == checksum_expected if checksum_expected else None
+        )
+        failures = []
+        if not hash_match:
+            failures.append("REPLAY_HASH_MISMATCH")
+        if checksum_match is False:
+            failures.append("BUNDLE_CHECKSUM_MISMATCH")
+        return ExternalVerificationResult(
+            verify_verdict="PASS" if not failures else "FAIL",
+            bundle_format="EXECUTION_PROOF_BUNDLE",
+            hash_algorithm="sha256",
+            expected_hash=expected_hash,
+            computed_hash=computed_hash,
+            hash_match=hash_match,
+            checksum_expected=checksum_expected,
+            checksum_computed=checksum_computed,
+            checksum_match=checksum_match,
+            error=";".join(failures),
+        )
+    except MigrationError as exc:
+        return _failure_result("EXECUTION_PROOF_BUNDLE", f"MIGRATION_ERROR: {exc}")
+    except Exception as exc:
+        return _failure_result("UNKNOWN", f"VALIDATION_ERROR: {exc}")
+
+
+def format_key_value(result: ExternalVerificationResult) -> str:
+    values = result.to_dict()
+    lines = []
+    for key in [
+        "verify_verdict",
+        "bundle_format",
+        "hash_algorithm",
+        "expected_hash",
+        "computed_hash",
+        "hash_match",
+        "checksum_expected",
+        "checksum_computed",
+        "checksum_match",
+        "error",
+    ]:
+        value = values[key]
+        if isinstance(value, bool):
+            rendered = "true" if value else "false"
+        elif value is None:
+            rendered = ""
+        else:
+            rendered = str(value)
+        lines.append(f"{key.upper()}={rendered}")
+    return "\n".join(lines)
+
+
+def _extract_execution_proof_bundle(bundle_data: dict[str, Any]) -> dict[str, Any]:
+    inner = bundle_data.get("bundle")
+    if isinstance(inner, dict):
+        return inner
+    if "schema_version" in bundle_data and "execution_trace" in bundle_data:
+        return bundle_data
+    raise ValueError("Unsupported bundle format: expected ExecutionProofBundle JSON")
+
+
+def _canonical_execution_proof_payload(
+    bundle_model: ExecutionProofBundle,
+) -> dict[str, Any]:
+    return {
+        "schema_version": bundle_model.schema_version,
+        "bundle_version": bundle_model.bundle_version,
+        "intent": bundle_model.intent,
+        "policy_decision": bundle_model.policy_decision,
+        "safety_verdict": bundle_model.safety_verdict,
+        "final_verdict": bundle_model.final_verdict.value
+        if hasattr(bundle_model.final_verdict, "value")
+        else bundle_model.final_verdict,
+        "approval_records": bundle_model.approval_records,
+        "execution_trace": bundle_model.execution_trace,
+        "executor_result": bundle_model.executor_result,
+        "governance_evidence": bundle_model.governance_evidence,
+        "resolution_evidence": bundle_model.resolution_evidence,
+        "executor_capabilities": bundle_model.executor_capabilities,
+        "validation_evidence": bundle_model.validation_evidence,
+        "executor_failure_evidence": bundle_model.executor_failure_evidence,
+    }
+
+
+def _compute_bundle_checksum(bundle_model: ExecutionProofBundle) -> str:
+    final_verdict = (
+        bundle_model.final_verdict.value
+        if hasattr(bundle_model.final_verdict, "value")
+        else bundle_model.final_verdict
+    )
+    return stable_hash(
+        canonical_json(
+            {
+                "bundle_id": bundle_model.bundle_id,
+                "bundle_version": bundle_model.bundle_version,
+                "replay_hash": bundle_model.replay_hash,
+                "final_verdict": final_verdict,
+                "intent": bundle_model.intent.get("intent_id", "unknown"),
+                "correlation_id": bundle_model.intent.get("correlation_id", "unknown"),
+            }
+        )
+    )
+
+
+def _failure_result(bundle_format: str, error: str) -> ExternalVerificationResult:
+    return ExternalVerificationResult(
+        verify_verdict="FAIL",
+        bundle_format=bundle_format,
+        hash_algorithm="sha256",
+        expected_hash="",
+        computed_hash="",
+        hash_match=False,
+        error=error,
+    )
