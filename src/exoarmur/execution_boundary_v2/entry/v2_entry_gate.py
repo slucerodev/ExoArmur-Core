@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional
 import logging
 import threading
+from collections import defaultdict
+from contextlib import contextmanager
+from itertools import count
 from datetime import datetime, timezone
 
 from exoarmur.clock import utc_now
@@ -22,7 +25,7 @@ from ..core.audit_logger import DeterministicAuditLogger
 from ..detection import get_v2_execution_context
 from ...telemetry.v2_telemetry_handler import get_v2_telemetry_handler
 from ...causal.causal_context_logger import get_causal_context_logger
-from exoarmur.replay.canonical_utils import stable_hash
+from exoarmur.replay.canonical_utils import canonical_json, stable_hash
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,31 @@ class ExecutionResult:
     audit_trail_id: str
     error: Optional[str] = None
 
+@dataclass(frozen=True)
+class PartitionRoute:
+    partition_key: str
+    sequence: int
+
+class ControlViolationError(RuntimeError):
+    violation_code = "CONTROL_VIOLATION"
+    quarantined = False
+
+class CapabilityDeniedError(ControlViolationError):
+    violation_code = "CAPABILITY_DENIED"
+
+class BudgetBreachError(ControlViolationError):
+    violation_code = "BUDGET_BREACH"
+
+class ProvenanceViolationError(ControlViolationError):
+    violation_code = "PROVENANCE_VIOLATION"
+
+class PolicyDeniedError(ControlViolationError):
+    violation_code = "POLICY_DENIED"
+
+class QuarantineViolationError(ControlViolationError):
+    violation_code = "QUARANTINED"
+    quarantined = True
+
 class V2EntryGate:
     """
     SINGLE MANDATORY ENTRY POINT for ALL execution paths
@@ -61,13 +89,93 @@ class V2EntryGate:
         self.trust_registry = TRUST_TIER_REGISTRY
         self.telemetry_handler = get_v2_telemetry_handler()
         self.causal_logger = get_causal_context_logger()
+        self.allowed_actions = frozenset({
+            "partition_test",
+            "process_belief",
+            "process_audit",
+            "emit_audit",
+            "isolate_host",
+            "containment_apply",
+            "isolate_endpoint",
+        })
+        self.allowed_intent_types = frozenset({
+            "SYSTEM_BOOTSTRAP",
+            "BELIEF_PROCESSING",
+            "AUDIT_PROCESSING",
+            "AUDIT_EMISSION",
+            "isolate_host",
+        })
+        self.allowed_tools = frozenset({
+            "internal",
+            "audit",
+            "belief",
+            "execution",
+            "filesystem",
+            "http",
+        })
+        self.default_execution_budget = {
+            "max_steps": 100,
+            "max_tool_calls": 50,
+            "max_recursion_depth": 10,
+        }
 
-        # FIFO execution queue for deterministic execution
-        self._execution_queue = []
-        self._execution_lock = threading.Lock()
-        self._queue_sequence = 0
+        self._partition_conditions = defaultdict(threading.Condition)
+        self._partition_counters = defaultdict(lambda: count(1))
+        self._partition_serving = defaultdict(lambda: 1)
+        
+        # Staged hashing accumulator for lightweight step hashes
+        self._step_hash_accumulators = defaultdict(list)
 
-        logger.info("V2EntryGate initialized - SINGLE ENTRY POINT ENFORCED with FIFO execution queue")
+        logger.info("V2EntryGate initialized - SINGLE ENTRY POINT ENFORCED with partitioned routing and staged hashing")
+
+    def _partition_key_for_request(self, request: ExecutionRequest) -> str:
+        return request.correlation_id or request.execution_context.execution_id.value
+    
+    def _record_step_hash(self, partition_key: str, step_name: str, data: Dict[str, Any]) -> str:
+        """Record lightweight step hash for staged hashing"""
+        step_data = {
+            "step": step_name,
+            "data": data,
+        }
+        step_hash = stable_hash(canonical_json(step_data))
+        self._step_hash_accumulators[partition_key].append({
+            "step": step_name,
+            "hash": step_hash,
+        })
+        return step_hash
+    
+    def _compute_final_bundle_hash(self, partition_key: str) -> str:
+        """Compute full bundle hash from accumulated step hashes"""
+        step_hashes = self._step_hash_accumulators[partition_key]
+        bundle_data = {
+            "steps": step_hashes,
+        }
+        bundle_hash = stable_hash(canonical_json(bundle_data))
+        # Clean up accumulator after final hash computation
+        del self._step_hash_accumulators[partition_key]
+        return bundle_hash
+
+    def _next_partition_route(self, request: ExecutionRequest) -> PartitionRoute:
+        partition_key = self._partition_key_for_request(request)
+        condition = self._partition_conditions[partition_key]
+        with condition:
+            sequence = next(self._partition_counters[partition_key])
+        return PartitionRoute(
+            partition_key=partition_key,
+            sequence=sequence
+        )
+
+    @contextmanager
+    def _partition_turn(self, route: PartitionRoute):
+        condition = self._partition_conditions[route.partition_key]
+        with condition:
+            while route.sequence != self._partition_serving[route.partition_key]:
+                condition.wait()
+            try:
+                yield
+            finally:
+                self._partition_serving[route.partition_key] += 1
+                condition.notify_all()
 
     def _deterministic_execution_context_id(self, request: ExecutionRequest) -> str:
         """Generate deterministic execution context ID derived from request hash"""
@@ -105,8 +213,10 @@ class V2EntryGate:
                 # STRICT PRECONDITION CHECKING - Validate everything before any logic
                 self._validate_execution_request_strict(request)
                 
-                # Create V2 context with fail-stop semantics
+                partition_route = self._next_partition_route(request)
                 v2_context_data = self._create_v2_context_strict(request)
+                v2_context_data['partition_key'] = partition_route.partition_key
+                v2_context_data['partition_sequence'] = partition_route.sequence
                 
                 # CAPTURE ENTRY TELEMETRY (observational only - never affects execution)
                 telemetry_event_id = self._capture_entry_telemetry(request, v2_context_data, entry_timestamp)
@@ -114,20 +224,41 @@ class V2EntryGate:
                 # CAPTURE CAUSAL CONTEXT START (observational only - never affects execution)
                 causal_start_record_id = self._capture_causal_start(request, v2_context_data, entry_timestamp)
                 
-                # DETERMINISTIC ROUTING - If valid → proceed, if invalid → HARD FAIL
-                self._enforce_v2_lifecycle_strict(v2_context_data)
-                self._inject_deterministic_context_strict(v2_context_data)
-                audit_trail_id = self._attach_audit_session_strict(v2_context_data)
-                self._validate_v2_requirements_strict(v2_context_data)
-                
-                # CAPTURE DECISION POINT CAUSAL CONTEXT (observational only)
-                self._capture_decision_point_causal(request, v2_context_data, causal_start_record_id)
-                
-                # EXECUTE THROUGH V1 CORE (only after full validation)
-                core_result = self._dispatch_to_v1_core_strict(v2_context_data)
-                
-                # FINALIZE THROUGH V2
-                final_result = self._finalize_through_v2_strict(v2_context_data, core_result)
+                with self._partition_turn(partition_route):
+                    # STAGED HASHING: Record entry step hash
+                    self._record_step_hash(partition_route.partition_key, "entry", {
+                        "execution_id": v2_context_data['execution_id'],
+                        "partition_sequence": partition_route.sequence,
+                    })
+                    
+                    self._enforce_v2_lifecycle_strict(v2_context_data)
+                    self._inject_deterministic_context_strict(v2_context_data)
+                    audit_trail_id = self._attach_audit_session_strict(v2_context_data)
+                    self._validate_v2_requirements_strict(v2_context_data)
+                    
+                    # STAGED HASHING: Record control checks
+                    self._record_step_hash(partition_route.partition_key, "capability_check", v2_context_data.get("capability_decision", {}))
+                    self._record_step_hash(partition_route.partition_key, "budget_check", v2_context_data.get("execution_budget", {}))
+                    self._record_step_hash(partition_route.partition_key, "input_provenance", {"hash": v2_context_data.get("input_provenance_hash", "")})
+                    self._record_step_hash(partition_route.partition_key, "policy_decision", v2_context_data.get("policy_simulation", {}))
+                    
+                    self._enforce_capability_firewall(v2_context_data)
+                    self._enforce_execution_budget(v2_context_data)
+                    self._enforce_input_provenance(v2_context_data)
+                    self._simulate_policy_decision(v2_context_data)
+                    self._enforce_divergence_quarantine(v2_context_data)
+                    self._capture_decision_point_causal(request, v2_context_data, causal_start_record_id)
+                    core_result = self._dispatch_to_v1_core_strict(v2_context_data)
+                    self._enforce_output_provenance(v2_context_data, core_result)
+                    
+                    # STAGED HASHING: Record output provenance
+                    self._record_step_hash(partition_route.partition_key, "output_provenance", {"hash": v2_context_data.get("output_provenance_hash", "")})
+                    
+                    final_result = self._finalize_through_v2_strict(v2_context_data, core_result)
+                    
+                    # STAGED HASHING: Compute final bundle hash at end
+                    final_bundle_hash = self._compute_final_bundle_hash(partition_route.partition_key)
+                    final_result.result_data["final_bundle_hash"] = final_bundle_hash
                 
                 # CAPTURE EXIT TELEMETRY (observational only)
                 self._capture_exit_telemetry(telemetry_event_id, final_result, entry_timestamp)
@@ -138,13 +269,21 @@ class V2EntryGate:
                 return final_result
                 
             except Exception as e:
-                # FAIL-STOP SEMANTICS - ANY exception = immediate HALT
                 logger.error(f"V2 Entry Gate execution failed: {str(e)}")
+                quarantined = getattr(e, "quarantined", False)
+                violation_code = getattr(e, "violation_code", type(e).__name__)
                 error_result = ExecutionResult(
                     success=False,
-                    result_data={'error': str(e), 'stage': 'v2_entry_gate_failure'},
+                    result_data={
+                        'error': str(e),
+                        'stage': 'QUARANTINED' if quarantined else 'v2_entry_gate_failure',
+                        'final_verdict': 'QUARANTINED' if quarantined else 'FAIL',
+                        'execution_status': 'QUARANTINED' if quarantined else 'HALTED',
+                        'violation_code': violation_code,
+                    },
                     execution_id=request.execution_context.execution_id.value if request else 'unknown',
-                    audit_trail_id=''
+                    audit_trail_id='',
+                    error=str(e)
                 )
                 
                 # CAPTURE EXIT TELEMETRY for error case (observational only)
@@ -669,6 +808,122 @@ class V2EntryGate:
         if not clock:
             raise ValueError("Logical clock not initialized")
 
+    def _append_control_audit(self, v2_context: Dict[str, Any], event_type: str, details: Dict[str, Any]) -> None:
+        record = {
+            "event_type": event_type,
+            "execution_id": v2_context["execution_id"],
+            "details": details,
+        }
+        record["record_hash"] = stable_hash(canonical_json(record))
+        v2_context.setdefault("control_audit", []).append(record)
+
+    def _enforce_capability_firewall(self, v2_context: Dict[str, Any]) -> None:
+        request = v2_context["request"]
+        action_data = request.action_data
+        action_type = action_data.get("action_type")
+        intent_type = action_data.get("intent_type")
+        tool = action_data.get("tool") or action_data.get("tool_name") or "internal"
+
+        if intent_type and intent_type not in self.allowed_intent_types:
+            raise CapabilityDeniedError(f"CAPABILITY_DENIED: intent_type {intent_type} is not whitelisted")
+        if action_type and action_type not in self.allowed_actions and action_type not in self.allowed_intent_types:
+            raise CapabilityDeniedError(f"CAPABILITY_DENIED: action_type {action_type} is not whitelisted")
+        if not action_type and not intent_type:
+            raise CapabilityDeniedError("CAPABILITY_DENIED: action_type or intent_type is required")
+        if tool not in self.allowed_tools:
+            raise CapabilityDeniedError(f"CAPABILITY_DENIED: tool {tool} is not whitelisted")
+
+        for tool_call in action_data.get("tool_calls", []):
+            tool_name = tool_call.get("tool") if isinstance(tool_call, dict) else tool_call
+            if tool_name not in self.allowed_tools:
+                raise CapabilityDeniedError(f"CAPABILITY_DENIED: tool {tool_name} is not whitelisted")
+
+        decision = {
+            "action_type": action_type,
+            "intent_type": intent_type,
+            "tool": tool,
+            "verdict": "ALLOW",
+            "reason": "capability whitelisted",
+        }
+        v2_context["capability_decision"] = decision
+        self._append_control_audit(v2_context, "capability_firewall", decision)
+
+    def _enforce_execution_budget(self, v2_context: Dict[str, Any]) -> None:
+        action_data = v2_context["request"].action_data
+        limits = dict(self.default_execution_budget)
+        limits.update(action_data.get("execution_budget", {}))
+        usage = dict(action_data.get("budget_usage", {}))
+        usage.setdefault("step_count", action_data.get("step_count", 1))
+        usage.setdefault("tool_call_count", action_data.get("tool_call_count", len(action_data.get("tool_calls", []))))
+        usage.setdefault("recursion_depth", action_data.get("recursion_depth", 0))
+
+        comparisons = (
+            ("step_count", "max_steps"),
+            ("tool_call_count", "max_tool_calls"),
+            ("recursion_depth", "max_recursion_depth"),
+        )
+        for usage_key, limit_key in comparisons:
+            if usage[usage_key] > limits[limit_key]:
+                raise BudgetBreachError(
+                    f"BUDGET_BREACH: {usage_key} {usage[usage_key]} exceeds {limit_key} {limits[limit_key]}"
+                )
+
+        v2_context["execution_budget"] = {"limits": limits, "usage": usage}
+        self._append_control_audit(v2_context, "execution_budget", {"limits": limits, "usage": usage})
+
+    def _enforce_input_provenance(self, v2_context: Dict[str, Any]) -> None:
+        action_data = v2_context["request"].action_data
+        if action_data.get("io_bypass_detected"):
+            raise ProvenanceViolationError("PROVENANCE_VIOLATION: input IO bypass detected")
+
+        for index, io_event in enumerate(action_data.get("io_events", [])):
+            if not isinstance(io_event, dict) or not io_event.get("audit_binding_id"):
+                raise ProvenanceViolationError(f"PROVENANCE_VIOLATION: io_events[{index}] missing audit binding")
+
+        binding = {
+            "execution_id": v2_context["execution_id"],
+            "action_data": action_data,
+        }
+        v2_context["input_provenance_hash"] = stable_hash(canonical_json(binding))
+        self._append_control_audit(
+            v2_context,
+            "input_provenance",
+            {"input_provenance_hash": v2_context["input_provenance_hash"]},
+        )
+
+    def _simulate_policy_decision(self, v2_context: Dict[str, Any]) -> None:
+        action_data = v2_context["request"].action_data
+        verdict = action_data.get("policy_simulation_verdict", "allow")
+        reason = action_data.get("policy_simulation_reason", "default allow simulation")
+        decision = {
+            "verdict": verdict,
+            "reason": reason,
+            "execution_id": v2_context["execution_id"],
+        }
+        v2_context["policy_simulation"] = decision
+        self._append_control_audit(v2_context, "policy_simulation", decision)
+        if verdict == "deny":
+            raise PolicyDeniedError(f"POLICY_DENIED: {reason}")
+
+    def _enforce_divergence_quarantine(self, v2_context: Dict[str, Any]) -> None:
+        action_data = v2_context["request"].action_data
+        if action_data.get("hash_mismatch_detected") or action_data.get("invariant_violation"):
+            raise QuarantineViolationError("QUARANTINED: divergence or invariant violation detected")
+
+    def _enforce_output_provenance(self, v2_context: Dict[str, Any], core_result: Dict[str, Any]) -> None:
+        if core_result.get("io_bypass_detected"):
+            raise ProvenanceViolationError("PROVENANCE_VIOLATION: output IO bypass detected")
+        binding = {
+            "execution_id": v2_context["execution_id"],
+            "core_result": core_result,
+        }
+        v2_context["output_provenance_hash"] = stable_hash(canonical_json(binding))
+        self._append_control_audit(
+            v2_context,
+            "output_provenance",
+            {"output_provenance_hash": v2_context["output_provenance_hash"]},
+        )
+
     def _dispatch_to_v1_core_strict(self, v2_context: Dict[str, Any]) -> Dict[str, Any]:
         """Dispatch to V1 Core with strict error handling - NO fallbacks"""
         request = v2_context['request']
@@ -710,10 +965,18 @@ class V2EntryGate:
         """Finalize execution through V2 with strict validation"""
         if not core_result.get('success'):
             raise RuntimeError("Cannot finalize failed execution")
+
+        result_data = dict(core_result)
+        result_data["control_audit"] = v2_context.get("control_audit", [])
+        result_data["capability_decision"] = v2_context.get("capability_decision", {})
+        result_data["execution_budget"] = v2_context.get("execution_budget", {})
+        result_data["policy_simulation"] = v2_context.get("policy_simulation", {})
+        result_data["input_provenance_hash"] = v2_context.get("input_provenance_hash", "")
+        result_data["output_provenance_hash"] = v2_context.get("output_provenance_hash", "")
         
         return ExecutionResult(
             success=core_result.get('success', False),
-            result_data=core_result,
+            result_data=result_data,
             execution_id=v2_context['execution_id'],
             audit_trail_id=v2_context.get('audit_trail_id', '')
         )
