@@ -381,7 +381,6 @@ docker logs exoarmur-core 2>&1 | grep "duration_ms.*[0-9]\{4,\}"
 ### Documentation
 - [Configuration Reference](./CONFIGURATION_REFERENCE.md)
 - [Operator Runbook](./OPERATOR_RUNBOOK.md)
-- [API Documentation](../spec/)
 
 ### Emergency Contacts
 - On-call rotation: oncall@exoarmur.dev
