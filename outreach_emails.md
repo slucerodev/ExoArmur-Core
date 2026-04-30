@@ -58,7 +58,7 @@ ExoArmur addresses this by:
 - Guaranteeing deterministic replay (you can reconstruct any decision exactly)
 - Providing a single execution boundary that's impossible to bypass
 
-The system is production-ready:
+The system is ready for technical evaluation:
 - 1,039 tests with three-run stability gate
 - Published on PyPI (pip install exoarmur-core)
 - Comprehensive CI/CD with security scanning
@@ -140,7 +140,7 @@ Based on [specific recent news/initiative at their company], you're likely deali
 - Complete replayability for incident investigation
 - Federation support for multi-team coordination
 
-The system is production-ready:
+The system is ready for technical evaluation:
 - 1,039 tests with three-run stability gate
 - Published on PyPI (pip install exoarmur-core)
 - Security scanning on every commit (CodeQL, pip-audit, bandit, gitleaks)
@@ -210,7 +210,7 @@ Abstract:
 [300-500 words about deterministic AI governance, the accountability problem, and how ExoArmur addresses it]
 
 Speaker Bio:
-Shea Lucero is the maintainer of ExoArmur, an open-source deterministic governance runtime for autonomous systems. What started as a curiosity-driven side project exploring the accountability gap in AI has evolved into a production-ready system with 1,039 tests, a three-run stability gate, and cryptographic audit trails. Shea approaches AI governance from a problem-solving perspective rather than a pure engineering background, bringing a unique focus on the regulatory and compliance challenges that autonomous systems create.
+Shea Lucero is the maintainer of ExoArmur, an open-source deterministic governance runtime for autonomous systems. What started as a curiosity-driven side project exploring the accountability gap in AI has evolved into a technical evaluation system with 1,039 tests, a three-run stability gate, and cryptographic audit trails. Shea approaches AI governance from a problem-solving perspective rather than a pure engineering background, bringing a unique focus on the regulatory and compliance challenges that autonomous systems create.
 
 Takeaways:
 - Why determinism matters for AI systems in production environments

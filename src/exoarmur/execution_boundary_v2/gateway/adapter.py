@@ -16,9 +16,9 @@ from .types import Clock, ToolContext, ToolCall
 
 def default_pipeline_factory() -> ProxyPipeline:
     """Default factory for creating ProxyPipeline instances."""
-    # This should be configured based on the specific environment
-    # For now, raise to require explicit injection
-    raise NotImplementedError(
+    # This must be configured based on the specific environment
+    # Explicit injection required for proper governance boundary enforcement
+    raise ValueError(
         "pipeline_factory must be explicitly provided to guard_tools. "
         "Use a factory that returns a properly configured ProxyPipeline."
     )

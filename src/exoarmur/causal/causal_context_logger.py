@@ -88,11 +88,11 @@ class CausalContextRecord:
 
 
 class CausalContextSink:
-    """Abstract base for causal context sinks"""
+    """Abstract base for causal context sinks - concrete implementations required"""
     
     def emit(self, record: CausalContextRecord) -> bool:
         """Emit causal context record - must be non-blocking and failure-tolerant"""
-        raise NotImplementedError
+        raise NotImplementedError("CausalContextSink is abstract - use LogCausalSink, MemoryCausalSink, or AsyncFileCausalSink")
     
     def close(self):
         """Close sink and cleanup resources"""

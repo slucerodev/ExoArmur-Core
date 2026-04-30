@@ -199,7 +199,7 @@ class TestGatewayGuardTools:
         clock = FixedClock("2026-01-01T00:00:00Z")
         
         # Should raise when no pipeline_factory provided (when calling the wrapped tool)
-        with pytest.raises(NotImplementedError, match="pipeline_factory must be explicitly provided"):
+        with pytest.raises(ValueError, match="pipeline_factory must be explicitly provided to guard_tools"):
             guarded = guard_tools(tools, clock=clock)
             guarded["simple"]("test")  # Error occurs when calling, not when wrapping
 

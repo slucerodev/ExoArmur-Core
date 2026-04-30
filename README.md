@@ -3,7 +3,9 @@
 [![CI](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml/badge.svg)](https://github.com/slucerodev/ExoArmur-Core/actions/workflows/core-invariant-gates.yml)
 [![Version](https://img.shields.io/badge/version-2.1.0-green)](https://github.com/slucerodev/ExoArmur-Core/releases)
 
-**A governance layer for AI agents that enforces policy before execution, produces cryptographic audit trails, and enables deterministic replay.**
+**Govern AI agent actions. Prove what happened.**
+
+ExoArmur turns governed AI agent actions into replay-verifiable proof bundles. It is currently ready for technical evaluation, not production deployment.
 
 ExoArmur sits between your AI decision layer and execution targets. It ensures every action is:
 - **Policy-gated** — evaluated before it runs
@@ -13,10 +15,22 @@ ExoArmur sits between your AI decision layer and execution targets. It ensures e
 
 🚀 **[Try the Live Demo](https://codespaces.new/slucerodev/ExoArmur-Core)** — One-click browser environment, no installation needed.
 
-> **Status (April 2026):** Single-maintainer reference implementation. CI invariant
-> gates enforce determinism, module boundaries, and three-run stability. No external
-> audit yet. Seeking first pilot integration. See [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
-> for full detail.
+## Technical Evaluation
+
+[**docs/TECHNICAL_EVALUATION.md**](docs/TECHNICAL_EVALUATION.md) — Complete guide for evaluating core proof claims
+
+**Proof flow:**
+```bash
+python demos/canonical_truth_reconstruction_demo.py
+exoarmur verify-bundle --bundle demos/canonical_proof_bundle.json
+```
+
+**Status boundaries:**
+- No external audit yet
+- No production certification yet
+- Not BFT consensus
+
+> **Status (April 2026):** Ready for technical evaluation. Single-maintainer reference implementation. CI invariant gates enforce determinism, module boundaries, and three-run stability. Seeking first pilot integration. See [`PROJECT_STATUS.md`](PROJECT_STATUS.md) for full detail.
 
 ---
 

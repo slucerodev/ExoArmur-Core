@@ -21,11 +21,25 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+import pytest
 
-# Add src to path
 repo_root = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(repo_root / "src"))
-sys.path.insert(0, str(repo_root))
+
+
+@pytest.fixture(autouse=True)
+def add_src_to_path():
+    """Add src to path for each test to ensure isolation."""
+    src_path = str(repo_root / "src")
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    yield
+    # Cleanup: remove the paths we added (in reverse order to avoid index shifts)
+    if str(repo_root) in sys.path:
+        sys.path.remove(str(repo_root))
+    if src_path in sys.path:
+        sys.path.remove(src_path)
 
 
 def run_demo(*args) -> tuple[int, str, str]:

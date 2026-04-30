@@ -3,7 +3,7 @@
 ExoArmur Demo Deployment Script
 
 This script handles deployment of the ExoArmur deterministic governance demo.
-It supports multiple deployment modes: local Docker, production-ready setup.
+It supports multiple deployment modes: local Docker, technical evaluation setup.
 """
 
 import os

@@ -17,12 +17,12 @@ ExoArmur is a deterministic execution safety substrate that provides byte-for-by
 - **Autonomous Decision System**: Does not make security decisions or detect threats
 - **AI Agent Platform**: Does not host or run AI agents directly
 - **Regulatory Compliance Tool**: Not certified for any regulatory frameworks
-- **Production-Ready System**: Currently in development with experimental components
+- **Production-Ready System**: Technical preview for evaluation, not production deployment
 - **Market-Dominant Solution**: Engineering-focused substrate, not commercial product
 
 ## System Architecture
 
-### Core Engine (Production-Grade)
+### Core Engine (Technical Preview)
 ```
 src/exoarmur/
 ├── replay/           # Deterministic replay engine
@@ -82,7 +82,7 @@ src/exoarmur/execution_boundary_v2/
 
 ## Current System State
 
-### Production-Ready Components
+### Technical Preview Components
 - **Core Replay Engine**: 100% reproducible execution
 - **Safety Gate Framework**: Deterministic allow/deny enforcement
 - **Audit Evidence Chain**: Complete traceability with cryptographic proofs
@@ -151,7 +151,7 @@ Demonstrates full system capabilities with policy enforcement and replay verific
 ## Development Status
 
 ### Current Phase
-- **Core Engine**: Production-ready with deterministic guarantees
+- **Core Engine**: Technical preview with deterministic guarantees
 - **V2 Experimental**: Development phase with feature flags
 - **Documentation**: Truth-aligned positioning established
 - **Testing**: Comprehensive deterministic test coverage

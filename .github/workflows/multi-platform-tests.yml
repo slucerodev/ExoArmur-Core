@@ -92,7 +92,8 @@ jobs:
         python -m pip install --no-deps -e .
 
     - name: Run API integration tests
-      continue-on-error: true
+      # Fail-fast: API integration tests must pass for CI gate
+      continue-on-error: false
       run: |
         python -m pytest -q tests/test_api_integration.py -v
 

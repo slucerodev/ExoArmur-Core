@@ -73,7 +73,7 @@
 ## BOUNDARY DEFINITION
 
 ### What Defines "Core"
-1. **Production-Ready**: Components required for production deployment
+1. **Technical Maturity**: Components required for technical evaluation
 2. **OSS Dependencies**: Uses open-source Python dependencies declared in requirements files
 3. **Runtime Requirements**: Requires NATS JetStream for Golden Demo and Phase 6 reality run
 4. **No Proprietary Dependencies**: No paid or commercial dependencies in core
@@ -214,7 +214,7 @@ python3 -m tests.test_phase6_circuit_breaker_minimal
 
 The ExoArmur open-core release includes all components required for production-grade reliability and safety. The repository contains only production-truth components with comprehensive verification and testing infrastructure.
 
-**Core Release**: Production-ready reliability substrate with comprehensive testing, documentation, and truth enforcement.  
+**Core Release**: Technical evaluation reliability substrate with comprehensive testing, documentation, and truth enforcement.  
 **Dependencies**: Open-source Python dependencies with NATS JetStream runtime requirement.  
 **Excluded**: Internal tools, commercial features, and organizational infrastructure not relevant to core functionality.  
 **Boundary**: Mechanically enforceable with no experimental code in core repository.

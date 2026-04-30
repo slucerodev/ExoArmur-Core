@@ -74,11 +74,11 @@ class V2TelemetryEvent:
 
 
 class TelemetrySink:
-    """Abstract base for telemetry sinks"""
+    """Abstract base for telemetry sinks - concrete implementations required"""
     
     def emit(self, event: V2TelemetryEvent) -> bool:
         """Emit telemetry event - must be non-blocking and failure-tolerant"""
-        raise NotImplementedError
+        raise NotImplementedError("TelemetrySink is abstract - use LogTelemetrySink, MemoryTelemetrySink, or AsyncFileTelemetrySink")
     
     def close(self):
         """Close sink and cleanup resources"""

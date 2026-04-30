@@ -25,7 +25,7 @@ def print_completion_summary():
     
     print("🎯 EXOARMUR STABILIZATION DEMO - COMPLETED")
     print("=" * 60)
-    print("Status: PRODUCTION READY with deterministic guarantees")
+    print("Status: INFRASTRUCTURE COMPLETE with deterministic guarantees")
     print()
     
     print("📋 PHASES COMPLETED:")
@@ -85,7 +85,7 @@ def print_completion_summary():
     print()
     
     print("✅ PHASE 7: DEPLOYMENT")
-    print("   • Production-ready Docker container")
+    print("   • Deterministic governance Docker container")
     print("   • Docker Compose orchestration")
     print("   • Health checks and monitoring")
     print("   • Deterministic environment setup")

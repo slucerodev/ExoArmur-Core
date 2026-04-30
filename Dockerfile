@@ -1,5 +1,5 @@
 # ExoArmur Deterministic Governance Demo
-# Multi-stage build for production-ready container
+# Multi-stage build for deterministic governance demo container
 
 # Build stage
 FROM python:3.12-slim as builder

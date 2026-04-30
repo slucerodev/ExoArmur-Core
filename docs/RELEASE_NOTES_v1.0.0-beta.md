@@ -58,7 +58,7 @@
 
 This is a **beta release** with the following implications:
 
-- **Stable Core**: V1 contracts and reliability substrate are production-ready
+- **Stable Core**: V1 contracts and reliability substrate are technically mature
 - **Verified Safety**: Phase 6 certification confirms operational safety
 - **Controlled Deployment**: Intended for controlled environments with proper oversight
 - **Feedback Welcome**: Community feedback encouraged for continued improvement
