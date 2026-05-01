@@ -1,0 +1,338 @@
+{
+  "canonicalization_version": "v1",
+  "hash_algorithm": "sha256",
+  "root_classification": {
+    "schema_version": "HASHED",
+    "bundle_version": "HASHED",
+    "intent": "HASHED",
+    "policy_decision": "HASHED",
+    "safety_verdict": "HASHED",
+    "final_verdict": "HASHED",
+    "approval_records": "HASHED",
+    "execution_trace": "HASHED",
+    "executor_result": "HASHED",
+    "governance_evidence": "HASHED",
+    "resolution_evidence": "HASHED",
+    "executor_capabilities": "HASHED",
+    "validation_evidence": "HASHED",
+    "executor_failure_evidence": "HASHED",
+    "bundle_id": "EXCLUDED_NONDETERMINISTIC",
+    "replay_hash": "EXCLUDED_NONDETERMINISTIC",
+    "bundle_checksum": "EXCLUDED_NONDETERMINISTIC",
+    "integrity_hash": "EXCLUDED_NONDETERMINISTIC",
+    "replay_verification_timestamp": "EXCLUDED_NONDETERMINISTIC",
+    "bundle_created_at": "EXCLUDED_NONDETERMINISTIC",
+    "audit_stream_id": "EXCLUDED_NONDETERMINISTIC",
+    "audit_event_count": "EXCLUDED_NONDETERMINISTIC",
+    "deterministic_timestamps": "EXCLUDED_NONDETERMINISTIC",
+    "deterministic_ids": "EXCLUDED_NONDETERMINISTIC",
+    "canonicalization_verified": "EXCLUDED_NONDETERMINISTIC"
+  },
+  "excluded_reasons": {
+    "bundle_id": "computed-from-intent",
+    "replay_hash": "computed-from-canonical-bundle",
+    "bundle_checksum": "computed-from-core-fields",
+    "integrity_hash": "computed-from-canonical-bundle",
+    "replay_verification_timestamp": "nondeterministic",
+    "bundle_created_at": "nondeterministic",
+    "audit_stream_id": "runtime-only",
+    "audit_event_count": "runtime-only",
+    "deterministic_timestamps": "metadata-only",
+    "deterministic_ids": "metadata-only",
+    "canonicalization_verified": "metadata-only"
+  },
+  "included_fields": [
+    "schema_version",
+    "bundle_version",
+    "intent",
+    "policy_decision",
+    "safety_verdict",
+    "final_verdict",
+    "approval_records",
+    "execution_trace",
+    "executor_result",
+    "governance_evidence",
+    "resolution_evidence",
+    "executor_capabilities",
+    "validation_evidence",
+    "executor_failure_evidence"
+  ],
+  "excluded_fields": [
+    "bundle_id",
+    "replay_hash",
+    "bundle_checksum",
+    "integrity_hash",
+    "replay_verification_timestamp",
+    "bundle_created_at",
+    "audit_stream_id",
+    "audit_event_count",
+    "deterministic_timestamps",
+    "deterministic_ids",
+    "canonicalization_verified"
+  ],
+  "nested_structure": {
+    "intent": {
+      "classification": {
+        "intent_id": "HASHED",
+        "action_type": "HASHED",
+        "target": "HASHED",
+        "parameters": "HASHED",
+        "timestamp": "EXCLUDED_NONDETERMINISTIC",
+        "actor_id": "EXCLUDED_NONDETERMINISTIC",
+        "actor_type": "EXCLUDED_NONDETERMINISTIC"
+      },
+      "included_fields": [
+        "intent_id",
+        "action_type",
+        "target",
+        "parameters"
+      ],
+      "required_fields": [
+        "action_type",
+        "target"
+      ],
+      "excluded_fields": [
+        "timestamp",
+        "actor_id",
+        "actor_type"
+      ],
+      "excluded_reasons": {
+        "timestamp": "nondeterministic",
+        "actor_id": "runtime-only",
+        "actor_type": "runtime-only"
+      },
+      "nested_structure": {
+        "parameters": {
+          "classification": {
+            "allow_all": "HASHED"
+          },
+          "included_fields": [],
+          "excluded_fields": [],
+          "excluded_reasons": {},
+          "allow_all": true
+        }
+      }
+    },
+    "policy_decision": {
+      "classification": {
+        "verdict": "HASHED",
+        "rationale": "HASHED",
+        "approval_required": "HASHED"
+      },
+      "included_fields": [
+        "verdict",
+        "rationale",
+        "approval_required"
+      ],
+      "required_fields": [
+        "verdict"
+      ],
+      "excluded_fields": [],
+      "excluded_reasons": {}
+    },
+    "safety_verdict": {
+      "classification": {
+        "verdict": "HASHED",
+        "rationale": "HASHED"
+      },
+      "included_fields": [
+        "verdict",
+        "rationale"
+      ],
+      "required_fields": [
+        "verdict"
+      ],
+      "excluded_fields": [],
+      "excluded_reasons": {}
+    },
+    "execution_trace": {
+      "classification": {
+        "events": "HASHED",
+        "final_verdict": "HASHED"
+      },
+      "included_fields": [
+        "events",
+        "final_verdict"
+      ],
+      "required_fields": [
+        "events",
+        "final_verdict"
+      ],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "nested_structure": {
+        "events": {
+          "type": "list",
+          "element_fields": {
+            "classification": {
+              "stage": "HASHED",
+              "ok": "HASHED",
+              "code": "HASHED",
+              "details": "HASHED",
+              "event_id": "EXCLUDED_NONDETERMINISTIC",
+              "timestamp": "EXCLUDED_NONDETERMINISTIC",
+              "sequence": "EXCLUDED_NONDETERMINISTIC"
+            },
+            "included_fields": [
+              "stage",
+              "ok",
+              "code",
+              "details"
+            ],
+            "required_fields": [
+              "stage",
+              "ok",
+              "code"
+            ],
+            "excluded_fields": [
+              "event_id",
+              "timestamp",
+              "sequence"
+            ],
+            "excluded_reasons": {
+              "event_id": "nondeterministic",
+              "timestamp": "nondeterministic",
+              "sequence": "runtime-only"
+            },
+            "nested_structure": {
+              "details": {
+                "classification": {
+                  "allow_all": "HASHED"
+                },
+                "included_fields": [],
+                "excluded_fields": [],
+                "excluded_reasons": {},
+                "allow_all": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "executor_result": {
+      "classification": {
+        "success": "HASHED",
+        "output": "HASHED",
+        "error": "HASHED",
+        "evidence": "HASHED",
+        "execution_id": "EXCLUDED_NONDETERMINISTIC"
+      },
+      "included_fields": [
+        "success",
+        "output",
+        "error",
+        "evidence"
+      ],
+      "required_fields": [
+        "success"
+      ],
+      "excluded_fields": [
+        "execution_id"
+      ],
+      "excluded_reasons": {
+        "execution_id": "nondeterministic"
+      },
+      "nested_structure": {
+        "output": {
+          "classification": {
+            "allow_all": "HASHED"
+          },
+          "included_fields": [],
+          "excluded_fields": [],
+          "excluded_reasons": {},
+          "allow_all": true
+        },
+        "error": {
+          "classification": {
+            "allow_all": "HASHED"
+          },
+          "included_fields": [],
+          "excluded_fields": [],
+          "excluded_reasons": {},
+          "allow_all": true
+        },
+        "evidence": {
+          "classification": {
+            "allow_all": "HASHED"
+          },
+          "included_fields": [],
+          "excluded_fields": [],
+          "excluded_reasons": {},
+          "allow_all": true
+        }
+      }
+    },
+    "approval_records": {
+      "classification": {
+        "approver_id": "HASHED",
+        "approval_status": "HASHED",
+        "rationale": "HASHED",
+        "approved_at": "EXCLUDED_NONDETERMINISTIC"
+      },
+      "type": "list",
+      "element_fields": {
+        "included_fields": [
+          "approver_id",
+          "approval_status",
+          "rationale"
+        ],
+        "required_fields": [
+          "approver_id",
+          "approval_status"
+        ],
+        "excluded_fields": [
+          "approved_at"
+        ],
+        "excluded_reasons": {
+          "approved_at": "nondeterministic"
+        }
+      }
+    },
+    "governance_evidence": {
+      "classification": {
+        "allow_all": "HASHED"
+      },
+      "included_fields": [],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "allow_all": true
+    },
+    "resolution_evidence": {
+      "classification": {
+        "allow_all": "HASHED"
+      },
+      "included_fields": [],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "allow_all": true
+    },
+    "executor_capabilities": {
+      "classification": {
+        "allow_all": "HASHED"
+      },
+      "included_fields": [],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "allow_all": true
+    },
+    "validation_evidence": {
+      "classification": {
+        "allow_all": "HASHED"
+      },
+      "included_fields": [],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "allow_all": true
+    },
+    "executor_failure_evidence": {
+      "classification": {
+        "allow_all": "HASHED"
+      },
+      "included_fields": [],
+      "excluded_fields": [],
+      "excluded_reasons": {},
+      "allow_all": true
+    }
+  },
+  "version": "v1"
+}

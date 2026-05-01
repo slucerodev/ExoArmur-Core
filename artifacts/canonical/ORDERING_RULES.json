@@ -1,0 +1,77 @@
+{
+  "canonicalization_version": "v1",
+  "object_keys": {
+    "ordering": "SORTED_ALPHABETICAL",
+    "description": "Object keys are sorted alphabetically in canonical form"
+  },
+  "list_paths": {
+    "$.approval_records": {
+      "classification": "UNORDERED_SET",
+      "sort_key": "approver_id",
+      "description": "Approval records are unordered but sorted by approver_id for determinism"
+    },
+    "$.execution_trace.events": {
+      "classification": "ORDERED_SEMANTIC",
+      "description": "Execution trace events must preserve original sequence order"
+    },
+    "$.governance_evidence": {
+      "classification": "UNORDERED_SET",
+      "description": "Governance evidence is unordered"
+    },
+    "$.resolution_evidence": {
+      "classification": "UNORDERED_SET",
+      "description": "Resolution evidence is unordered"
+    },
+    "$.executor_capabilities": {
+      "classification": "UNORDERED_SET",
+      "description": "Executor capabilities are unordered"
+    },
+    "$.validation_evidence": {
+      "classification": "UNORDERED_SET",
+      "description": "Validation evidence is unordered"
+    },
+    "$.executor_failure_evidence": {
+      "classification": "UNORDERED_SET",
+      "description": "Executor failure evidence is unordered"
+    },
+    "$.intent.parameters": {
+      "classification": "UNORDERED_SET",
+      "description": "Intent parameters are unordered (object keys sorted)"
+    },
+    "$.policy_decision": {
+      "classification": "NOT_A_LIST",
+      "description": "Policy decision is an object, not a list"
+    },
+    "$.safety_verdict": {
+      "classification": "NOT_A_LIST",
+      "description": "Safety verdict is an object, not a list"
+    },
+    "$.executor_result.output": {
+      "classification": "UNORDERED_SET",
+      "description": "Executor output is unordered"
+    },
+    "$.executor_result.evidence": {
+      "classification": "UNORDERED_SET",
+      "description": "Executor evidence is unordered"
+    }
+  },
+  "classification_rules": {
+    "ORDERED_SEMANTIC": {
+      "description": "List order carries semantic meaning - reorder changes hash or fails validation",
+      "behavior": "preserve_original_order"
+    },
+    "UNORDERED_SET": {
+      "description": "List order does not carry semantic meaning - sorted by explicit sort key for determinism",
+      "behavior": "sort_by_key"
+    },
+    "REJECTED_IF_REORDERED": {
+      "description": "Sequence/index invariant - reorder causes validation failure",
+      "behavior": "fail_on_reorder"
+    },
+    "NOT_A_LIST": {
+      "description": "Field is an object, not a list",
+      "behavior": "treat_as_object"
+    }
+  },
+  "version": "v1"
+}

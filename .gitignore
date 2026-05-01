@@ -58,6 +58,8 @@ nats_data/
 artifacts/*
 !artifacts/openapi_v1.json
 !artifacts/schemas/
+!artifacts/canonical/CANONICAL_COVERAGE.json
+!artifacts/canonical/ORDERING_RULES.json
 *.log
 *.tmp
 *.temp
