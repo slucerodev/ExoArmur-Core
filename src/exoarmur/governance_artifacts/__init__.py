@@ -35,21 +35,35 @@ from .semantic_verification import (
     format_semantic_verification_for_output,
 )
 
+from .enforcement import (
+    GovernanceArtifactEnforcementResult,
+    enforce_governance_artifacts,
+    format_enforcement_for_output,
+)
+
 __all__ = [
-    "GovernanceProviderDiscoveryResult",
+    # Provider registry
     "GovernanceProviderInfo",
+    "GovernanceProviderDiscoveryResult",
     "discover_governance_artifact_providers",
     "get_governance_provider_summary",
-    "GovernanceArtifactManifest",
+    # Manifest
     "GovernanceArtifactManifestEntry",
+    "GovernanceArtifactManifest",
+    "validate_governance_manifest",
     "canonicalize_governance_manifest",
     "governance_manifest_hash",
-    "validate_governance_manifest",
+    # Inspection
     "GovernanceArtifactInspectionResult",
-    "format_inspection_result_for_output",
     "inspect_governance_artifacts_from_bundle",
+    "format_inspection_result_for_output",
+    # Semantic verification
     "GovernanceArtifactSemanticResult",
     "GovernanceArtifactSemanticAggregateResult",
     "verify_governance_artifacts_semantically",
     "format_semantic_verification_for_output",
+    # Enforcement
+    "GovernanceArtifactEnforcementResult",
+    "enforce_governance_artifacts",
+    "format_enforcement_for_output",
 ]

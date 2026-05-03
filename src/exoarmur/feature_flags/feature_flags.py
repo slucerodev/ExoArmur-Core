@@ -116,6 +116,15 @@ class FeatureFlags:
                 'dependencies': [],
                 'risk_level': 'low',
                 'owner': 'governance_team'
+            },
+            'governance_artifact_enforcement_enabled': {
+                'description': 'Enable fail-closed enforcement of required governance artifacts in verify-bundle',
+                'default_value': False,
+                'current_value': False,
+                'rollout_strategy': 'disabled',
+                'dependencies': ['governance_artifacts_enabled'],
+                'risk_level': 'high',
+                'owner': 'governance_team'
             }
         }
     

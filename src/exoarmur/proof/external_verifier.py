@@ -28,6 +28,7 @@ class ExternalVerificationResult:
     checksum_match: Optional[bool] = None
     error: str = ""
     governance_artifacts: dict[str, Any] | None = None
+    governance_enforcement: dict[str, Any] | None = None
 
     @property
     def passed(self) -> bool:
@@ -81,6 +82,10 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
         
         # Inspect governance artifacts manifest (diagnostic-only, does not affect verdict)
         governance_diagnostics = None
+        governance_enforcement_output = None
+        inspection_result = None
+        semantic_verification_result = None
+
         try:
             from exoarmur.governance_artifacts.inspection import (
                 inspect_governance_artifacts_from_bundle,
@@ -90,14 +95,38 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
                 verify_governance_artifacts_semantically,
                 format_semantic_verification_for_output,
             )
+            from exoarmur.governance_artifacts.enforcement import (
+                enforce_governance_artifacts,
+                format_enforcement_for_output,
+            )
+            from exoarmur.feature_flags.feature_flags import get_feature_flags
+
             inspection = inspect_governance_artifacts_from_bundle(bundle_data)
+            inspection_result = inspection
             governance_diagnostics = format_inspection_result_for_output(inspection)
-            
+
             # Add semantic verification if manifest is present and valid
             if inspection.present and inspection.valid_manifest:
                 semantic_verification = verify_governance_artifacts_semantically(bundle_data)
+                semantic_verification_result = semantic_verification
                 semantic_output = format_semantic_verification_for_output(semantic_verification)
                 governance_diagnostics["governance_artifacts"]["semantic_verification"] = semantic_output
+
+            # Check enforcement flag and enforce if enabled
+            flags = get_feature_flags()
+            enforcement_enabled = flags.is_enabled('governance_artifact_enforcement_enabled')
+            if inspection_result is not None:
+                enforcement = enforce_governance_artifacts(
+                    bundle_data,
+                    inspection_result,
+                    semantic_verification_result,
+                    enforcement_enabled,
+                )
+                governance_enforcement_output = format_enforcement_for_output(enforcement)
+
+                # If enforcement fails and is enabled, fail closed
+                if enforcement_enabled and enforcement.verdict_effect == "fail_closed":
+                    failures.append("GOVERNANCE_ENFORCEMENT_FAILURE")
         except Exception:
             # Governance inspection failures should not affect bundle verification
             # Silently skip if inspection fails
@@ -115,6 +144,7 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
             checksum_match=checksum_match,
             error=";".join(failures),
             governance_artifacts=governance_diagnostics,
+            governance_enforcement=governance_enforcement_output,
         )
     except MigrationError as exc:
         return _failure_result("EXECUTION_PROOF_BUNDLE", f"MIGRATION_ERROR: {exc}")

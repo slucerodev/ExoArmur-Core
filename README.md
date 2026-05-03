@@ -225,6 +225,7 @@ V2 capabilities default to **off**:
 | `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | Governance control plane |
 | `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | Human approval gate |
 | `EXOARMUR_FLAG_GOVERNANCE_ARTIFACTS_ENABLED` | Optional governance artifact provider discovery |
+| `EXOARMUR_FLAG_GOVERNANCE_ARTIFACT_ENFORCEMENT_ENABLED` | Fail-closed enforcement of required governance artifacts |
 
 ### Governance Artifacts Integration (Optional)
 
@@ -257,6 +258,15 @@ When GovernanceModules providers are installed and artifact content is embedded 
 - Report deterministic semantic verification results
 - **Keep overall Core verification verdict unchanged** — semantic verification is diagnostic-only
 - **Continue to work when providers are absent** — missing providers reported as unavailable
+
+**Fail-Closed Enforcement (Optional):**
+When `EXOARMUR_FLAG_GOVERNANCE_ARTIFACT_ENFORCEMENT_ENABLED=true`, verify-bundle will enforce required governance artifacts:
+- Only enforce artifacts marked with `required_for_verdict=true` in the manifest
+- Fail closed (return FAIL verdict) if required artifacts fail verification
+- Required artifacts must have: embedded content available, matching hash, available provider, and pass semantic verification
+- Optional artifacts do not affect the bundle verdict even when invalid
+- Default behavior (enforcement disabled) keeps existing verdict unchanged
+- Enforcement result is reported in `governance_enforcement` field of verify-bundle output
 
 Example JSON output with governance diagnostics and semantic verification:
 ```json
