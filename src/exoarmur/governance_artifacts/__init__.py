@@ -28,6 +28,13 @@ from .inspection import (
     inspect_governance_artifacts_from_bundle,
 )
 
+from .semantic_verification import (
+    GovernanceArtifactSemanticResult,
+    GovernanceArtifactSemanticAggregateResult,
+    verify_governance_artifacts_semantically,
+    format_semantic_verification_for_output,
+)
+
 __all__ = [
     "GovernanceProviderDiscoveryResult",
     "GovernanceProviderInfo",
@@ -41,4 +48,8 @@ __all__ = [
     "GovernanceArtifactInspectionResult",
     "format_inspection_result_for_output",
     "inspect_governance_artifacts_from_bundle",
+    "GovernanceArtifactSemanticResult",
+    "GovernanceArtifactSemanticAggregateResult",
+    "verify_governance_artifacts_semantically",
+    "format_semantic_verification_for_output",
 ]

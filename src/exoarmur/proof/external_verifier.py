@@ -86,8 +86,18 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
                 inspect_governance_artifacts_from_bundle,
                 format_inspection_result_for_output,
             )
+            from exoarmur.governance_artifacts.semantic_verification import (
+                verify_governance_artifacts_semantically,
+                format_semantic_verification_for_output,
+            )
             inspection = inspect_governance_artifacts_from_bundle(bundle_data)
             governance_diagnostics = format_inspection_result_for_output(inspection)
+            
+            # Add semantic verification if manifest is present and valid
+            if inspection.present and inspection.valid_manifest:
+                semantic_verification = verify_governance_artifacts_semantically(bundle_data)
+                semantic_output = format_semantic_verification_for_output(semantic_verification)
+                governance_diagnostics["governance_artifacts"]["semantic_verification"] = semantic_output
         except Exception:
             # Governance inspection failures should not affect bundle verification
             # Silently skip if inspection fails

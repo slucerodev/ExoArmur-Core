@@ -249,7 +249,16 @@ When an ExecutionProofBundle contains a governance artifact manifest in `governa
 - **Not alter Core replay verdicts** — diagnostics are read-only
 - **Not require providers to be installed** — missing providers reported as unavailable
 
-Example JSON output with governance diagnostics:
+**Semantic Verification (Optional):**
+When GovernanceModules providers are installed and artifact content is embedded in `governance_evidence["governance_artifacts"]`, verify-bundle will optionally:
+- Load matching providers through entry points
+- Verify artifact hash consistency using provider.canonical_hash()
+- Run provider.verify_artifact(artifact) for semantic validation
+- Report deterministic semantic verification results
+- **Keep overall Core verification verdict unchanged** — semantic verification is diagnostic-only
+- **Continue to work when providers are absent** — missing providers reported as unavailable
+
+Example JSON output with governance diagnostics and semantic verification:
 ```json
 {
   "verify_verdict": "PASS",
@@ -265,12 +274,35 @@ Example JSON output with governance diagnostics:
       "policy_snapshot": "available",
       "tool_invocation_proof": "unavailable"
     },
+    "semantic_verification": {
+      "attempted": true,
+      "verdict_effect": "diagnostic_only",
+      "total": 2,
+      "verified": 1,
+      "valid": 1,
+      "invalid": 0,
+      "unavailable": 1,
+      "results": [
+        {
+          "artifact_type": "policy_snapshot",
+          "schema_version": "policy_snapshot.v1",
+          "artifact_hash": "...",
+          "provider_available": true,
+          "provider_version": "0.1.0",
+          "content_available": true,
+          "hash_matches": true,
+          "semantic_valid": true,
+          "code": "SEMANTIC_VALID",
+          "message": "Artifact verified successfully"
+        }
+      ]
+    },
     "verdict_effect": "diagnostic_only"
   }
 }
 ```
 
-**Status:** Provider discovery, manifest validation, and verify-bundle diagnostics are implemented. Semantic artifact verification by external providers is planned, not fully wired yet. See ExoArmur-GovernanceModules documentation for provider interface details.
+**Status:** Provider discovery, manifest validation, verify-bundle diagnostics, and optional semantic verification are implemented. Semantic verification is diagnostic-only and does not alter Core replay verdicts. See ExoArmur-GovernanceModules documentation for provider interface details.
 
 ## Benchmark Proof
 
