@@ -224,6 +224,23 @@ V2 capabilities default to **off**:
 | `EXOARMUR_FLAG_V2_FEDERATION_ENABLED` | Multi-cell coordination |
 | `EXOARMUR_FLAG_V2_CONTROL_PLANE_ENABLED` | Governance control plane |
 | `EXOARMUR_FLAG_V2_OPERATOR_APPROVAL_REQUIRED` | Human approval gate |
+| `EXOARMUR_FLAG_GOVERNANCE_ARTIFACTS_ENABLED` | Optional governance artifact provider discovery |
+
+### Governance Artifacts Integration (Optional)
+
+Core supports optional discovery of governance artifact providers from ExoArmur-GovernanceModules via Python entry points (`exoarmur.governance_artifacts`). This integration:
+
+- **Does not require GovernanceModules** — Core runs successfully without it installed
+- **Uses lazy discovery** — Providers are discovered only when explicitly requested
+- **No direct imports** — Core never imports GovernanceModules code directly
+- **Feature-flag gated** — Disabled by default (`EXOARMUR_FLAG_GOVERNANCE_ARTIFACTS_ENABLED=false`)
+
+Current implementation includes:
+- Provider discovery via entry points
+- Manifest validation for governance artifact metadata
+- Deterministic canonicalization and hashing
+
+**Status:** Provider discovery and manifest validation are implemented. Semantic artifact verification is not yet wired into verify-bundle. See ExoArmur-GovernanceModules documentation for provider interface details.
 
 ## Benchmark Proof
 

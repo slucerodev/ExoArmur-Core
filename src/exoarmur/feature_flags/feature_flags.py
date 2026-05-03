@@ -107,6 +107,15 @@ class FeatureFlags:
                 'dependencies': [],
                 'risk_level': 'low',
                 'owner': 'observability_team'
+            },
+            'governance_artifacts_enabled': {
+                'description': 'Enable optional governance artifact provider discovery and manifest validation',
+                'default_value': False,
+                'current_value': False,
+                'rollout_strategy': 'disabled',
+                'dependencies': [],
+                'risk_level': 'low',
+                'owner': 'governance_team'
             }
         }
     
