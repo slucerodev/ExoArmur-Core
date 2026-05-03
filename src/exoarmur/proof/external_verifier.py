@@ -27,13 +27,16 @@ class ExternalVerificationResult:
     checksum_computed: str = ""
     checksum_match: Optional[bool] = None
     error: str = ""
+    governance_artifacts: dict[str, Any] | None = None
 
     @property
     def passed(self) -> bool:
         return self.verify_verdict == "PASS"
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        result_dict = asdict(self)
+        # Remove None values for cleaner output
+        return {k: v for k, v in result_dict.items() if v is not None}
 
 
 def load_bundle_file(bundle_path: str | Path) -> dict[str, Any]:
@@ -75,6 +78,21 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
             failures.append("REPLAY_HASH_MISMATCH")
         if checksum_match is False:
             failures.append("BUNDLE_CHECKSUM_MISMATCH")
+        
+        # Inspect governance artifacts manifest (diagnostic-only, does not affect verdict)
+        governance_diagnostics = None
+        try:
+            from exoarmur.governance_artifacts.inspection import (
+                inspect_governance_artifacts_from_bundle,
+                format_inspection_result_for_output,
+            )
+            inspection = inspect_governance_artifacts_from_bundle(bundle_data)
+            governance_diagnostics = format_inspection_result_for_output(inspection)
+        except Exception:
+            # Governance inspection failures should not affect bundle verification
+            # Silently skip if inspection fails
+            governance_diagnostics = None
+        
         return ExternalVerificationResult(
             verify_verdict="PASS" if not failures else "FAIL",
             bundle_format="EXECUTION_PROOF_BUNDLE",
@@ -86,6 +104,7 @@ def verify_bundle_data(bundle_data: dict[str, Any]) -> ExternalVerificationResul
             checksum_computed=checksum_computed,
             checksum_match=checksum_match,
             error=";".join(failures),
+            governance_artifacts=governance_diagnostics,
         )
     except MigrationError as exc:
         return _failure_result("EXECUTION_PROOF_BUNDLE", f"MIGRATION_ERROR: {exc}")

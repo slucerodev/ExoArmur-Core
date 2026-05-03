@@ -1,11 +1,10 @@
 """
-Governance Artifacts Module for ExoArmur Core
+Core Governance Artifacts Integration
 
-Provides optional discovery and validation of governance artifact providers
-from ExoArmur-GovernanceModules via Python entry points.
+This module provides optional governance artifact provider discovery and manifest validation
+for ExoArmur Core. It does not import GovernanceModules directly.
 
-This module does not import GovernanceModules directly. Discovery is lazy
-and optional - Core runs successfully without GovernanceModules installed.
+Discovery is lazy and optional - Core runs successfully without GovernanceModules installed.
 """
 
 from .provider_registry import (
@@ -23,6 +22,12 @@ from .manifest import (
     validate_governance_manifest,
 )
 
+from .inspection import (
+    GovernanceArtifactInspectionResult,
+    format_inspection_result_for_output,
+    inspect_governance_artifacts_from_bundle,
+)
+
 __all__ = [
     "GovernanceProviderDiscoveryResult",
     "GovernanceProviderInfo",
@@ -33,4 +38,7 @@ __all__ = [
     "canonicalize_governance_manifest",
     "governance_manifest_hash",
     "validate_governance_manifest",
+    "GovernanceArtifactInspectionResult",
+    "format_inspection_result_for_output",
+    "inspect_governance_artifacts_from_bundle",
 ]

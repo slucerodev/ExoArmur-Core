@@ -239,8 +239,38 @@ Current implementation includes:
 - Provider discovery via entry points
 - Manifest validation for governance artifact metadata
 - Deterministic canonicalization and hashing
+- **verify-bundle diagnostics** — Governance manifest inspection in bundle verification output
 
-**Status:** Provider discovery and manifest validation are implemented. Semantic artifact verification is not yet wired into verify-bundle. See ExoArmur-GovernanceModules documentation for provider interface details.
+**verify-bundle Diagnostics:**
+When an ExecutionProofBundle contains a governance artifact manifest in `governance_evidence["governance_artifacts_manifest"]`, verify-bundle will:
+- Validate manifest shape deterministically
+- Report manifest status in structured output (JSON via `--json` flag)
+- Report provider availability for artifact types
+- **Not alter Core replay verdicts** — diagnostics are read-only
+- **Not require providers to be installed** — missing providers reported as unavailable
+
+Example JSON output with governance diagnostics:
+```json
+{
+  "verify_verdict": "PASS",
+  "governance_artifacts": {
+    "present": true,
+    "valid_manifest": true,
+    "manifest_hash": "...",
+    "artifact_count": 2,
+    "required_count": 1,
+    "optional_count": 1,
+    "artifact_types": ["policy_snapshot", "tool_invocation_proof"],
+    "provider_availability": {
+      "policy_snapshot": "available",
+      "tool_invocation_proof": "unavailable"
+    },
+    "verdict_effect": "diagnostic_only"
+  }
+}
+```
+
+**Status:** Provider discovery, manifest validation, and verify-bundle diagnostics are implemented. Semantic artifact verification by external providers is planned, not fully wired yet. See ExoArmur-GovernanceModules documentation for provider interface details.
 
 ## Benchmark Proof
 
