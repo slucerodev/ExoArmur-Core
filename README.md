@@ -366,15 +366,11 @@ EXOARMUR_LIVE_DEMO=1 python -m pytest tests/test_golden_demo_live.py -v
 
 ## License
 
-ExoArmur-Core is proprietary software. Access is by explicit permission only.
+ExoArmur-Core is open-source under the Apache License 2.0.
 
-Evaluation use is permitted only under the repository LICENSE or a signed written agreement.
+Optional commercial/proprietary modules may be distributed separately and are not part of this Core repository unless explicitly included.
 
-No production, redistribution, sublicensing, or commercial use is permitted without a separate written agreement.
-
-Earlier public distributions, if any, remain under their original published terms. This license applies to this repository and future distributions unless superseded by a signed written agreement.
-
-For licensing, pilot, partnership, or acquisition discussions, contact the repository owner.
+See the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 

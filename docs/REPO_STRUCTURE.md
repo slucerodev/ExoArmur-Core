@@ -96,7 +96,7 @@ ExoArmur/
 ├── conftest.py                  # Root test configuration
 ├── Dockerfile                   # Docker configuration
 ├── docker-compose.yml          # Docker compose
-├── LICENSE                      # Proprietary evaluation license
+├── LICENSE                      # Apache License 2.0
 ├── Makefile                     # Build and test commands
 ├── PROJECT_STATUS.md           # Project status
 ├── pyproject.toml              # Python project configuration

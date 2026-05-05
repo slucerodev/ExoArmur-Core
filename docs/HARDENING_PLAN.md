@@ -111,7 +111,6 @@ The following claims are FORBIDDEN and must trigger claim_lint failure:
 
 **Licensing Claims**
 - "open source"
-- "Apache-2.0"
 - "MIT licensed"
 - "BSD licensed"
 - "GPL licensed"

@@ -117,11 +117,9 @@ The following claims are NOT supported by current evidence and MUST NOT be made:
 - "BFT" - No Byzantine fault tolerance implementation in Core
 - "Causal inference" - No causal inference capabilities in Core
 - "Zero CVEs" - No security audit or vulnerability assessment
-- "Open source" - Repository is under private evaluation license
-- "Apache-2.0" - Repository uses proprietary evaluation license
 - "Unhackable" - No system is unhackable
 - "100% secure" - No system is 100% secure
-- "No bugs" - 1166 passing tests does not prove zero bugs
+- "No bugs" - 1386 passing tests does not prove zero bugs
 
 ## Claim Lint Recommendations
 
