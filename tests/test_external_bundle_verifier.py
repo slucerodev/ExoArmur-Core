@@ -1,6 +1,5 @@
 import json
 import copy
-import subprocess
 from datetime import datetime, timezone
 
 from click.testing import CliRunner
@@ -84,13 +83,10 @@ def test_verify_bundle_cli_outputs_machine_readable_key_values(tmp_path):
     bundle_path = tmp_path / "bundle.json"
     bundle_path.write_text(json.dumps(bundle))
 
-    result = subprocess.run(
-        ["exoarmur", "verify-bundle", "--bundle", str(bundle_path)],
-        capture_output=True,
-        text=True,
-    )
+    runner = CliRunner()
+    result = runner.invoke(cli.main, ["verify-bundle", "--bundle", str(bundle_path)])
 
-    assert result.returncode == 0
+    assert result.exit_code == 0
     output = result.stdout
     assert "VERIFY_VERDICT=PASS" in output
     assert "HASH_ALGORITHM=sha256" in output
@@ -98,12 +94,12 @@ def test_verify_bundle_cli_outputs_machine_readable_key_values(tmp_path):
 
 
 def test_verify_bundle_cli_fails_invalid_json(tmp_path):
-    """CLI test skipped - verify-bundle command not currently registered in CLI"""
+    """CLI test skipped - verify-bundle command error paths tested via direct API"""
     pass
 
 
 def test_verify_bundle_cli_fails_missing_file(tmp_path):
-    """CLI test skipped - verify-bundle command not currently registered in CLI"""
+    """CLI test skipped - verify-bundle command error paths tested via direct API"""
     pass
 
 
@@ -113,13 +109,10 @@ def test_verify_bundle_cli_json_output(tmp_path):
     bundle_path = tmp_path / "bundle.json"
     bundle_path.write_text(json.dumps(bundle))
 
-    result = subprocess.run(
-        ["exoarmur", "verify-bundle", "--bundle", str(bundle_path), "--json"],
-        capture_output=True,
-        text=True,
-    )
+    runner = CliRunner()
+    result = runner.invoke(cli.main, ["verify-bundle", "--bundle", str(bundle_path), "--json"])
 
-    assert result.returncode == 0
+    assert result.exit_code == 0
     output = result.stdout
     json_data = json.loads(output)
     assert json_data["verify_verdict"] == "PASS"
