@@ -6,6 +6,7 @@ useDefault = true
 # Exclude generated artifacts, runtime state, validation scripts, and placeholder patterns
 [allowlist]
 description = "Exclude false positives and generated artifacts"
+regexTarget = "line"
 paths = [
     # Generated evidence bundles (never committed)
     "artifacts/reality_run_",
@@ -32,4 +33,7 @@ regexes = [
     "key='REDACTED'",
     "fake_api_key",
     "test_key",
+    # Deterministic fixture idempotency keys used in proof/test scenarios; not credentials.
+    "idempotency_key[\"']?\\s*[:=]\\s*[\"']proof-scenario-001[\"']",
+    "idempotency_key[\"']?\\s*[:=]\\s*[\"']idempotency-001[\"']",
 ]
