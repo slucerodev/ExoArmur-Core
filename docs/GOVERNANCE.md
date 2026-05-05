@@ -129,7 +129,7 @@ pytest -q -rxX
 **Expected output:**
 - `pytest.skip` grep: only inside tests listed in the Allowed Skip Catalog
 - `allow_module_level=True` grep: no results
-- pytest summary: `1166 passed, 10 skipped, 3 xfailed, 0 failed, 0 errors`
+- pytest summary: `1386 passed, 13 skipped, 3 xfailed, 0 failed, 0 errors`
 - Each skip message must match one of the reasons in the Allowed Skip Catalog
 - xfail reasons: only future implementation gates
 

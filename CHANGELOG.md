@@ -285,4 +285,4 @@ python scripts/verify_installation.sh
 
 ## 📄 License
 
-Apache License 2.0 - see [LICENSE](LICENSE) file for details.
+ExoArmur Proprietary Evaluation License - see [LICENSE](LICENSE) file for details.

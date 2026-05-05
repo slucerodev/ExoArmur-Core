@@ -8,7 +8,7 @@ This document maps claims about ExoArmur Core to their supporting evidence. All 
 |-------|--------|----------|----------------|------------------------|------------|
 | Denied actions do not execute | ✅ PROVEN | Golden Demo (`demos/canonical_truth_reconstruction_demo.py`) | Actions denied by policy/safety gate do not execute on target system | System is secure against all attacks, executor is bug-free | HIGH |
 | Deterministic replay hash stability | ✅ PROVEN | `tests/test_determinism_proof_harness.py` (100+ runs), `tests/test_replay_determinism.py` | Replay produces identical hash across multiple runs | System is deterministic in all contexts, no edge cases | HIGH |
-| V1 contracts are stable | ✅ PROVEN | `tests/test_schema_snapshots.py`, 1166 passing tests | V1 data models and API contracts have not changed | Contracts are bug-free, optimal for all use cases | HIGH |
+| V1 contracts are stable | ✅ PROVEN | `tests/test_schema_snapshots.py`, 1386 passing tests | V1 data models and API contracts have not changed | Contracts are bug-free, optimal for all use cases | HIGH |
 | System is not externally audited | ✅ PROVEN | Repository history, documentation | No external audit reports exist | System is unauditable, internal validation is insufficient | CERTAIN |
 | System is not production certified | ✅ PROVEN | Repository history, documentation | No production certifications exist | System cannot be used in production, lacks production readiness | CERTAIN |
 | Replay detects tampering | ⚠️ PARTIAL | `tests/test_replay_bundle.py`, replay hash validation | Replay detects hash mismatches indicating tampering or nondeterminism | Replay detects all tampering vectors, tampering detection is comprehensive | MEDIUM |
@@ -17,7 +17,7 @@ This document maps claims about ExoArmur Core to their supporting evidence. All 
 | Safety gates override policy | ✅ PROVEN | `tests/test_arbitration.py`, `src/spec/contracts/arbitration_precedence_v1.yaml` | Safety gate verdict is final, cannot be bypassed by policy | Safety gates are bug-free, all unsafe actions are caught | HIGH |
 | Audit records are tamper-evident | ✅ PROVEN | NATS JetStream immutable storage, `tests/test_audit_normalizer_integration.py` | Audit records written to immutable storage, tampering causes detection | Audit records are impossible to tamper with, storage is infallible | HIGH |
 | Golden Demo is mandatory regression gate | ✅ PROVEN | Repository policy, CI/CD configuration | All changes must pass Golden Demo before merge | Golden Demo covers all failure modes, no edge cases | HIGH |
-| System has 1166 passing tests | ✅ PROVEN | pytest output, CI/CD logs | Test suite passes with 1166 tests | Tests cover all code paths, no bugs exist | HIGH |
+| System has 1386 passing tests | ✅ PROVEN | pytest output, CI/CD logs | Test suite passes with 1386 tests | Tests cover all code paths, no bugs exist | HIGH |
 | Zero skipped tests in verify_core suite | ✅ PROVEN | pytest output, test classification | Core constitutional tests have zero skips | All test suites have zero skips, no deferred work | HIGH |
 
 ## Claim Definitions
@@ -34,7 +34,7 @@ This document maps claims about ExoArmur Core to their supporting evidence. All 
 - **Limitation**: Proves determinism for tested scenarios. Does not guarantee determinism for untested edge cases or environmental variations.
 
 ### V1 contracts are stable
-- **Evidence**: `tests/test_schema_snapshots.py` validates V1 schema stability. All 1166 tests pass without V1 modifications.
+- **Evidence**: `tests/test_schema_snapshots.py` validates V1 schema stability. All 1386 tests pass without V1 modifications.
 - **Tests**: Schema snapshot tests, full test suite
 - **Limitation**: Proves contracts have not changed in the tested version. Does not prove contracts are optimal or bug-free.
 
@@ -82,7 +82,7 @@ This document maps claims about ExoArmur Core to their supporting evidence. All 
 - **Limitation**: Proves gate is enforced in CI/CD. Does not guarantee gate covers all failure modes.
 
 ### System has 1166 passing tests
-- **Evidence**: pytest output shows 1166 passed, 10 skipped, 3 xfailed.
+- **Evidence**: pytest output shows 1386 passed, 13 skipped, 3 xfailed.
 - **Test Output**: pytest summary
 - **Limitation**: Proves test count. Does not prove test coverage is complete or tests are comprehensive.
 

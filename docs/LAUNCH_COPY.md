@@ -15,7 +15,7 @@
 > - **Policy enforcement** — actions are DENIED or ALLOWED before execution, not logged after
 > - **Proof bundles** — `exoarmur proof` outputs a cryptographically verifiable artifact anyone can validate
 > - **Feature-flag gated V2** — replay determinism diffing, identity containment scaffolded behind flags
-> - **1,166 tests passing** (1166 passed, 10 skipped, 3 xfailed), zero CVEs
+> - **1,386 tests passing** (1386 passed, 13 skipped, 3 xfailed), zero CVEs
 >
 > Quick start:
 > ```
@@ -64,7 +64,7 @@
 >
 > Your agent can *propose* an action. ExoArmur decides whether it *executes*.
 >
-> Private evaluation available. 1,166 tests (1166 passed, 10 skipped, 3 xfailed). Zero CVEs.
+> Private evaluation available. 1,386 tests (1386 passed, 13 skipped, 3 xfailed). Zero CVEs.
 > → github.com/slucerodev/ExoArmur-Core (contact for evaluation access)
 
 **Tweet 5 (CTA):**
@@ -98,7 +98,7 @@
 > # → If denied: trace.final_verdict == FinalVerdict.DENY, action never ran
 > ```
 >
-> Private evaluation, 1,166 tests passing (1166 passed, 10 skipped, 3 xfailed), zero CVEs.
+> Private evaluation, 1,386 tests passing (1386 passed, 13 skipped, 3 xfailed), zero CVEs.
 > https://github.com/slucerodev/ExoArmur-Core (contact for evaluation access)
 >
 > Happy to answer questions or help with integration.
