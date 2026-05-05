@@ -11,14 +11,22 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 
 
+def _docker_compose_command():
+    docker_compose_path = shutil.which("docker-compose")
+    if docker_compose_path:
+        return [docker_compose_path]
+    docker_path = shutil.which("docker")
+    if docker_path:
+        return [docker_path, "compose"]
+    pytest.fail("docker-compose or docker compose executable not found")
+
+
 @pytest.fixture
 async def nats_jetstream():
     repo_root = Path(__file__).resolve().parents[2]
-    docker_compose_path = shutil.which("docker-compose")
-    if not docker_compose_path:
-        pytest.fail("docker-compose executable not found")
+    docker_compose_cmd = _docker_compose_command()
     result = subprocess.run(
-        [docker_compose_path, "up", "-d", "nats"],
+        [*docker_compose_cmd, "up", "-d", "nats"],
         capture_output=True,
         text=True,
         cwd=repo_root,
@@ -30,7 +38,7 @@ async def nats_jetstream():
     yield
 
     subprocess.run(
-        [docker_compose_path, "down"],
+        [*docker_compose_cmd, "down"],
         capture_output=True,
         text=True,
         cwd=repo_root,
