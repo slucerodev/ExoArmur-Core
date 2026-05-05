@@ -128,14 +128,14 @@ jobs:
         SUMMARY=$(python -m pytest --collect-only -q 2>/dev/null | tail -1 || true)
         echo "Summary: $SUMMARY"
         
-        if [[ "$SUMMARY" != *"1314 tests collected"* ]]; then
-          echo "❌ Test collection count changed from expected 1314"
-          echo "   Expected: 1314 tests collected"
+        if [[ "$SUMMARY" != *"1381 tests collected"* ]]; then
+          echo "❌ Test collection count changed from expected 1381"
+          echo "   Expected: 1381 tests collected"
           echo "   Actual: $SUMMARY"
           exit 1
         fi
         
-        echo "✅ Test collection count stable: 1314 tests"
+        echo "✅ Test collection count stable: 1381 tests"
 
   full-test-suite:
     runs-on: ubuntu-latest

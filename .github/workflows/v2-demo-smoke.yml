@@ -34,13 +34,10 @@ jobs:
         python3 demos/canonical_truth_reconstruction_demo.py > demo_output.txt 2>&1
         cat demo_output.txt
 
-        AUDIT_ID=$(grep "AUDIT_STREAM_ID=" demo_output.txt | cut -d'=' -f2)
-        echo "AUDIT_ID=$AUDIT_ID" >> $GITHUB_ENV
-
-        grep -q "DEMO_RESULT=DENIED"    demo_output.txt || { echo "❌ Missing DEMO_RESULT=DENIED";    exit 1; }
-        grep -q "ACTION_EXECUTED=false" demo_output.txt || { echo "❌ Missing ACTION_EXECUTED=false"; exit 1; }
-        grep -q "AUDIT_STREAM_ID="      demo_output.txt || { echo "❌ Missing AUDIT_STREAM_ID";       exit 1; }
-        grep -q "REPLAY_VERDICT=PASS"   demo_output.txt || { echo "❌ Missing REPLAY_VERDICT=PASS";   exit 1; }
+        grep -q "REPLAY_VERDICT=PASS"           demo_output.txt || { echo "❌ Missing REPLAY_VERDICT=PASS";           exit 1; }
+        grep -q "CANONICALIZATION_VERSION=v1"   demo_output.txt || { echo "❌ Missing CANONICALIZATION_VERSION=v1";   exit 1; }
+        grep -q "HASH_ALGORITHM=sha256"         demo_output.txt || { echo "❌ Missing HASH_ALGORITHM=sha256";         exit 1; }
+        grep -q "HASH="                          demo_output.txt || { echo "❌ Missing HASH=";                          exit 1; }
 
         echo "✅ Demo markers verified"
 

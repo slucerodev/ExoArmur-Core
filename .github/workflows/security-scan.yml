@@ -48,7 +48,7 @@ jobs:
         
     - name: Run dependency audit
       # Fail-fast: Security vulnerabilities must block CI
-      run: pip-audit -r requirements.lock --ignore-vuln CVE-2025-8869
+      run: pip-audit -r requirements.lock
       continue-on-error: false
 
     - name: Run SAST (bandit)
