@@ -2,10 +2,39 @@
 Tests for audit bundle endpoint and CLI replay command
 """
 
+import os
+import sys
+import subprocess
 import pytest
 import json
 from pathlib import Path
 from fastapi.testclient import TestClient
+
+
+# CLI subprocess helper for stable, portable test environment
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+
+
+def cli_env():
+    """Build environment for CLI subprocess with correct PYTHONPATH."""
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(SRC_ROOT) if not existing else f"{SRC_ROOT}{os.pathsep}{existing}"
+    )
+    return env
+
+
+def run_exoarmur_cli(*args):
+    """Run exoarmur CLI subprocess with stable environment."""
+    return subprocess.run(
+        [sys.executable, "-m", "exoarmur.cli", *args],
+        cwd=str(REPO_ROOT),
+        env=cli_env(),
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_audit_bundle_endpoint_returns_404_for_missing_bundle():
@@ -80,7 +109,6 @@ def test_audit_bundle_endpoint_returns_valid_bundle():
 
 def test_cli_replay_with_invalid_bundle():
     """Test that CLI replay fails with invalid bundle file"""
-    import subprocess
     import tempfile
     
     # Create invalid JSON file
@@ -89,14 +117,7 @@ def test_cli_replay_with_invalid_bundle():
         invalid_bundle = f.name
     
     try:
-        # Get repo root for cwd
-        repo_root = Path(__file__).parent.parent
-        result = subprocess.run(
-            ["python", "-m", "exoarmur.cli", "replay", "--bundle", invalid_bundle, "--json"],
-            capture_output=True,
-            text=True,
-            cwd=str(repo_root)
-        )
+        result = run_exoarmur_cli("replay", "--bundle", invalid_bundle, "--json")
         assert result.returncode != 0
         assert "Error" in result.stderr
     finally:
@@ -105,23 +126,13 @@ def test_cli_replay_with_invalid_bundle():
 
 def test_cli_replay_with_missing_bundle():
     """Test that CLI replay fails with missing bundle file"""
-    import subprocess
-    
-    # Get repo root for cwd
-    repo_root = Path(__file__).parent.parent
-    result = subprocess.run(
-        ["python", "-m", "exoarmur.cli", "replay", "--bundle", "/nonexistent/bundle.json", "--json"],
-        capture_output=True,
-        text=True,
-        cwd=str(repo_root)
-    )
+    result = run_exoarmur_cli("replay", "--bundle", "/nonexistent/bundle.json", "--json")
     assert result.returncode != 0
     assert "not found" in result.stderr.lower()
 
 
 def test_cli_replay_with_empty_bundle():
     """Test that CLI replay fails with empty bundle"""
-    import subprocess
     import tempfile
     
     # Create empty bundle with matching core version
@@ -140,14 +151,7 @@ def test_cli_replay_with_empty_bundle():
         empty_bundle = f.name
     
     try:
-        # Get repo root for cwd
-        repo_root = Path(__file__).parent.parent
-        result = subprocess.run(
-            ["python", "-m", "exoarmur.cli", "replay", "--bundle", empty_bundle, "--json"],
-            capture_output=True,
-            text=True,
-            cwd=str(repo_root)
-        )
+        result = run_exoarmur_cli("replay", "--bundle", empty_bundle, "--json")
         assert result.returncode != 0
         assert "No audit records" in result.stderr
     finally:
@@ -156,7 +160,6 @@ def test_cli_replay_with_empty_bundle():
 
 def test_cli_replay_stale_core_version():
     """Test that CLI replay returns STALE_CORE_VERSION for version mismatch"""
-    import subprocess
     import tempfile
     import ulid
     
@@ -195,14 +198,7 @@ def test_cli_replay_stale_core_version():
         stale_bundle = f.name
     
     try:
-        # Get repo root for cwd
-        repo_root = Path(__file__).parent.parent
-        result = subprocess.run(
-            ["python", "-m", "exoarmur.cli", "replay", "--bundle", stale_bundle, "--json"],
-            capture_output=True,
-            text=True,
-            cwd=str(repo_root)
-        )
+        result = run_exoarmur_cli("replay", "--bundle", stale_bundle, "--json")
         assert result.returncode != 0
         
         # Check both stdout and stderr for JSON output
@@ -216,7 +212,6 @@ def test_cli_replay_stale_core_version():
 
 def test_cli_replay_output_format():
     """Test that CLI replay outputs correct JSON format"""
-    import subprocess
     import tempfile
     import ulid
     
@@ -255,14 +250,7 @@ def test_cli_replay_output_format():
         valid_bundle = f.name
     
     try:
-        # Get repo root for cwd
-        repo_root = Path(__file__).parent.parent
-        result = subprocess.run(
-            ["python", "-m", "exoarmur.cli", "replay", "--bundle", valid_bundle, "--json"],
-            capture_output=True,
-            text=True,
-            cwd=str(repo_root)
-        )
+        result = run_exoarmur_cli("replay", "--bundle", valid_bundle, "--json")
         
         # Check both stdout and stderr for JSON output
         output_text = result.stdout if result.stdout.strip() else result.stderr
