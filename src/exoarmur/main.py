@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 import logging
 import sys
 import os
+import re
 import asyncio
 from exoarmur.clock import utc_now
 from typing import Dict, Any, List, Optional
@@ -1040,6 +1041,13 @@ async def get_audit_bundle(correlation_id: str):
         import os
         bundle_dir = "/tmp/exoarmur_bundles"
         os.makedirs(bundle_dir, exist_ok=True)
+        
+        # Validate correlation_id to prevent path traversal attacks
+        # Accept only: letters, digits, underscore, hyphen, length 1-128
+        if not re.fullmatch(r'[a-zA-Z0-9_-]{1,128}', correlation_id):
+            logger.warning("Invalid correlation_id format rejected")
+            raise HTTPException(status_code=400, detail="Invalid correlation_id format")
+        
         bundle_path = os.path.join(bundle_dir, f"{correlation_id}.json")
         
         bundle_data = {
