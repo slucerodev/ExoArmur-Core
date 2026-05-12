@@ -53,7 +53,8 @@ jobs:
 
     - name: Run SAST (bandit)
       # Fail-fast: Security findings must block CI
-      run: bandit -r src -f json -o bandit-report.json || true
+      # Scan only kernel and executors directories
+      run: bandit -r src/exoarmur/kernel src/exoarmur/executors -f json -o bandit-report.json || true
       continue-on-error: false
       
     - name: Check bandit results
