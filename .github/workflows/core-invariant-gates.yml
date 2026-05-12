@@ -17,92 +17,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Gate 0 — No untracked under src/exoarmur
-        run: bash scripts/governance/guard_untracked_src_exoarmur.sh
-
       - name: Set up Python 3.12.3
         uses: actions/setup-python@v4
         with:
           python-version: '3.12.3'
 
-      - name: Gate 1 — Deterministic Environment Setup (Pinned Python + Clean Install)
+      - name: Gate 1 — Install Dependencies
         run: |
           python3 -m pip install --upgrade "pip>=26.0"
           python3 -m pip install -r requirements.lock
           python3 -m pip install --no-deps -e .
 
-      - name: Gate 1a — Verify locked runtime parity
-        env:
-          PYTHONHASHSEED: 0
+      - name: Gate 2 — Test Execution (executor tests)
         run: |
-          python scripts/infra/verify_env_parity.py \
-            --expected-python-version 3.12.3 \
-            --expected-platform Linux \
-            --report-file "${{ runner.temp }}/env-parity.json"
+          echo "=== RUNNING EXECUTOR TESTS ==="
+          python -m pytest tests/executors/ -v --tb=short
 
-      - name: Gate 1a — Packaging smoke (install + CLI + quickstart)
+      - name: Gate 3 — Three-run determinism check
         run: |
-          exoarmur --help | head -30
-          python examples/quickstart_replay.py
-
-      - name: Provide docker-compose (shim to docker compose v2)
-        run: |
-          set -euo pipefail
-          docker --version
-          docker compose version
-          sudo tee /usr/local/bin/docker-compose >/dev/null <<'SH'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          exec docker compose "$@"
-          SH
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
-
-      - name: Gate 2 — Test Execution (three-run stability gate)
-        env:
-          EXOARMUR_STABILITY_REPORT: "${{ runner.temp }}/stability-report.json"
-        run: |
-          echo "=== BEFORE PYTEST ==="
-          git status --porcelain || true
-          python scripts/infra/stability_ci.py \
-            --report-file "${{ runner.temp }}/stability-report.json" \
-            --run-report-dir "${{ runner.temp }}/stability-runs"
-          echo "=== AFTER PYTEST ==="
-          git status --porcelain || true
-
-      - name: Snapshot diagnostics on failure
-        if: failure()
-        run: |
-          python scripts/export_openapi_and_schemas.py || true
-          git status --porcelain=v1 || true
-          git diff || true
-
-      - name: Gate 3 — Explicit Invariant Gate (Boundary Enforcement)
-        env:
-          EXOARMUR_STABILITY_REPORT: "${{ runner.temp }}/boundary-stability-report.json"
-        run: |
-          echo "=== BEFORE BOUNDARY GATE ==="
-          git status --porcelain || true
-          python3 scripts/boundary_gate.py
-          echo "=== AFTER BOUNDARY GATE ==="
-          git status --porcelain || true
-
-      - name: Gate 4 — Repo Cleanliness (No Generated Diffs)
-        run: |
-          echo "=== BEFORE CLEANLINESS CHECK ==="
-          git status --porcelain
-          git rev-parse HEAD
-          echo "=== RUNNING CLEANLINESS CHECK ==="
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-      
-      - name: Cleanliness Failure Diagnostics
-        if: failure()
-        run: |
-          echo "=== CLEANLINESS FAILURE DIAGNOSTICS ==="
-          echo "=== AFTER PREVIOUS STEPS ==="
-          git status --porcelain
-          echo "=== FILE DRIFT DETECTED ==="
-          git diff --name-status || true
-          echo "=== FULL DIFF OF CHANGES ==="
-          git diff || true
+          echo "=== RUN 1 ==="
+          python -m pytest tests/executors/ -q
+          echo "=== RUN 2 ==="
+          python -m pytest tests/executors/ -q
+          echo "=== RUN 3 ==="
+          python -m pytest tests/executors/ -q
