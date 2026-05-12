@@ -44,9 +44,6 @@ dependencies = [
 [project.scripts]
 exoarmur = "exoarmur.cli:main"
 
-[project.entry-points."pytest11"]
-exoarmur-stability = "exoarmur.stability.classifier"
-
 [project.optional-dependencies]
 # No runtime-only "v2" extras group exists today: V2 modules ship as
 # separate installable packages that register themselves via the

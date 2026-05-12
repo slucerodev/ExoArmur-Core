@@ -1,20 +1,44 @@
 # ExoArmur Core Package
 
-from exoarmur.core.phase_gate import PhaseGate
-from exoarmur.replay.replay_engine import (
-    ReplayEngine,
-    ReplayEngineError,
-    ReplayReport,
-    ReplayResult,
+from exoarmur.kernel.boundary import (
+    ProxyPipeline,
+    ActionIntent,
+    ActionClass,
+    PolicyDecision,
+    PolicyVerdict,
+    ExecutorPlugin,
+    ExecutorResult,
+    ExecutorCapabilities,
+    ExecutionDispatch,
+    DispatchStatus,
+    SafetyGate,
+    SafetyVerdict,
+    V2AuditEmitter,
 )
+from exoarmur.kernel.clock import DeterministicClock, SystemClock, set_clock
+from exoarmur.kernel.ids import make_intent_id, make_decision_id, make_trace_id
 
-__version__ = "2.1.0"
+__version__ = "0.3.0"
 
 __all__ = [
-    "PhaseGate",
-    "ReplayEngine",
-    "ReplayEngineError",
-    "ReplayReport",
-    "ReplayResult",
+    "ProxyPipeline",
+    "ActionIntent",
+    "ActionClass",
+    "PolicyDecision",
+    "PolicyVerdict",
+    "ExecutorPlugin",
+    "ExecutorResult",
+    "ExecutorCapabilities",
+    "ExecutionDispatch",
+    "DispatchStatus",
+    "SafetyGate",
+    "SafetyVerdict",
+    "V2AuditEmitter",
+    "DeterministicClock",
+    "SystemClock",
+    "set_clock",
+    "make_intent_id",
+    "make_decision_id",
+    "make_trace_id",
     "__version__",
 ]

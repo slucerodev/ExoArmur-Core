@@ -257,7 +257,7 @@ Test suite for FileSystemExecutor implementation.
         
         # Manually expire the plan by setting expiration to past
         from datetime import timedelta
-        from exoarmur.clock import utc_now
+        from exoarmur.kernel.clock import utc_now
         rollback_plan.expiration_timestamp = utc_now() - timedelta(seconds=1)
         
         # Attempt rollback
@@ -428,7 +428,7 @@ class TestRollbackPlan:
     def test_plan_expiration(self):
         """Test RollbackPlan expiration detection."""
         from datetime import datetime, timedelta, timezone
-        from exoarmur.clock import utc_now
+        from exoarmur.kernel.clock import utc_now
         
         # Expired plan
         past_expiration = utc_now() - timedelta(seconds=1)
@@ -529,7 +529,7 @@ class TestFileSystemExecutorProxyPipelineIntegration:
         if hasattr(result, 'success'):
             assert result.success is True, "Execution must succeed"
         elif hasattr(result, 'status'):
-            from exoarmur.execution_boundary_v2.models.execution_dispatch import DispatchStatus
+            from exoarmur.kernel.boundary import DispatchStatus
             assert result.status == DispatchStatus.EXECUTED, f"Execution must be EXECUTED, got {result.status}"
         else:
             raise AssertionError(f"Unknown result type: {type(result)}")

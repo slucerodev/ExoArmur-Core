@@ -1,243 +1,32 @@
 # ExoArmur Core Architecture
 
-## Boundary Definition
+## Overview
 
-### V1 Core (Locked Cognition Loop)
-The V1 core is the autonomous decision-making pipeline that is protected by repository policy and regression gates:
+ExoArmur is a minimal deterministic governance kernel (~1,100 lines) that provides a governance boundary for autonomous execution. The kernel enforces policy gates, produces cryptographic audit trails, and enables deterministic replay verification.
 
-```
-TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGateV1 → ExecutionIntentV1 → AuditRecordV1
-```
+## Kernel Architecture
 
-**V1 Core Components:**
-- **Perception**: Telemetry ingestion and signal extraction
-- **Analysis**: Threat correlation and belief generation  
-- **Decision**: Collective confidence and local decision making
-- **Safety**: Deterministic safety gate with arbitration precedence
-- **Execution**: Intent generation with audit trail
-- **Persistence**: Audit logging and event storage
-
-### V2 External Layers (Additive Only)
-V2 provides external capabilities that coordinate but never modify V1 core behavior:
+The kernel consists of a single execution boundary pipeline:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    V2 External Layers                      │
-├─────────────────────┬───────────────────────────────────────┤
-│  Federation Layer   │         Control Plane Layer           │
-│                     │                                       │
-│ • Multi-cell        │ • Operator approval workflows        │
-│ • Cross-cell        │ • Human-in-the-loop interfaces        │
-│ • Aggregation       │ • External coordination procedures     │
-│ • Quorum            │ • Emergency response coordination     │
-└─────────────────────┴───────────────────────────────────────┘
-                            ↕
-┌─────────────────────────────────────────────────────────────┐
-│                    V1 Core (Locked)                         │
-│                                                             │
-│  Telemetry → SignalFacts → Belief → CollectiveConfidence   │
-│                ↓                                           │
-│            SafetyGate → ExecutionIntent → Audit            │
-└─────────────────────────────────────────────────────────────┘
+ActionIntent → ProxyPipeline → PolicyDecisionPoint → SafetyGate → Executor → ExecutionTrace → Audit
 ```
 
-## Must Never List
+**Kernel Components:**
+- **Boundary** (`kernel/boundary.py`): Minimal routing for Intent → Policy → Safety → Executor → Audit
+- **Clock** (`kernel/clock.py`): Clock abstraction with deterministic time for replay
+- **IDs** (`kernel/ids.py`): Deterministic ULID generation for governance entities
+- **Trust Evaluator** (`kernel/trust_evaluator.py`): Formal interface (raises NotImplementedError)
 
-**V2 must NEVER:**
-- Modify V1 cognition pipeline behavior
-- Change V1 data models or contracts
-- Interfere with V1 safety gate precedence
-- Alter V1 Golden Demo execution
-- Block or delay V1 decision making
-- Modify V1 audit trail generation
-- Directly execute actions inside V1 cognition pipeline
-- Mutate signed V1 policy bundles
+**Executors:**
+- **FileSystemExecutor** (`executors/file_system_executor.py`): File operations with rollback
+- **DatabaseExecutor** (`executors/database_executor.py`): SQLite operations with transaction rollback
 
-**V2 must ALWAYS:**
-- Remain inert when feature flags are disabled
-- Use only external coordination interfaces
-- Respect V1 safety gate decisions
-- Preserve V1 audit trail integrity
-- Operate through message boundaries only
-
-## Message and Bus Boundaries
-
-### V1 Internal Messaging
-V1 uses internal function calls and in-memory data structures:
-- Direct function calls between pipeline stages
-- In-memory data flow (TelemetryEventV1 → ExecutionIntentV1)
-- Local audit logging
-- Internal safety gate evaluation
-
-### V2 External Coordination
-V2 uses message-based coordination through NATS JetStream:
-- Cross-cell federation messages
-- Operator approval requests/responses
-- Policy bundle distribution
-- Audit trail consolidation
-
-### Boundary Enforcement
-```
-V1 Core ←→ NATS JetStream ←→ V2 External Layers
-```
-
-**Key Principles:**
-- V1 never directly calls V2 code
-- V2 never modifies V1 internal state
-- All V2→V1 communication goes through message interfaces
-- Feature flags control V2 activation independently
-
-**V1/V2 Boundary Pattern:**
-V2 modules must not directly import V1 systems. All V1 access goes through explicit interfaces:
-
-```python
-# V2 module uses boundary interface (NOT direct V1 import)
-from federation.audit_interface import AuditInterface, V1AuditAdapter
-
-class V2Module:
-    def __init__(self, audit_interface: AuditInterface):
-        self.audit_interface = audit_interface  # Boundary-safe
-```
-
-**AuditInterface Adapter Pattern:**
-- `AuditInterface`: Abstract contract for V1 audit access
-- `V1AuditAdapter`: Wraps V1 audit logger, implements boundary interface
-- `NoOpAuditInterface`: Testing/disabled scenario implementation
-- V2 modules receive interface via dependency injection, never import V1 directly
-
-## ASCII Architecture Diagram
-
-```
-                    ┌─────────────────────────────────────┐
-                    │         External Interfaces          │
-                    │                                     │
-                    │  ┌─────────────┐  ┌───────────────┐ │
-                    │  │   Web UI    │  │   REST API    │ │
-                    │  │ (Operators) │  │ (Automation)  │ │
-                    │  └─────────────┘  └───────────────┘ │
-                    └─────────────────────────────────────┘
-                                ↕
-                    ┌─────────────────────────────────────┐
-                    │         V2 Control Plane             │
-                    │                                     │
-                    │  ┌─────────────┐  ┌───────────────┐ │
-                    │  │   Approval  │  │   Operator    │ │
-                    │  │   Service   │  │   Interface   │ │
-                    │  └─────────────┘  └───────────────┘ │
-                    │           ↕           ↕              │
-                    │  ┌─────────────────────────────────┐ │
-                    │  │        Control API              │ │
-                    │  └─────────────────────────────────┘ │
-                    └─────────────────────────────────────┘
-                                ↕ (NATS JetStream)
-                    ┌─────────────────────────────────────┐
-                    │         V2 Federation                │
-                    │                                     │
-                    │  ┌─────────────┐  ┌───────────────┐ │
-                    │  │ Federation   │  │ Cross-Cell    │ │
-                    │  │  Manager     │  │ Aggregator    │ │
-                    │  └─────────────┘  └───────────────┘ │
-                    └─────────────────────────────────────┘
-                                ↕ (NATS JetStream)
-                    ┌─────────────────────────────────────┐
-                    │           V1 Core (Locked)          │
-                    │                                     │
-                    │  ┌─────────────────────────────────┐ │
-                    │  │      Cognition Pipeline         │ │
-                    │  │                                 │ │
-                    │  │  Telemetry → SignalFacts        │ │
-                    │  │       ↓                         │ │
-                    │  │    Belief → CollectiveConfidence │ │
-                    │  │       ↓                         │ │
-                    │  │    SafetyGate → ExecutionIntent  │ │
-                    │  │       ↓                         │ │
-                    │  │         AuditRecord              │ │
-                    │  └─────────────────────────────────┘ │
-                    │                                     │
-                    │  ┌─────────────────────────────────┐ │
-                    │  │     Safety & Arbitration        │ │
-                    │  │                                 │ │
-                    │  │  KillSwitch > PolicyVerification │ │
-                    │  │  > SafetyGate > TrustConstraints │ │
-                    │  │  > CollectiveConfidence         │ │
-                    │  │  > LocalDecision                │ │
-                    │  └─────────────────────────────────┘ │
-                    └─────────────────────────────────────┘
-```
-
-## Component Interactions
-
-### V1 Core Flow
-1. **Telemetry Ingestion**: External systems send telemetry
-2. **Signal Extraction**: Telemetry → SignalFacts transformation
-3. **Belief Generation**: SignalFacts → Belief correlation
-4. **Decision Making**: Belief → CollectiveConfidence evaluation
-5. **Safety Validation**: SafetyGate with deterministic precedence
-6. **Intent Generation**: SafetyGate → ExecutionIntent creation
-7. **Audit Recording**: All steps logged to AuditRecord
-
-### V2 Coordination Flow
-1. **Feature Flag Check**: V2 components check if enabled
-2. **External Coordination**: V2 layers coordinate via NATS
-3. **Policy Distribution**: V2 distributes policy bundles
-4. **Operator Approval**: V2 handles human approval workflows
-5. **Federation**: V2 aggregates across multiple cells
-6. **Audit Consolidation**: V2 consolidates audit trails
-
-## Data Flow Boundaries
-
-### V1 Internal Data
-- Remains within V1 core
-- Never exposed to V2 layers
-- Protected by immutability guarantees
-
-### V2 External Data
-- Flows through NATS JetStream
-- Never modifies V1 internal state
-- Subject to feature flag controls
-
-## Safety and Reliability
-
-### V1 Safety Guarantees
-- Deterministic safety gate precedence
-- No external dependencies for core decisions
-- Immediate response capability
-- Complete audit trail
-
-### V2 Safety Constraints
-- Cannot block V1 decision making
-- Must respect V1 safety gate decisions
-- Feature flags provide emergency disable
-- External coordination only
-
-This architecture ensures ExoArmur maintains autonomous defense capabilities while enabling controlled evolution through external layers that never compromise core safety or reliability.
-
-## Determinism and Replay Architecture
-
-### Core Determinism Requirements
-
-Replay-critical components MUST use deterministic time handling:
-
-| Component | Clock Source | Reason |
-|-----------|--------------|--------|
-| `execution_boundary_v2/` | `exoarmur.clock.utc_now()` | Replay verification requires deterministic timestamps |
-| `replay/` | `exoarmur.clock.utc_now()` | Replay engine must reconstruct identical timelines |
-| `proof/` | `exoarmur.clock.utc_now()` | Proof bundles require deterministic replay hashes |
-| `sdk/` | `exoarmur.clock.utc_now()` | Public API must produce deterministic proof bundles |
-
-### Non-Core Flexibility
-
-Non-replay components MAY use wall-clock time:
-
-| Component | Clock Source | Reason |
-|-----------|--------------|--------|
-| `federation/` | `datetime.now(timezone.utc)` | Cross-cell coordination needs real-time awareness |
-| `observability/` | `datetime.now(timezone.utc)` | Metrics and monitoring require wall-clock time |
-| `control_plane/` | `datetime.now(timezone.utc)` | Operator interfaces use wall-clock |
+## Determinism Architecture
 
 ### Clock Abstraction
 
-The `exoarmur.clock` module provides:
+The kernel uses a controlled clock abstraction to separate wall-clock time from replay time:
 
 ```python
 # Deterministic clock for core replay
@@ -257,51 +46,18 @@ class DeterministicClock:
         return self._current_time  # Fixed or sequenced
 ```
 
-### Replay Engine
+### Canonical JSON
 
-The replay engine reconstructs execution from proof bundles:
+All state serialization uses canonical JSON (sorted keys, no whitespace) to ensure hash consistency:
 
-1. **Schema Migration**: Automatic version adaptation
-2. **Hash Verification**: Cryptographic integrity checks
-3. **Timeline Reconstruction**: Deterministic event ordering
-4. **Verdict Validation**: Confirm execution outcomes
-
-See `docs/DETERMINISM_SCOPE.md` for detailed determinism requirements.
-
-## ML Isolation from Authority Path
-
-### Core Principle
-
-All Machine Learning (ML) components in ExoArmur are **advisory-only** and **non-binding** per Doctrine Claim 4.
-
-### Architecture Boundaries
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     DECISION PIPELINE                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐ │
-│  │   ML Layer   │───▶│  Policy Gate │───▶│ Execution Gate  │ │
-│  │  (Advisory)  │    │  (Binding)   │    │   (Binding)     │ │
-│  └──────────────┘    └──────────────┘    └─────────────────┘ │
-│         │                   │                       │         │
-│    Recommendations     Deterministic           Action Dispatch │
-│    status="pending"    Rules Evaluation        with Audit      │
-└─────────────────────────────────────────────────────────────────┘
+```python
+canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+hash = hashlib.sha256(canonical.encode()).hexdigest()
 ```
 
-### Where ML is Allowed
+## ML Isolation
 
-1. **IdentityContainmentRecommender** (`src/exoarmur/identity_containment/recommender.py`)
-   - Generates containment recommendations with `status="pending"`
-   - Recommendations queue for approval, never direct execution
-   - Fully traceable through audit events
-
-2. **ThreatClassificationEngine** (`src/exoarmur/decision/threat_classification_engine_v2.py`)
-   - Produces advisory threat classifications
-   - Feeds into deterministic policy rules (not binding decisions)
-
-### Where ML is Prohibited
+The kernel has **zero ML in the authority path**. All decision-making is deterministic and rule-based.
 
 | Component | ML Status | Reason |
 |-----------|-----------|--------|
@@ -310,22 +66,104 @@ All Machine Learning (ML) components in ExoArmur are **advisory-only** and **non
 | `ProxyPipeline.execute_with_trace()` | ❌ Prohibited | Execution path must be deterministic |
 | `AuditEmitter.emit_audit_event()` | ❌ Prohibited | Audit chain requires cryptographic integrity |
 
-### Verification
+## Air-Gap Integrity
 
-ML isolation is verified by:
+The kernel has **zero network dependencies** and **zero web interfaces**:
 
-1. **Unit tests** (`tests/test_ml_isolation.py`):
-   - Decision pipeline produces identical results with/without ML
-   - Recommender outputs have `status="pending"`
-   - No ML-derived metadata in proof bundles
+- No network calls in execution path
+- No external dependencies for core decisions
+- Importable as a pure Python library
+- Verified via dependency audit
 
-2. **Determinism check** (`scripts/check_determinism.py`):
-   - Core modules use `utc_now()` not probabilistic sources
-   - No `random`, `time.time()`, or unseeded ML in authority path
+## ASCII Architecture Diagram
 
-3. **Architecture review**:
-   - `ProxyPipeline` uses deterministic `PolicyDecisionPoint`
-   - All ML outputs flow through approval gates
-   - Disabling ML cannot affect correctness
+```
+                    ┌─────────────────────────────────────┐
+                    │         External Systems            │
+                    │                                     │
+                    │  ┌─────────────┐  ┌───────────────┐ │
+                    │  │   Agents    │  │   Automation  │ │
+                    │  └─────────────┘  └───────────────┘ │
+                    └─────────────────────────────────────┘
+                                ↕
+                    ┌─────────────────────────────────────┐
+                    │      ExoArmur Kernel (~1,100 lines)  │
+                    │                                     │
+                    │  ┌─────────────────────────────────┐ │
+                    │  │      ProxyPipeline             │ │
+                    │  │                                 │ │
+                    │  │  ActionIntent                   │ │
+                    │  │       ↓                         │ │
+                    │  │  PolicyDecisionPoint            │ │
+                    │  │       ↓                         │ │
+                    │  │  SafetyGate                     │ │
+                    │  │       ↓                         │ │
+                    │  │  Executor                       │ │
+                    │  │       ↓                         │ │
+                    │  │  ExecutionTrace                │ │
+                    │  │       ↓                         │ │
+                    │  │  Audit                          │ │
+                    │  └─────────────────────────────────┘ │
+                    │                                     │
+                    │  ┌─────────────────────────────────┐ │
+                    │  │     Executors                  │ │
+                    │  │                                 │ │
+                    │  │  • FileSystemExecutor            │ │
+                    │  │  • DatabaseExecutor             │ │
+                    │  └─────────────────────────────────┘ │
+                    └─────────────────────────────────────┘
+                                ↕
+                    ┌─────────────────────────────────────┐
+                    │         Target Systems              │
+                    │                                     │
+                    │  ┌─────────────┐  ┌───────────────┐ │
+                    │  │  File System│  │   Databases   │ │
+                    │  └─────────────┘  └───────────────┘ │
+                    └─────────────────────────────────────┘
+```
 
-See `docs/ML_ISOLATION.md` for the complete isolation policy.
+## Component Interactions
+
+### Execution Flow
+1. **Intent Creation**: External system creates ActionIntent
+2. **Policy Evaluation**: PolicyDecisionPoint evaluates against rules
+3. **Safety Check**: SafetyGate enforces deterministic constraints
+4. **Executor Dispatch**: Executor performs the operation
+5. **Trace Recording**: ExecutionTrace records all events
+6. **Audit Emission**: Audit event emitted with cryptographic hash
+
+### Rollback Flow
+1. **Pre-execution**: Rollback plan computed for reversible actions
+2. **Execution**: Operation performed
+3. **Failure Detection**: If execution fails, rollback triggered
+4. **State Restoration**: Original state restored via rollback plan
+5. **Hash Verification**: Restored state hash verified against original
+
+## Data Flow Boundaries
+
+### Kernel Internal Data
+- Remains within kernel boundary
+- Never exposed to external systems
+- Protected by cryptographic hashing
+
+### Executor Data
+- Flows through ProxyPipeline only
+- Executors are untrusted capability modules
+- Cannot access governance components
+
+## Safety and Reliability
+
+### Kernel Safety Guarantees
+- Deterministic policy evaluation
+- Zero external dependencies for core decisions
+- Immediate response capability
+- Complete audit trail with cryptographic proof
+
+### Executor Constraints
+- Cannot bypass policy/safety checks
+- Cannot modify governance state
+- Must declare capabilities via standardized schema
+- Strictly sandboxed within ProxyPipeline
+
+This architecture ensures ExoArmur maintains deterministic governance capabilities with minimal complexity and zero external dependencies.
+
