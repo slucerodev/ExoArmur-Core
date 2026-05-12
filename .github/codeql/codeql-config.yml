@@ -3,7 +3,6 @@ name: ExoArmur CodeQL Config
 paths:
   - src/exoarmur/kernel
   - src/exoarmur/executors
-  - src/exoarmur/plugins
 
 paths-ignore:
   - "**/_archive/**"
