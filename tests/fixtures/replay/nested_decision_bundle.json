@@ -1,7 +1,0 @@
-{
-  "intent_id": "nested-decision-intent",
-  "action_type": "delete",
-  "target": "/tmp/nested-decision-file.txt",
-  "final_status": "deny",
-  "events_count": 3
-}

@@ -1,7 +1,0 @@
-{
-  "intent_id": "multi-step-intent",
-  "action_type": "delete",
-  "target": "/tmp/multi-step-file.txt",
-  "final_status": "deny",
-  "events_count": 5
-}
