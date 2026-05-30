@@ -1,0 +1,101 @@
+{
+  "events": [
+    {
+      "code": "received",
+      "details": {
+        "intent_id": "4ZN6CNY2Q1CFT0AY9T8W0AT5HA"
+      },
+      "event_id": "3M2VSATYXRAYVJGTCPER2Y2HFC",
+      "ok": true,
+      "sequence": 0,
+      "stage": "intent_received",
+      "timestamp": null
+    },
+    {
+      "code": "evaluated",
+      "details": {
+        "verdict": "allow"
+      },
+      "event_id": "5ATXW2WJ71BS7FKGNMP0W5KK15",
+      "ok": true,
+      "sequence": 0,
+      "stage": "policy_evaluated",
+      "timestamp": null
+    },
+    {
+      "code": "evaluated",
+      "details": {
+        "verdict": "allow"
+      },
+      "event_id": "3XW1K3Q1HDTEQ2N7J1YGRVS1NA",
+      "ok": true,
+      "sequence": 0,
+      "stage": "safety_evaluated",
+      "timestamp": null
+    },
+    {
+      "code": "resolved",
+      "details": {
+        "final_verdict": "allow"
+      },
+      "event_id": "4M59HX7ND9ATNWADD1ZWTEPPE7",
+      "ok": true,
+      "sequence": 0,
+      "stage": "verdict_resolved",
+      "timestamp": null
+    },
+    {
+      "code": "validated",
+      "details": {
+        "result": "valid"
+      },
+      "event_id": "28Y96FVXHMFP7FATZX7NP4VC6M",
+      "ok": true,
+      "sequence": 0,
+      "stage": "target_validated",
+      "timestamp": null
+    },
+    {
+      "code": "dispatched",
+      "details": {
+        "success": true
+      },
+      "event_id": "3E5HW6XRCX2CCRTXZ262V7T337",
+      "ok": true,
+      "sequence": 0,
+      "stage": "executor_dispatched",
+      "timestamp": null
+    },
+    {
+      "code": "completed",
+      "details": {
+        "success": true
+      },
+      "event_id": "5TM5MZD0YH78A9CMR6SNF3QBBQ",
+      "ok": true,
+      "sequence": 0,
+      "stage": "completed",
+      "timestamp": null
+    }
+  ],
+  "executor_result": {
+    "error": null,
+    "evidence": {
+      "action_class": "A2_hard_containment",
+      "database": "/tmp/demo/demo.db",
+      "execution_time_ms": 0,
+      "operation": "create_table",
+      "post_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "pre_hash": null,
+      "result": {
+        "table_created": null
+      },
+      "rollback_plan_id": "5a616c25c8bc31395557a6b26f317bbe",
+      "table": null
+    },
+    "success": true
+  },
+  "final_verdict": "allow",
+  "intent_id": "4ZN6CNY2Q1CFT0AY9T8W0AT5HA",
+  "trace_id": "6Z4Q6XM35PB04Q33K0Y9FQZSDQ"
+}

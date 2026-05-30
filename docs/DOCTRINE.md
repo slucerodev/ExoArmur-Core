@@ -31,7 +31,7 @@ This doctrine defines those minimum requirements.
 
 ## What ExoArmur Demonstrates (Operational, Not Hypothetical)
 
-ExoArmur is a minimal deterministic governance kernel (~1,100 lines) validated under the following conditions:
+ExoArmur is a minimal deterministic governance kernel validated under the following conditions:
 
 ### 1. Deterministic Replay Verification
 
@@ -380,7 +380,7 @@ And once measured:
 | counterfactual explainability | ✅ PASS |
 | air-gap integrity | ✅ PASS |
 
-**Overall Assessment: 7/7 requirements verified — FULL DACT v0.2 COMPLIANCE ACHIEVED.**
+**Overall Assessment: 7/7 requirements verified — DACT v0.2 Levels 1-5 internally validated by ExoArmur test suite. Third-party audit has not yet been completed. Level 6 remains pending external/formal review.**
 
 ### Test Metrics
 - **Test Count:** Kernel tests passing (FileSystemExecutor, DatabaseExecutor)

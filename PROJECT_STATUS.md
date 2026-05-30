@@ -1,6 +1,6 @@
 # Project Status
 
-*Last updated: April 2026*
+*Last validated: May 30, 2026*
 
 ## At a glance
 
@@ -12,7 +12,7 @@
 | **Announced adopters / pilots** | None — seeking first integration |
 | **External security audit** | Not yet conducted |
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
-| **Test suite** | 1166 passing / 10 skipped / 3 xfailed, three-run stability gate |
+| **Test suite** | 331 passed / 17 skipped / 0 failed, three-run stability gate |
 | **CI workflows** | 10 active (see `.github/workflows/`) |
 | **Licensing** | Proprietary evaluation license (see LICENSE) |
 
@@ -35,6 +35,44 @@ technical overview.
   raw audit records, no wall-clock fields
 - **Contract immutability** — V1 contracts (`spec/contracts/`) are locked;
   new capabilities are additive and feature-flag gated
+
+## Phase 2A Status (Test Suite Hardening)
+
+**Status:** GREEN-WITH-KNOWN-SKIPS
+
+**Validation Command:**
+```bash
+python -m pytest tests/ -q -rs
+```
+
+**Result:** 331 passed, 17 skipped, 0 failed
+
+**Known Skip Categories:**
+- **FileSystemExecutor does not expose get_state_hash()** (10 skips)
+  - get_state_hash() exists on platform executors (LangChain, OpenAI, Anthropic, HuggingFace)
+  - get_state_hash() does NOT exist on FileSystemExecutor
+  - get_state_hash() is NOT defined in ExecutorPlugin protocol
+  - Tests assume all executors have this method, but it's not part of the formal contract
+
+- **ExecutorPlugin does not define get_execution_history()** (2 skips)
+  - get_execution_history() is NOT defined in ExecutorPlugin protocol
+  - Tests assume a method that's not part of the contract
+
+- **Executor evidence dict structure is not standardized across executors** (2 skips)
+  - ExecutorResult.evidence is a dict, but structure varies between executors
+  - Tests assumed specific fields (execution_id, intent_id) that FileSystemExecutor doesn't provide
+  - Evidence structure is not part of the formal contract
+
+- **Some executor boundary structures are defined outside kernel** (2 skips)
+  - TargetValidationResult and ExecutorCapabilities are in executors module
+  - Tests are in kernel/test_boundary.py but test executors module structures
+
+- **One executor capability comparison is environment-dependent** (1 skip)
+  - Tests that different executors have different supported_targets
+  - In test environment, both may have ['/tmp']
+
+**Future Work Note:**
+Executor Contract Formalization should decide whether state hashing, execution history, and evidence schema should become formal executor protocol requirements. This is not implemented in Phase 2A.
 
 ## What is NOT validated
 

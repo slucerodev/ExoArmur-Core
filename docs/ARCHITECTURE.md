@@ -2,7 +2,7 @@
 
 ## Overview
 
-ExoArmur is a minimal deterministic governance kernel (~1,100 lines) that provides a governance boundary for autonomous execution. The kernel enforces policy gates, produces cryptographic audit trails, and enables deterministic replay verification.
+ExoArmur is a minimal deterministic governance kernel that provides a governance boundary for autonomous execution. The kernel enforces policy gates, produces cryptographic audit trails, and enables deterministic replay verification.
 
 ## Kernel Architecture
 

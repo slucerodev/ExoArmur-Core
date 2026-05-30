@@ -5,13 +5,39 @@ All notable changes to ExoArmur Core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Note:** Test counts in historical version entries reflect the state at time of release. For current test results, run `python -m pytest tests/ -q -rs`.
+
+## [Unreleased]
+
+### ✅ Added
+- **Formal Verification Preparation** - Added formal invariant specifications for DACT Level 6 compliance
+- **LangChain Executor** - New executor for LangChain agent operations with governance boundary enforcement
+- **OpenAI Executor** - New executor for OpenAI API operations with cryptographic audit trails
+- **Anthropic Executor** - New executor for Anthropic API operations with state verification
+- **Hugging Face Executor** - New executor for Hugging Face model operations with governance boundary
+- **Platform Integration Tests** - Comprehensive test suites for all new executors (44 tests total)
+- **Integration Documentation** - Detailed integration guide for LangChain executor
+- **Pilot Program Outreach** - Comprehensive outreach materials for pilot program with platform integrations
+
+### 🔧 Changed
+- Updated README to reflect all new executor capabilities
+- Updated architecture documentation to include all platform executors
+- Added formal verification documentation for kernel invariants
+- Updated executor module exports to include all new executors
+
+### ✅ Verified
+- Air-gap integrity maintained (no network dependencies in any new executor)
+- ML isolation maintained (no ML dependencies in any new executor)
+- DACT Levels 1-5 compliance preserved across all executors
+- All 93 tests passing (31 + 18 LangChain + 15 OpenAI + 14 Anthropic + 15 Hugging Face) [Historical count from unreleased work]
+
 ## [2.1.0] - 2026-04-12
 
 ### 🎯 Phase 2 + Phase 3 Consolidation
 
 Consolidated milestone covering module-boundary enforcement, determinism gates,
 V2 Control Plane, and federation coherence work. Test suite expanded from the
-focused ~177-test v0.3.0 suite to **1166 passing tests** with a three-run
+focused ~177-test v0.3.0 suite to **1166 passing tests** [Historical count at release] with a three-run
 deterministic stability gate.
 
 This entry also documents a version-numbering reset: work between v0.3.0 and

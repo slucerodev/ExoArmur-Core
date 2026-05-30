@@ -164,12 +164,14 @@ Expected: All tests pass without network access.
 
 | Level | Requirement | Test | Status |
 |-------|-------------|------|--------|
-| 1 | Deterministic Replay | Three-run stability gate | ✅ Verified |
-| 2 | Cryptographic Attestation | Bundle verification | ✅ Verified |
-| 3 | Counterfactual Analysis | A/B replay diffing | ✅ Verified |
-| 4 | ML Isolation | Dependency audit | ✅ Verified |
-| 5 | Air-Gap Integrity | Air-gapped installation | ✅ Verified |
-| 6 | Formal Verification | Third-party audit | ⏳ Pending |
+| 1 | Deterministic Replay | Three-run stability gate | ✅ Internally validated |
+| 2 | Cryptographic Attestation | Bundle verification | ✅ Internally validated |
+| 3 | Counterfactual Analysis | A/B replay diffing | ✅ Internally validated |
+| 4 | ML Isolation | Dependency audit | ✅ Internally validated |
+| 5 | Air-Gap Integrity | Air-gapped installation | ✅ Internally validated |
+| 6 | Formal Verification | Third-party audit | ⏳ Pending third-party review |
+
+**Note:** Levels 1-5 are internally validated by the ExoArmur test suite. Third-party audit has not yet been completed.
 
 ## Version History
 

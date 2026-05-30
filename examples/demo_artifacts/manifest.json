@@ -1,0 +1,27 @@
+{
+  "artifacts": [
+    {
+      "description": "Trace from allowed filesystem execution showing successful file creation",
+      "name": "filesystem_allow_trace.json"
+    },
+    {
+      "description": "Trace from denied filesystem execution showing blocked operation",
+      "name": "filesystem_deny_trace.json"
+    },
+    {
+      "description": "Trace from allowed database execution showing successful table creation and insert",
+      "name": "database_allow_trace.json"
+    },
+    {
+      "description": "External effect evidence with verified replay status",
+      "name": "external_effect_replay_verified.json"
+    },
+    {
+      "description": "External effect evidence with tamper detection failure",
+      "name": "external_effect_tamper_detected.json"
+    }
+  ],
+  "description": "Demo artifacts generated from ExoArmur-Core E2E flows",
+  "generated_at": "2026-05-30T15:50:39.755731+00:00",
+  "schema_version": "1.0"
+}

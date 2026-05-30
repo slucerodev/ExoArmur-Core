@@ -1,0 +1,30 @@
+{
+  "evidence_signature": null,
+  "evidence_timestamp": "2026-05-30T15:50:39.765064+00:00",
+  "execution_id": "demo_execution_001",
+  "intent_id": "demo_intent_001",
+  "irreversible_effect": true,
+  "normalized_request": {
+    "body": {
+      "key": "value"
+    },
+    "method": "POST",
+    "url": "https://api.example.com/data"
+  },
+  "normalized_response": {
+    "body": {
+      "result": "success"
+    },
+    "status": 200
+  },
+  "operation_type": "demo_operation",
+  "provider": "demo_provider",
+  "provider_metadata": {},
+  "replay_verification_status": "verified",
+  "replay_verification_timestamp": null,
+  "request_canonical_hash": "87015e652875eb973b7bc82ffeabdfc06206acf87467ef22e5aa63da1574d672",
+  "response_canonical_hash": "651999777a646cc4955f007788f371e823ab0d4a6af6e236002a29da5eb9c8e6",
+  "rollback_strategy": "record_only",
+  "schema_version": "1.0",
+  "trace_id": "demo_trace_001"
+}
