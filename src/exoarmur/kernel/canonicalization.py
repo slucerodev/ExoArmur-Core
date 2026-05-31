@@ -6,24 +6,25 @@ Core provides deterministic hashing without understanding provider specifics.
 
 import hashlib
 import json
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 
 class CanonicalizationError(Exception):
     """Error during canonicalization."""
+
     pass
 
 
 def canonical_json_bytes(data: Any) -> bytes:
     """
     Convert data to canonical JSON bytes.
-    
+
     Args:
         data: Data to canonicalize (must be JSON-serializable)
-    
+
     Returns:
         Canonical JSON bytes
-    
+
     Raises:
         CanonicalizationError: If data cannot be canonicalized
     """
@@ -33,7 +34,7 @@ def canonical_json_bytes(data: Any) -> bytes:
             sort_keys=True,
             separators=(",", ":"),
             ensure_ascii=False,
-            allow_nan=False
+            allow_nan=False,
         )
         return canonical.encode("utf-8")
     except (TypeError, ValueError) as e:
@@ -43,13 +44,13 @@ def canonical_json_bytes(data: Any) -> bytes:
 def canonical_hash(data: Any) -> str:
     """
     Compute SHA-256 hash of canonical JSON.
-    
+
     Args:
         data: Data to hash (must be JSON-serializable)
-    
+
     Returns:
         SHA-256 hash as hexadecimal string
-    
+
     Raises:
         CanonicalizationError: If data cannot be canonicalized
     """
@@ -63,10 +64,10 @@ def canonical_hash(data: Any) -> str:
 def validate_canonical_json_compatible(data: Any) -> bool:
     """
     Validate that data is compatible with canonical JSON.
-    
+
     Args:
         data: Data to validate
-    
+
     Returns:
         True if data is compatible, False otherwise
     """
@@ -77,17 +78,19 @@ def validate_canonical_json_compatible(data: Any) -> bool:
         return False
 
 
-def normalize_for_hashing(data: Dict[str, Any], fields_to_remove: List[str]) -> Dict[str, Any]:
+def normalize_for_hashing(
+    data: Dict[str, Any], fields_to_remove: List[str]
+) -> Dict[str, Any]:
     """
     Normalize data for hashing by removing non-deterministic fields.
-    
+
     Args:
         data: Raw data to normalize
         fields_to_remove: List of field names to remove (e.g., timestamps, IDs)
-    
+
     Returns:
         Normalized data suitable for hashing
-    
+
     Note:
         This function removes specified fields but does NOT reorder
         semantically meaningful content (e.g., message arrays).

@@ -68,16 +68,16 @@ Commands:
 
 ## Current Validation Status
 
-**Test Suite:** 331 passed, 17 skipped, 0 failed
+**Test Suite:** 338 passed, 17 skipped, 0 failed
 
 ```bash
 python -m pytest tests/ -q -rs
 ```
 
-**E2E Tests:** 11 passed, 0 failed
+**E2E Tests:** 22 passed, 0 failed
 
 ```bash
-python -m pytest tests/e2e/test_core_application_e2e.py -v
+python -m pytest tests/e2e/ -v
 ```
 
 **DACT Compliance:** Levels 1-5 are internally validated by the ExoArmur test suite. Third-party audit has not yet been completed. Level 6 remains pending external/formal review.

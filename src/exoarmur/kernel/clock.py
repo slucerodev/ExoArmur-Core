@@ -5,17 +5,17 @@ Clock interface for deterministic time handling
 import hashlib
 import json
 import os
-from datetime import datetime, timezone, timedelta
-from typing import Protocol, Optional, Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional, Protocol
 
 
 class Clock(Protocol):
     """Clock interface for deterministic time handling"""
-    
+
     def now(self) -> datetime:
         """Get current time"""
         ...
-    
+
     def utc_now(self) -> datetime:
         """Get current UTC time"""
         ...
@@ -23,11 +23,11 @@ class Clock(Protocol):
 
 class SystemClock:
     """System clock implementation"""
-    
+
     def now(self) -> datetime:
         """Get current time"""
         return datetime.now(timezone.utc)
-    
+
     def utc_now(self) -> datetime:
         """Get current UTC time"""
         return datetime.now(timezone.utc)
@@ -35,26 +35,27 @@ class SystemClock:
 
 class DeterministicClock:
     """Deterministic clock for testing and replay"""
-    
+
     def __init__(self, fixed_time: Optional[datetime] = None):
         if fixed_time is None:
             fixed_time = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         self._fixed_time = fixed_time
         self._current_time = fixed_time
-    
+
     def now(self) -> datetime:
         """Get deterministic current time"""
         return self._current_time
-    
+
     def utc_now(self) -> datetime:
         """Get deterministic current UTC time"""
         return self._current_time
-    
+
     def advance(self, seconds: int) -> None:
         """Advance time by specified seconds"""
         from datetime import timedelta
+
         self._current_time += timedelta(seconds=seconds)
-    
+
     def set_time(self, new_time: datetime) -> None:
         """Set the current time"""
         self._current_time = new_time
@@ -63,6 +64,7 @@ class DeterministicClock:
 # Global clock instance (can be injected for testing)
 # Use DeterministicClock by default in production for critical paths
 # Set EXOARMUR_DETERMINISTIC_CLOCK=false to use wall-clock (for non-critical operations only)
+_default_clock: Clock
 if os.getenv("EXOARMUR_DETERMINISTIC_CLOCK", "true").lower() == "true":
     _default_clock = DeterministicClock()
 else:
@@ -85,12 +87,16 @@ def utc_now() -> datetime:
     return get_clock().utc_now()
 
 
-def deterministic_timestamp(*seed_parts: Any, base_time: Optional[datetime] = None) -> datetime:
+def deterministic_timestamp(
+    *seed_parts: Any, base_time: Optional[datetime] = None
+) -> datetime:
     """Derive a stable UTC timestamp from deterministic seed inputs."""
     if base_time is None:
         base_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
-    canonical = json.dumps(seed_parts, sort_keys=True, separators=(",", ":"), default=str)
+    canonical = json.dumps(
+        seed_parts, sort_keys=True, separators=(",", ":"), default=str
+    )
     digest = hashlib.sha256(canonical.encode("utf-8")).digest()
     seconds = int.from_bytes(digest[:4], "big")
     microseconds = int.from_bytes(digest[4:7], "big") % 1_000_000

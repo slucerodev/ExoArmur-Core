@@ -48,7 +48,9 @@ def info(ctx: click.Context) -> None:
     click.echo("  - Plugin-capable executor architecture")
     click.echo("  - Local execution without network dependencies")
     click.echo("")
-    click.echo("For integration documentation, see: https://github.com/slucerodev/ExoArmur-Core")
+    click.echo(
+        "For integration documentation, see: https://github.com/slucerodev/ExoArmur-Core"
+    )
 
 
 def main() -> int:

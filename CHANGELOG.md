@@ -311,4 +311,8 @@ python scripts/verify_installation.sh
 
 ## 📄 License
 
-Apache License 2.0 - see [LICENSE](LICENSE) file for details.
+License/status: private repository; evaluation/licensing terms available by written agreement.
+
+This repository is not currently distributed as open source. Do not redistribute without written permission.
+
+**Note:** License language should be reviewed by legal counsel before public release, commercial licensing, or acquisition.

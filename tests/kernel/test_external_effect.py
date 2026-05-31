@@ -4,13 +4,15 @@ Tests for external effect evidence schema.
 These tests verify that Core's evidence schema works correctly.
 """
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
+
 from exoarmur.kernel.external_effect import (
-    ExternalEffectEvidence,
     ExecutionMode,
+    ExternalEffectEvidence,
+    ReplayVerificationStatus,
     RollbackStrategy,
-    ReplayVerificationStatus
 )
 
 
@@ -29,12 +31,12 @@ def test_external_effect_evidence_serialization():
         normalized_response={"content": "test response"},
         evidence_timestamp=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         irreversible_effect=True,
-        rollback_strategy=RollbackStrategy.RECORD_ONLY
+        rollback_strategy=RollbackStrategy.RECORD_ONLY,
     )
-    
+
     # Serialize
     data = evidence.to_dict()
-    
+
     # Verify required fields
     assert data["execution_id"] == "test-exec-id"
     assert data["intent_id"] == "test-intent-id"
@@ -45,10 +47,10 @@ def test_external_effect_evidence_serialization():
     assert data["response_canonical_hash"] == "def456"
     assert data["irreversible_effect"] == True
     assert data["rollback_strategy"] == "record_only"
-    
+
     # Deserialize
     restored = ExternalEffectEvidence.from_dict(data)
-    
+
     # Verify restored evidence matches original
     assert restored.execution_id == evidence.execution_id
     assert restored.intent_id == evidence.intent_id
@@ -75,9 +77,9 @@ def test_external_effect_evidence_missing_required_field():
         "normalized_response": {},
         "evidence_timestamp": "2024-01-01T00:00:00+00:00",
         "irreversible_effect": True,
-        "rollback_strategy": "record_only"
+        "rollback_strategy": "record_only",
     }
-    
+
     with pytest.raises(ValueError, match="Missing required field"):
         ExternalEffectEvidence.from_dict(data)
 
@@ -96,9 +98,9 @@ def test_external_effect_evidence_invalid_rollback_strategy():
         "normalized_response": {},
         "evidence_timestamp": "2024-01-01T00:00:00+00:00",
         "irreversible_effect": True,
-        "rollback_strategy": "invalid_strategy"
+        "rollback_strategy": "invalid_strategy",
     }
-    
+
     with pytest.raises(ValueError, match="Invalid rollback_strategy"):
         ExternalEffectEvidence.from_dict(data)
 
@@ -117,9 +119,9 @@ def test_external_effect_evidence_invalid_timestamp():
         "normalized_response": {},
         "evidence_timestamp": "invalid-timestamp",
         "irreversible_effect": True,
-        "rollback_strategy": "record_only"
+        "rollback_strategy": "record_only",
     }
-    
+
     with pytest.raises(ValueError, match="Invalid evidence_timestamp"):
         ExternalEffectEvidence.from_dict(data)
 
@@ -144,10 +146,10 @@ def test_external_effect_evidence_provider_metadata():
             "model": "gpt-4",
             "finish_reason": "stop",
             "prompt_tokens": 100,
-            "completion_tokens": 50
-        }
+            "completion_tokens": 50,
+        },
     )
-    
+
     data = evidence.to_dict()
     assert data["provider_metadata"]["model"] == "gpt-4"
     assert data["provider_metadata"]["finish_reason"] == "stop"
@@ -170,9 +172,9 @@ def test_external_effect_evidence_default_values():
         normalized_response={},
         evidence_timestamp=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         irreversible_effect=True,
-        rollback_strategy=RollbackStrategy.RECORD_ONLY
+        rollback_strategy=RollbackStrategy.RECORD_ONLY,
     )
-    
+
     # Check defaults
     assert evidence.evidence_signature is None
     assert evidence.replay_verification_status == ReplayVerificationStatus.NOT_CHECKED

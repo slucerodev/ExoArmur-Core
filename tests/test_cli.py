@@ -8,9 +8,10 @@ from pathlib import Path
 def test_cli_module_imports():
     """Test that CLI module can be imported."""
     from exoarmur import cli
+
     assert cli is not None
-    assert hasattr(cli, 'main')
-    assert hasattr(cli, 'cli')
+    assert hasattr(cli, "main")
+    assert hasattr(cli, "cli")
 
 
 def test_cli_help():

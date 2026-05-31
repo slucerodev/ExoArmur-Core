@@ -11,6 +11,17 @@ ExoArmur uses automated security scanning on all changes:
 Full-history scanning may flag legacy false positives in historical commits;
 the release security gate verifies current working tree cleanliness.
 
+## Dependency Vulnerability Status
+
+**Local Clean Install:** The current default Core install (`pip install exoarmur-core`) shows zero known vulnerabilities when scanned with `pip-audit` after a fresh virtual environment installation.
+
+**GitHub Dependabot:** GitHub Dependabot may report alerts that do not appear in local clean installs. This can occur due to:
+- Stale dependency graph data in GitHub's system
+- Differences between local pip-audit resolution and GitHub's dependency analysis
+- Time lag between dependency updates and GitHub's vulnerability database refresh
+
+**Before Public Release:** Review any GitHub Dependabot alerts directly in the GitHub Security tab to confirm the exact advisory, affected package, and installed version. Do not dismiss alerts as false positives without confirming the specific package and advisory details.
+
 ## Supported Versions
 
 | Version        | Supported |

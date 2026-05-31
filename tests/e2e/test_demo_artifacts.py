@@ -12,7 +12,9 @@ from pathlib import Path
 import pytest
 
 ARTIFACTS_DIR = Path(__file__).parent.parent.parent / "examples" / "demo_artifacts"
-GENERATOR_SCRIPT = Path(__file__).parent.parent.parent / "examples" / "generate_demo_artifacts.py"
+GENERATOR_SCRIPT = (
+    Path(__file__).parent.parent.parent / "examples" / "generate_demo_artifacts.py"
+)
 
 
 def test_generator_runs():
@@ -21,7 +23,7 @@ def test_generator_runs():
         [sys.executable, str(GENERATOR_SCRIPT)],
         capture_output=True,
         text=True,
-        cwd=str(Path(__file__).parent.parent.parent)
+        cwd=str(Path(__file__).parent.parent.parent),
     )
     assert result.returncode == 0, f"Generator script failed: {result.stderr}"
     assert "All artifacts generated" in result.stdout
@@ -35,9 +37,9 @@ def test_all_artifacts_created():
         "filesystem_deny_trace.json",
         "database_allow_trace.json",
         "external_effect_replay_verified.json",
-        "external_effect_tamper_detected.json"
+        "external_effect_tamper_detected.json",
     ]
-    
+
     for artifact in required_artifacts:
         artifact_path = ARTIFACTS_DIR / artifact
         assert artifact_path.exists(), f"Artifact {artifact} not found"
@@ -50,7 +52,9 @@ def test_json_is_valid():
         with open(artifact_path) as f:
             try:
                 data = json.load(f)
-                assert isinstance(data, (dict, list)), f"Artifact {artifact_path.name} is not a dict or list"
+                assert isinstance(
+                    data, (dict, list)
+                ), f"Artifact {artifact_path.name} is not a dict or list"
             except json.JSONDecodeError as e:
                 pytest.fail(f"Artifact {artifact_path.name} is not valid JSON: {e}")
 
@@ -61,13 +65,15 @@ def test_no_sensitive_paths():
         "/home/",  # User home directories
         str(Path.home()),  # Actual home directory
     ]
-    
+
     for artifact_path in ARTIFACTS_DIR.glob("*.json"):
         with open(artifact_path) as f:
             content = f.read()
             for pattern in forbidden_patterns:
                 if pattern in content:
-                    pytest.fail(f"Artifact {artifact_path.name} contains sensitive path: {pattern}")
+                    pytest.fail(
+                        f"Artifact {artifact_path.name} contains sensitive path: {pattern}"
+                    )
 
 
 def test_no_secrets():
@@ -79,7 +85,7 @@ def test_no_secrets():
         "token",
         "private_key",
     ]
-    
+
     for artifact_path in ARTIFACTS_DIR.glob("*.json"):
         with open(artifact_path) as f:
             content = f.read().lower()
@@ -89,8 +95,13 @@ def test_no_secrets():
                 if pattern in content:
                     # Check if the pattern is followed by a colon and a long alphanumeric string
                     import re
-                    if re.search(rf'{pattern}["\']?\s*:\s*["\']?[a-zA-Z0-9]{{20,}}', content):
-                        pytest.fail(f"Artifact {artifact_path.name} may contain a secret: {pattern}")
+
+                    if re.search(
+                        rf'{pattern}["\']?\s*:\s*["\']?[a-zA-Z0-9]{{20,}}', content
+                    ):
+                        pytest.fail(
+                            f"Artifact {artifact_path.name} may contain a secret: {pattern}"
+                        )
 
 
 def test_external_effect_replay_verified():
@@ -98,7 +109,7 @@ def test_external_effect_replay_verified():
     artifact_path = ARTIFACTS_DIR / "external_effect_replay_verified.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert data["replay_verification_status"] == "verified"
     assert data["irreversible_effect"] == True
     assert data["rollback_strategy"] in ["record_only", "unsupported"]
@@ -113,7 +124,7 @@ def test_external_effect_tamper_detected():
     artifact_path = ARTIFACTS_DIR / "external_effect_tamper_detected.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert data["replay_verification_status"] in ["mismatch", "malformed"]
     assert data["irreversible_effect"] == True
     assert "request_canonical_hash" in data
@@ -127,18 +138,20 @@ def test_manifest_structure():
     artifact_path = ARTIFACTS_DIR / "manifest.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert "schema_version" in data
     assert "generated_at" in data
     assert "description" in data
     assert "artifacts" in data
     assert isinstance(data["artifacts"], list)
-    
+
     # Check that all artifacts listed in manifest exist
     for artifact_info in data["artifacts"]:
         artifact_name = artifact_info["name"]
         artifact_path = ARTIFACTS_DIR / artifact_name
-        assert artifact_path.exists(), f"Manifest lists {artifact_name} but file does not exist"
+        assert (
+            artifact_path.exists()
+        ), f"Manifest lists {artifact_name} but file does not exist"
 
 
 def test_filesystem_allow_trace_structure():
@@ -146,7 +159,7 @@ def test_filesystem_allow_trace_structure():
     artifact_path = ARTIFACTS_DIR / "filesystem_allow_trace.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert "intent_id" in data
     assert "trace_id" in data
     assert "events" in data
@@ -159,7 +172,7 @@ def test_filesystem_deny_trace_structure():
     artifact_path = ARTIFACTS_DIR / "filesystem_deny_trace.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert "intent_id" in data
     assert "trace_id" in data
     assert "events" in data
@@ -172,7 +185,7 @@ def test_database_allow_trace_structure():
     artifact_path = ARTIFACTS_DIR / "database_allow_trace.json"
     with open(artifact_path) as f:
         data = json.load(f)
-    
+
     assert "intent_id" in data
     assert "trace_id" in data
     assert "events" in data

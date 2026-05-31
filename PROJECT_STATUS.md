@@ -1,6 +1,6 @@
 # Project Status
 
-*Last validated: May 30, 2026*
+*Last validated: May 31, 2026*
 
 ## At a glance
 
@@ -12,7 +12,7 @@
 | **Announced adopters / pilots** | None — seeking first integration |
 | **External security audit** | Not yet conducted |
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
-| **Test suite** | 331 passed / 17 skipped / 0 failed, three-run stability gate |
+| **Test suite** | 338 passed / 17 skipped / 0 failed, three-run stability gate |
 | **CI workflows** | 10 active (see `.github/workflows/`) |
 | **Licensing** | Proprietary evaluation license (see LICENSE) |
 
@@ -45,7 +45,7 @@ technical overview.
 python -m pytest tests/ -q -rs
 ```
 
-**Result:** 331 passed, 17 skipped, 0 failed
+**Result:** 338 passed, 17 skipped, 0 failed
 
 **Known Skip Categories:**
 - **FileSystemExecutor does not expose get_state_hash()** (10 skips)

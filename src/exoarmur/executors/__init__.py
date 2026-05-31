@@ -16,17 +16,12 @@ Platform executor scaffolds (reference implementations only):
 Real platform integrations belong in optional addon packages (e.g., exoarmur-openai-executor).
 """
 
-from .file_system_executor import FileSystemExecutor, RollbackPlan, RollbackResult
 from .database_executor import DatabaseExecutor
+from .file_system_executor import FileSystemExecutor, RollbackPlan, RollbackResult
 
 # Platform executor scaffolds are NOT exported from public API
 # They are reference implementations for optional addon packages
 # Import directly from module if needed for testing or reference:
 # from exoarmur.executors.openai_executor import OpenAIExecutor
 
-__all__ = [
-    "FileSystemExecutor",
-    "RollbackPlan",
-    "RollbackResult",
-    "DatabaseExecutor"
-]
+__all__ = ["FileSystemExecutor", "RollbackPlan", "RollbackResult", "DatabaseExecutor"]
