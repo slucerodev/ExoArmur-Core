@@ -543,3 +543,231 @@ class TestDatabaseExecutorStateHash:
         db_path = temp_db_dir / "nonexistent.db"
         hash_value = executor.compute_db_hash(db_path, "users")
         assert hash_value is None
+
+
+class TestDatabaseExecutorSQLInjection:
+    """Test SQL injection prevention."""
+    
+    def test_validate_sql_identifier_valid(self, executor):
+        """Test valid SQL identifiers are accepted."""
+        # Valid identifiers
+        valid_identifiers = ["users", "user_table", "Users", "user123", "_users", "a_b_c"]
+        for identifier in valid_identifiers:
+            # Should not raise
+            DatabaseExecutor._validate_sql_identifier(identifier, "test identifier")
+    
+    def test_validate_sql_identifier_invalid_characters(self, executor):
+        """Test invalid characters in SQL identifiers are rejected."""
+        # Test each invalid identifier individually
+        with pytest.raises(ValueError, match="Invalid"):
+            DatabaseExecutor._validate_sql_identifier("users; DROP TABLE", "test identifier")
+        
+        with pytest.raises(ValueError, match="Invalid"):
+            DatabaseExecutor._validate_sql_identifier("users' OR '1'='1", "test identifier")
+        
+        with pytest.raises(ValueError, match="Invalid"):
+            DatabaseExecutor._validate_sql_identifier("users--comment", "test identifier")
+        
+        with pytest.raises(ValueError, match="Invalid"):
+            DatabaseExecutor._validate_sql_identifier("users/*comment*/", "test identifier")
+        
+        with pytest.raises(ValueError, match="Invalid"):
+            DatabaseExecutor._validate_sql_identifier("users.table", "test identifier")
+    
+    def test_validate_sql_identifier_starts_with_digit(self, executor):
+        """Test identifiers starting with digit are rejected."""
+        invalid_identifiers = ["1users", "123table", "9_user"]
+        for identifier in invalid_identifiers:
+            with pytest.raises(ValueError, match="Invalid"):
+                DatabaseExecutor._validate_sql_identifier(identifier, "test identifier")
+    
+    def test_validate_sql_identifier_empty(self, executor):
+        """Test empty identifier is rejected."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            DatabaseExecutor._validate_sql_identifier("", "test identifier")
+    
+    def test_execute_rejects_malicious_table_name(self, executor, temp_db_dir, deterministic_clock):
+        """Test execution rejects malicious table names."""
+        db_path = temp_db_dir / "test.db"
+        
+        # Create database
+        conn = sqlite3.connect(str(db_path))
+        conn.close()
+        
+        # Try to execute with malicious table name
+        malicious_tables = [
+            "users; DROP TABLE users",
+            "users' OR '1'='1",
+            "users--",
+            "users/*comment*/",
+        ]
+        
+        for malicious_table in malicious_tables:
+            intent = ActionIntent.create(
+                actor_id="test_actor",
+                actor_type="automation",
+                action_type="db_operation",
+                target=str(db_path),
+                parameters={
+                    "operation": "insert",
+                    "table": malicious_table,
+                    "payload": {"data": {"name": "Alice"}}
+                },
+                safety_context={},
+                tenant_id="test_tenant",
+                cell_id="test_cell"
+            )
+            
+            result = executor.execute(intent, None, {"final_verdict": "APPROVE"})
+            assert result.success is False
+            assert "Invalid table name" in result.error
+    
+    def test_execute_rejects_malicious_column_name(self, executor, temp_db_dir, deterministic_clock):
+        """Test execution rejects malicious column names in payload."""
+        db_path = temp_db_dir / "test.db"
+        
+        # Create database with valid table
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+        conn.commit()
+        conn.close()
+        
+        # Try to execute with malicious column name
+        intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "insert",
+                "table": "users",
+                "payload": {
+                    "data": {
+                        "name; DROP TABLE users": "Alice",  # Malicious column name
+                        "name": "Alice"
+                    }
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        
+        result = executor.execute(intent, None, {"final_verdict": "APPROVE"})
+        assert result.success is False
+        assert "Invalid column name" in result.error
+    
+    def test_normal_operations_still_work(self, executor, temp_db_dir, deterministic_clock):
+        """Test normal CRUD operations still work after validation."""
+        db_path = temp_db_dir / "test.db"
+        
+        # Create table
+        create_intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "create_table",
+                "table": "users",
+                "payload": {
+                    "schema": {
+                        "id": "INTEGER PRIMARY KEY",
+                        "name": "TEXT",
+                        "email": "TEXT"
+                    }
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        create_result = executor.execute(create_intent, None, {"final_verdict": "APPROVE"})
+        assert create_result.success is True
+        
+        # Insert data
+        insert_intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "insert",
+                "table": "users",
+                "payload": {
+                    "data": {
+                        "name": "Alice",
+                        "email": "alice@example.com"
+                    }
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        insert_result = executor.execute(insert_intent, None, {"final_verdict": "APPROVE"})
+        assert insert_result.success is True
+        
+        # Select data
+        select_intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "select",
+                "table": "users",
+                "payload": {
+                    "where": {"name": "Alice"}
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        select_result = executor.execute(select_intent, None, {"final_verdict": "APPROVE"})
+        assert select_result.success is True
+        assert len(select_result.output["result"]["rows"]) == 1
+        assert select_result.output["result"]["rows"][0]["name"] == "Alice"
+        
+        # Update data
+        update_intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "update",
+                "table": "users",
+                "payload": {
+                    "data": {"email": "alice@newdomain.com"},
+                    "where": {"name": "Alice"}
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        update_result = executor.execute(update_intent, None, {"final_verdict": "APPROVE"})
+        assert update_result.success is True
+        
+        # Delete data
+        delete_intent = ActionIntent.create(
+            actor_id="test_actor",
+            actor_type="automation",
+            action_type="db_operation",
+            target=str(db_path),
+            parameters={
+                "operation": "delete",
+                "table": "users",
+                "payload": {
+                    "where": {"name": "Alice"}
+                }
+            },
+            safety_context={},
+            tenant_id="test_tenant",
+            cell_id="test_cell"
+        )
+        delete_result = executor.execute(delete_intent, None, {"final_verdict": "APPROVE"})
+        assert delete_result.success is True

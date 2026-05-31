@@ -100,7 +100,7 @@ class FileSystemExecutor(ExecutorPlugin):
     
     ROLLBACK_WINDOW_SECONDS = 300
     
-    def __init__(self, authorized_root: str = "/tmp"):
+    def __init__(self, authorized_root: str):
         """Initialize FileSystemExecutor.
         
         Args:

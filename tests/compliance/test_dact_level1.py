@@ -41,19 +41,21 @@ class TestDACTLevel1DeterministicReplay:
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        
-        results = []
-        for run in range(3):
-            intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
-            result = executor.execute(intent, None, {"final_verdict": "allow"})
-            results.append({
-                'success': result.success,
-                'execution_id': result.execution_id
-            })
-        
-        # All runs should produce identical results
-        assert results[0]['success'] == results[1]['success'] == results[2]['success']
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            
+            results = []
+            for run in range(3):
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
+                result = executor.execute(intent, None, {"final_verdict": "allow"})
+                results.append({
+                    'success': result.success,
+                    'execution_id': result.execution_id
+                })
+            
+            # All runs should produce identical results
+            assert results[0]['success'] == results[1]['success'] == results[2]['success']
     
     def test_state_hash_determinism(self):
         """Test that state hash is deterministic across runs."""
@@ -119,70 +121,74 @@ class TestDACTLevel1TraceReproducibility:
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        
-        # First execution
-        intent1 = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
-        result1 = executor.execute(intent1, None, {"final_verdict": "allow"})
-        trace1 = {
-            'intent_id': intent1.intent_id,
-            'execution_id': result1.execution_id,
-            'success': result1.success
-        }
-        
-        # Second execution (replay)
-        clock_replay = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
-        set_clock(clock_replay)
-        executor_replay = FileSystemExecutor()
-        
-        intent2 = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
-        result2 = executor_replay.execute(intent2, None, {"final_verdict": "allow"})
-        trace2 = {
-            'intent_id': intent2.intent_id,
-            'execution_id': result2.execution_id,
-            'success': result2.success
-        }
-        
-        # Traces should be identical
-        assert trace1['intent_id'] == trace2['intent_id']
-        assert trace1['success'] == trace2['success']
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            
+            # First execution
+            intent1 = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
+            result1 = executor.execute(intent1, None, {"final_verdict": "allow"})
+            trace1 = {
+                'intent_id': intent1.intent_id,
+                'execution_id': result1.execution_id,
+                'success': result1.success
+            }
+            
+            # Second execution (replay)
+            clock_replay = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
+            set_clock(clock_replay)
+            executor_replay = FileSystemExecutor(authorized_root=temp_dir)
+            
+            intent2 = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
+            result2 = executor_replay.execute(intent2, None, {"final_verdict": "allow"})
+            trace2 = {
+                'intent_id': intent2.intent_id,
+                'execution_id': result2.execution_id,
+                'success': result2.success
+            }
+            
+            # Traces should be identical
+            assert trace1['intent_id'] == trace2['intent_id']
+            assert trace1['success'] == trace2['success']
     
     def test_multi_step_execution_reproducibility(self):
         """Test reproducibility of multi-step executions."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        
-        # First execution sequence
-        traces1 = []
-        for i in range(3):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
-            result = executor.execute(intent, None, {"final_verdict": "allow"})
-            traces1.append({
-                'intent_id': intent.intent_id,
-                'success': result.success
-            })
-        
-        # Second execution sequence (replay)
-        clock_replay = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
-        set_clock(clock_replay)
-        executor_replay = FileSystemExecutor()
-        
-        traces2 = []
-        for i in range(3):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
-            result = executor_replay.execute(intent, None, {"final_verdict": "allow"})
-            traces2.append({
-                'intent_id': intent.intent_id,
-                'success': result.success
-            })
-        
-        # Traces should be identical
-        assert len(traces1) == len(traces2)
-        for t1, t2 in zip(traces1, traces2):
-            assert t1['intent_id'] == t2['intent_id']
-            assert t1['success'] == t2['success']
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            
+            # First execution sequence
+            traces1 = []
+            for i in range(3):
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
+                result = executor.execute(intent, None, {"final_verdict": "allow"})
+                traces1.append({
+                    'intent_id': intent.intent_id,
+                    'success': result.success
+                })
+            
+            # Second execution sequence (replay)
+            clock_replay = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
+            set_clock(clock_replay)
+            executor_replay = FileSystemExecutor(authorized_root=temp_dir)
+            
+            traces2 = []
+            for i in range(3):
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
+                result = executor_replay.execute(intent, None, {"final_verdict": "allow"})
+                traces2.append({
+                    'intent_id': intent.intent_id,
+                    'success': result.success
+                })
+            
+            # Traces should be identical
+            assert len(traces1) == len(traces2)
+            for t1, t2 in zip(traces1, traces2):
+                assert t1['intent_id'] == t2['intent_id']
+                assert t1['success'] == t2['success']
 
 
 class TestDACTLevel1NoDivergence:
@@ -193,36 +199,40 @@ class TestDACTLevel1NoDivergence:
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        
-        # Execute 10 times
-        results = []
-        for _ in range(10):
-            intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
-            result = executor.execute(intent, None, {"final_verdict": "allow"})
-            results.append(result.success)
-        
-        # All results should be identical
-        assert all(r == results[0] for r in results)
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            
+            # Execute 10 times
+            results = []
+            for _ in range(10):
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
+                result = executor.execute(intent, None, {"final_verdict": "allow"})
+                results.append(result.success)
+            
+            # All results should be identical
+            assert all(r == results[0] for r in results)
     
     def test_no_divergence_with_varied_parameters(self):
         """Test no divergence with varied but identical parameters."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        
-        # Execute with same parameters in different order
-        params = {"content": "test", "mode": "write"}
-        
-        results = []
-        for _ in range(3):
-            intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt", params)
-            result = executor.execute(intent, None, {"final_verdict": "allow"})
-            results.append(result.success)
-        
-        # All results should be identical
-        assert all(r == results[0] for r in results)
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            
+            # Execute with same parameters in different order
+            params = {"content": "test", "mode": "write"}
+            
+            results = []
+            for _ in range(3):
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt", params)
+                result = executor.execute(intent, None, {"final_verdict": "allow"})
+                results.append(result.success)
+            
+            # All results should be identical
+            assert all(r == results[0] for r in results)
 
 
 class TestDACTLevel1CanonicalJSON:

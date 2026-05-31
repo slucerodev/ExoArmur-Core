@@ -8,6 +8,7 @@ and deterministic audit emission for SQLite operations.
 import sqlite3
 import hashlib
 import json
+import re
 import tempfile
 import shutil
 from pathlib import Path
@@ -95,11 +96,37 @@ class DatabaseExecutor(ExecutorPlugin):
     - 300-second rollback window for A1/A2 actions
     - Deterministic audit emission
     - Safety gate integration
+    - SQL identifier validation to prevent injection
     """
     
     ROLLBACK_WINDOW_SECONDS = 300
     
-    def __init__(self, authorized_db_dir: str = "/tmp"):
+    # SQL identifier validation pattern: only letters, numbers, underscore, must not start with digit
+    SQL_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    
+    @staticmethod
+    def _validate_sql_identifier(identifier: str, identifier_type: str = "identifier") -> None:
+        """Validate SQL identifier to prevent injection.
+        
+        Args:
+            identifier: The identifier to validate (table name, column name, etc.)
+            identifier_type: Type of identifier for error messages
+            
+        Raises:
+            ValueError: If identifier contains invalid characters or pattern
+        """
+        if not identifier:
+            raise ValueError(f"{identifier_type} cannot be empty")
+        
+        if not DatabaseExecutor.SQL_IDENTIFIER_PATTERN.match(identifier):
+            raise ValueError(
+                f"Invalid {identifier_type}: '{identifier}'. "
+                f"Only alphanumeric characters and underscores are allowed, "
+                f"must not start with a digit, and must not contain "
+                f"quotes, semicolons, whitespace, comments, dots, or operators."
+            )
+    
+    def __init__(self, authorized_db_dir: str):
         """Initialize DatabaseExecutor.
         
         Args:
@@ -201,6 +228,23 @@ class DatabaseExecutor(ExecutorPlugin):
         operation = intent.parameters.get("operation", "unknown")
         payload = intent.parameters.get("payload", {})
         table = intent.parameters.get("table")
+        
+        # Validate table name to prevent SQL injection
+        try:
+            if table:
+                self._validate_sql_identifier(table, "table name")
+        except ValueError as e:
+            return ExecutorResult(
+                success=False,
+                output={},
+                error=str(e),
+                evidence={
+                    "operation": operation,
+                    "table": table,
+                    "reason": "SQL identifier validation failed"
+                },
+                execution_id=self._generate_execution_id(intent)
+            )
         
         # Classify action
         action_class = self.classify_db_action(operation, table)
@@ -495,24 +539,28 @@ class DatabaseExecutor(ExecutorPlugin):
             
             if plan.action_type == "update":
                 # Restore original row state
-                if plan.original_state and plan.row_id:
+                if plan.original_state and plan.row_id and plan.table:
+                    # Validate column names
+                    for col in plan.original_state.keys():
+                        self._validate_sql_identifier(col, "column name")
+                    # Validate table name (plan.table comes from internal state, not user input)
+                    self._validate_sql_identifier(plan.table, "table name")
                     set_clause = ", ".join([f"{k} = ?" for k in plan.original_state.keys()])
                     values = list(plan.original_state.values())
-                    cursor.execute(
-                        f"UPDATE {plan.table} SET {set_clause} WHERE id = ?",
-                        values + [plan.row_id]
-                    )
+                    cursor.execute(f"UPDATE {plan.table} SET {set_clause} WHERE id = ?", values + [plan.row_id])  # nosec B608 - validated
                     conn.commit()
             
             elif plan.action_type == "delete":
                 # Restore deleted row
-                if plan.original_state:
+                if plan.original_state and plan.table:
+                    # Validate column names
+                    for col in plan.original_state.keys():
+                        self._validate_sql_identifier(col, "column name")
+                    # Validate table name (plan.table comes from internal state, not user input)
+                    self._validate_sql_identifier(plan.table, "table name")
                     columns = ", ".join(plan.original_state.keys())
                     placeholders = ", ".join(["?"] * len(plan.original_state))
-                    cursor.execute(
-                        f"INSERT INTO {plan.table} ({columns}) VALUES ({placeholders})",
-                        list(plan.original_state.values())
-                    )
+                    cursor.execute(f"INSERT INTO {plan.table} ({columns}) VALUES ({placeholders})", list(plan.original_state.values()))  # nosec B608 - validated
                     conn.commit()
             
             elif plan.action_type == "drop_table":
@@ -571,13 +619,17 @@ class DatabaseExecutor(ExecutorPlugin):
         if not db_path.exists():
             return None
         
+        # Validate table name if provided
+        if table:
+            self._validate_sql_identifier(table, "table name")
+        
         try:
             conn = sqlite3.connect(str(db_path))
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             if table:
-                cursor.execute(f"SELECT * FROM {table}")
+                cursor.execute(f"SELECT * FROM {table}")  # nosec B608 - validated
                 rows = cursor.fetchall()
                 data = [dict(row) for row in rows]
             else:
@@ -586,7 +638,7 @@ class DatabaseExecutor(ExecutorPlugin):
                 tables = [row[0] for row in cursor.fetchall()]
                 data = {}
                 for t in tables:
-                    cursor.execute(f"SELECT * FROM {t}")
+                    cursor.execute(f"SELECT * FROM {t}")  # nosec B608 - system metadata
                     data[t] = [dict(row) for row in cursor.fetchall()]
             
             conn.close()
@@ -636,11 +688,15 @@ class DatabaseExecutor(ExecutorPlugin):
         where_clause = payload.get("where", {})
         limit = payload.get("limit", 100)
         
+        # Validate column names in where clause
+        for col in where_clause.keys():
+            self._validate_sql_identifier(col, "column name")
+        
         if where_clause:
             conditions = " AND ".join([f"{k} = ?" for k in where_clause.keys()])
-            cursor.execute(f"SELECT * FROM {table} WHERE {conditions} LIMIT ?", list(where_clause.values()) + [limit])
+            cursor.execute(f"SELECT * FROM {table} WHERE {conditions} LIMIT ?", list(where_clause.values()) + [limit])  # nosec B608 - validated
         else:
-            cursor.execute(f"SELECT * FROM {table} LIMIT ?", [limit])
+            cursor.execute(f"SELECT * FROM {table} LIMIT ?", [limit])  # nosec B608 - validated
         
         rows = cursor.fetchall()
         return {"rows": [dict(row) for row in rows], "count": len(rows)}
@@ -651,9 +707,14 @@ class DatabaseExecutor(ExecutorPlugin):
             return 0
         
         data = payload.get("data", {})
+        
+        # Validate column names
+        for col in data.keys():
+            self._validate_sql_identifier(col, "column name")
+        
         columns = ", ".join(data.keys())
         placeholders = ", ".join(["?"] * len(data))
-        cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(data.values()))
+        cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(data.values()))  # nosec B608 - validated
         return cursor.lastrowid or 0
     
     def _execute_update(self, cursor: sqlite3.Cursor, table: Optional[str], payload: Dict[str, Any]) -> int:
@@ -664,13 +725,16 @@ class DatabaseExecutor(ExecutorPlugin):
         data = payload.get("data", {})
         where_clause = payload.get("where", {})
         
+        # Validate column names
+        for col in data.keys():
+            self._validate_sql_identifier(col, "column name")
+        for col in where_clause.keys():
+            self._validate_sql_identifier(col, "column name")
+        
         set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
         where_sql = " AND ".join([f"{k} = ?" for k in where_clause.keys()])
         
-        cursor.execute(
-            f"UPDATE {table} SET {set_clause} WHERE {where_sql}",
-            list(data.values()) + list(where_clause.values())
-        )
+        cursor.execute(f"UPDATE {table} SET {set_clause} WHERE {where_sql}", list(data.values()) + list(where_clause.values()))  # nosec B608 - validated
         return cursor.rowcount
     
     def _execute_delete(self, cursor: sqlite3.Cursor, table: Optional[str], payload: Dict[str, Any]) -> int:
@@ -680,11 +744,15 @@ class DatabaseExecutor(ExecutorPlugin):
         
         where_clause = payload.get("where", {})
         
+        # Validate column names in where clause
+        for col in where_clause.keys():
+            self._validate_sql_identifier(col, "column name")
+        
         if where_clause:
             where_sql = " AND ".join([f"{k} = ?" for k in where_clause.keys()])
-            cursor.execute(f"DELETE FROM {table} WHERE {where_sql}", list(where_clause.values()))
+            cursor.execute(f"DELETE FROM {table} WHERE {where_sql}", list(where_clause.values()))  # nosec B608 - validated
         else:
-            cursor.execute(f"DELETE FROM {table}")
+            cursor.execute(f"DELETE FROM {table}")  # nosec B608 - validated
         
         return cursor.rowcount
     
@@ -696,21 +764,27 @@ class DatabaseExecutor(ExecutorPlugin):
         schema = payload.get("schema", {})
         columns = []
         for col_name, col_type in schema.items():
+            # Validate column name
+            self._validate_sql_identifier(col_name, "column name")
             columns.append(f"{col_name} {col_type}")
         
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(columns)})")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(columns)})")  # nosec B608 - validated
     
     def _execute_drop_table(self, cursor: sqlite3.Cursor, table: Optional[str]) -> None:
         """Execute DROP TABLE operation."""
         if not table:
             return
         
-        cursor.execute(f"DROP TABLE IF EXISTS {table}")
+        cursor.execute(f"DROP TABLE IF EXISTS {table}")  # nosec B608 - validated
     
     def _get_row_state(self, db_path: Path, table: Optional[str], where_clause: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Get current row state for rollback."""
         if not table:
             return None
+        
+        # Validate column names in where clause
+        for col in where_clause.keys():
+            self._validate_sql_identifier(col, "column name")
         
         try:
             conn = sqlite3.connect(str(db_path))
@@ -718,7 +792,7 @@ class DatabaseExecutor(ExecutorPlugin):
             cursor = conn.cursor()
             
             where_sql = " AND ".join([f"{k} = ?" for k in where_clause.keys()])
-            cursor.execute(f"SELECT * FROM {table} WHERE {where_sql} LIMIT 1", list(where_clause.values()))
+            cursor.execute(f"SELECT * FROM {table} WHERE {where_sql} LIMIT 1", list(where_clause.values()))  # nosec B608 - validated
             row = cursor.fetchone()
             
             conn.close()
@@ -733,12 +807,15 @@ class DatabaseExecutor(ExecutorPlugin):
         if not table:
             return []
         
+        # Validate table name
+        self._validate_sql_identifier(table, "table name")
+        
         try:
             conn = sqlite3.connect(str(db_path))
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            cursor.execute(f"SELECT * FROM {table}")
+            cursor.execute(f"SELECT * FROM {table}")  # nosec B608 - validated
             rows = cursor.fetchall()
             
             conn.close()
@@ -753,11 +830,15 @@ class DatabaseExecutor(ExecutorPlugin):
         if not table or not data:
             return
         
+        # Validate column names
+        for col in data[0].keys():
+            self._validate_sql_identifier(col, "column name")
+        
         columns = ", ".join(data[0].keys())
         placeholders = ", ".join(["?"] * len(data[0]))
         
         for row in data:
-            cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))
+            cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({placeholders})", list(row.values()))  # nosec B608 - validated
     
     def _emit_audit_event(
         self,

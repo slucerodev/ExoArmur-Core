@@ -10,27 +10,14 @@ certifi==2026.1.4
 cffi==2.0.0
 click==8.3.1
 cryptography==46.0.7
-fastapi==0.127.1
-h11==0.16.0
-httpcore==1.0.9
-httptools==0.7.1
-httpx==0.25.2
-idna==3.11
-nats-py==2.7.0
 pydantic==2.12.5
 pydantic-core==2.41.5
 python-dotenv==1.2.2
 python-json-logger==2.0.7
 python-ulid==3.1.0
 pyyaml==6.0.3
-sniffio==1.3.1
-starlette==0.50.0
 typing-extensions==4.15.0
 typing-inspection==0.4.2
-uvicorn==0.24.0
-uvloop==0.22.1; platform_system != "Windows"
-watchfiles==1.1.1
-websockets==16.0
 psutil==5.9.8
 pycparser==3.0
 
@@ -84,4 +71,4 @@ sortedcontainers==2.4.0
 tomli==2.4.0
 tomli-w==1.2.0
 twine==6.2.0
-urllib3==2.6.3
+urllib3==2.7.0

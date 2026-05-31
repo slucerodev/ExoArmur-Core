@@ -163,14 +163,16 @@ class TestDACTLevel5AirGappedOperation:
         """Test that executors operate without internet access."""
         from exoarmur.executors import FileSystemExecutor
         from exoarmur.kernel.boundary import ActionIntent
+        import tempfile
         
-        executor = FileSystemExecutor()
-        intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
-        
-        result = executor.execute(intent, None, {"final_verdict": "allow"})
-        
-        # Should execute without internet
-        assert result is not None
+        with tempfile.TemporaryDirectory() as temp_dir:
+            executor = FileSystemExecutor(authorized_root=temp_dir)
+            intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
+            
+            result = executor.execute(intent, None, {"final_verdict": "allow"})
+            
+            # Should execute without internet
+            assert result is not None
 
 
 class TestDACTLevel5NoExternalAPIs:

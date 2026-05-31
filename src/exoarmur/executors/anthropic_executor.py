@@ -51,7 +51,7 @@ class AnthropicActionType:
     STREAM_MESSAGE = "stream_message"
     EMBEDDING = "embedding"
     BATCH = "batch"
-    TOKEN_COUNTING = "token_counting"
+    TOKEN_COUNTING = "token_counting"  # nosec B105: operation type constant, not a password/token/secret
 
 
 # ============================================================================

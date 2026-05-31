@@ -24,6 +24,15 @@ pip install exoarmur-core
 
 Requires Python 3.10 or later.
 
+**Optional Demo API:**
+
+To run the optional FastAPI demo server (not required for Core runtime):
+
+```bash
+pip install exoarmur-core[demo-api]
+python scripts/demo_api.py
+```
+
 ## Quickstart (5-Minute Proof)
 
 Run the health check to verify installation:
@@ -161,11 +170,13 @@ Reference implementation. Single maintainer. Not production-certified. Not exter
 
 ## License
 
-ExoArmur-Core is open-source under the Apache License 2.0.
+License/status: private repository; evaluation/licensing terms available by written agreement.
 
-Optional commercial/proprietary modules may be distributed separately and are not part of this Core repository unless explicitly included.
+This repository is not currently distributed as open source. Do not redistribute without written permission.
 
 See the [LICENSE](LICENSE) file for details.
+
+**Note:** License language should be reviewed by legal counsel before public release, commercial licensing, or acquisition.
 
 ## Contributing
 

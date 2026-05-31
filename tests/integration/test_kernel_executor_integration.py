@@ -6,6 +6,7 @@ executors for end-to-end governance flows.
 """
 
 import pytest
+import tempfile
 from datetime import datetime, timezone
 from exoarmur.kernel.boundary import (
     ActionIntent,
@@ -21,10 +22,17 @@ from exoarmur.kernel.ids import make_intent_id
 from exoarmur.executors import FileSystemExecutor
 
 
+@pytest.fixture
+def temp_dir():
+    """Fixture to provide a temporary directory for executor tests."""
+    with tempfile.TemporaryDirectory() as td:
+        yield td
+
+
 class TestKernelExecutorIntegration:
     """Test integration between kernel boundary and executors."""
     
-    def test_action_intent_to_executor_flow(self):
+    def test_action_intent_to_executor_flow(self, temp_dir):
         """Test that ActionIntent can be passed to executor."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
@@ -34,12 +42,12 @@ class TestKernelExecutorIntegration:
             actor_id="test_actor",
             actor_type="file_system",
             action_type="create",
-            target="/tmp/test.txt",
+            target=f"{temp_dir}/test.txt",
             parameters={"content": "test"}
         )
         
         # Pass to executor
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         result = executor.execute(intent, None, {"final_verdict": "allow"})
         
         # Verify integration
@@ -51,7 +59,7 @@ class TestKernelExecutorIntegration:
         # Skip - FileSystemExecutor evidence structure differs from assumptions
         pytest.skip("FileSystemExecutor evidence structure differs from test assumptions")
     
-    def test_kernel_id_generation_in_executor_context(self):
+    def test_kernel_id_generation_in_executor_context(self, temp_dir):
         """Test that kernel ID generation works in executor context."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
@@ -65,14 +73,14 @@ class TestKernelExecutorIntegration:
             actor_id="actor",
             actor_type="type",
             action_type="action",
-            target="target",
+            target=f"{temp_dir}/target",
             parameters={},
             safety_context={},
             timestamp=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         )
         
         # Verify executor accepts kernel-generated ID
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         result = executor.execute(intent, None, {"final_verdict": "allow"})
         
         # Skip evidence structure check - FileSystemExecutor has different evidence structure
@@ -82,9 +90,9 @@ class TestKernelExecutorIntegration:
 class TestExecutorCapabilitiesIntegration:
     """Test executor capabilities integration with kernel."""
     
-    def test_executor_capabilities_return_type(self):
+    def test_executor_capabilities_return_type(self, temp_dir):
         """Test that executor returns capabilities in kernel format."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         capabilities = executor.capabilities()
         
         # Verify capabilities match kernel expectations (capabilities is a dict)
@@ -94,9 +102,9 @@ class TestExecutorCapabilitiesIntegration:
         assert "capabilities" in capabilities
         assert "constraints" in capabilities
     
-    def test_executor_capabilities_contains_kernel_relevant_data(self):
+    def test_executor_capabilities_contains_kernel_relevant_data(self, temp_dir):
         """Test that executor capabilities contain kernel-relevant data."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         capabilities = executor.capabilities()
         
         # Verify kernel-relevant fields (capabilities is a dict)
@@ -110,12 +118,12 @@ class TestExecutorCapabilitiesIntegration:
 class TestTargetValidationIntegration:
     """Test target validation integration between kernel and executor."""
     
-    def test_executor_validates_kernel_targets(self):
+    def test_executor_validates_kernel_targets(self, temp_dir):
         """Test that executor validates targets from kernel."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Test valid target
-        intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
+        intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
         result = executor.validate_target(intent)
         assert result.result == ValidationResult.VALID
         
@@ -124,10 +132,10 @@ class TestTargetValidationIntegration:
         result = executor.validate_target(intent_invalid)
         # Result depends on executor implementation
     
-    def test_target_validation_result_format(self):
+    def test_target_validation_result_format(self, temp_dir):
         """Test that target validation result matches kernel format."""
-        executor = FileSystemExecutor()
-        intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
+        executor = FileSystemExecutor(authorized_root=temp_dir)
+        intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
         result = executor.validate_target(intent)
         
         # Verify format matches kernel expectations
@@ -172,13 +180,13 @@ class TestStateHashIntegration:
 class TestRollbackIntegration:
     """Test rollback integration between kernel and executor."""
     
-    def test_executor_rollback_integration(self):
+    def test_executor_rollback_integration(self, temp_dir):
         """Test that executor rollback works with kernel execution IDs."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
-        intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
+        executor = FileSystemExecutor(authorized_root=temp_dir)
+        intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
         
         result = executor.execute(intent, None, {"final_verdict": "allow"})
         
@@ -191,12 +199,12 @@ class TestRollbackIntegration:
 class TestErrorHandlingIntegration:
     """Test error handling integration between kernel and executor."""
     
-    def test_executor_error_propagation_to_kernel(self):
+    def test_executor_error_propagation_to_kernel(self, temp_dir):
         """Test that executor errors are properly propagated to kernel."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Create intent with invalid parameters
         intent = ActionIntent.create(
@@ -213,13 +221,13 @@ class TestErrorHandlingIntegration:
         if not result.success:
             assert result.error is not None
     
-    def test_executor_graceful_error_handling(self):
+    def test_executor_graceful_error_handling(self, temp_dir):
         """Test that executor handles errors gracefully."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Test with None intent (should handle gracefully)
         try:
-            result = executor.execute(None)
+            result = executor.execute(None, None, {"final_verdict": "allow"})
             # If it doesn't raise, verify result
             assert result is not None
         except (TypeError, AttributeError):
@@ -230,16 +238,16 @@ class TestErrorHandlingIntegration:
 class TestDeterminismIntegration:
     """Test determinism guarantees in kernel + executor integration."""
     
-    def test_deterministic_execution_with_kernel_clock(self):
+    def test_deterministic_execution_with_kernel_clock(self, temp_dir):
         """Test that execution is deterministic with kernel clock."""
         clock = DeterministicClock(datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc))
         set_clock(clock)
         
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Execute same intent twice
-        intent1 = ActionIntent.create("actor", "type", "create", "/tmp/test1.txt")
-        intent2 = ActionIntent.create("actor", "type", "create", "/tmp/test1.txt")
+        intent1 = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test1.txt")
+        intent2 = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test1.txt")
         
         result1 = executor.execute(intent1, None, {"final_verdict": "allow"})
         result2 = executor.execute(intent2, None, {"final_verdict": "allow"})
@@ -266,10 +274,12 @@ class TestMultiExecutorIntegration:
     def test_kernel_supports_multiple_executors(self):
         """Test that kernel boundary supports multiple executor types."""
         from exoarmur.executors import DatabaseExecutor
+        import tempfile
         
-        # Create multiple executors
-        fs_executor = FileSystemExecutor()
-        db_executor = DatabaseExecutor()
+        # Create multiple executors with explicit temp directories
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fs_executor = FileSystemExecutor(authorized_root=temp_dir)
+            db_executor = DatabaseExecutor(authorized_db_dir=temp_dir)
         
         # Both should implement ExecutorPlugin (skip isinstance check for Protocol)
         assert hasattr(fs_executor, 'execute')
@@ -278,9 +288,11 @@ class TestMultiExecutorIntegration:
     def test_different_executors_have_different_capabilities(self):
         """Test that different executors have different capabilities."""
         from exoarmur.executors import DatabaseExecutor
+        import tempfile
         
-        fs_executor = FileSystemExecutor()
-        db_executor = DatabaseExecutor()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fs_executor = FileSystemExecutor(authorized_root=temp_dir)
+            db_executor = DatabaseExecutor(authorized_db_dir=temp_dir)
         
         fs_caps = fs_executor.capabilities()
         db_caps = db_executor.capabilities()

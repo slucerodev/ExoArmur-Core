@@ -7,12 +7,20 @@ memory usage, and deterministic performance.
 
 import pytest
 import time
+import tempfile
 import tracemalloc
 from datetime import datetime, timezone
 from exoarmur.kernel.clock import SystemClock, DeterministicClock, utc_now
 from exoarmur.kernel.ids import make_intent_id
 from exoarmur.kernel.boundary import ActionIntent
 from exoarmur.executors import FileSystemExecutor
+
+
+@pytest.fixture
+def temp_dir():
+    """Fixture to provide a temporary directory for executor tests."""
+    with tempfile.TemporaryDirectory() as td:
+        yield td
 
 
 class TestClockPerformance:
@@ -138,14 +146,14 @@ class TestActionIntentPerformance:
 class TestExecutorPerformance:
     """Test executor performance."""
     
-    def test_executor_execution_performance(self):
+    def test_executor_execution_performance(self, temp_dir):
         """Test that executor execution is performant."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         iterations = 100
         
         start = time.perf_counter()
         for i in range(iterations):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
+            intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
             executor.execute(intent, None, {"final_verdict": "allow"})
         end = time.perf_counter()
         
@@ -158,9 +166,9 @@ class TestExecutorPerformance:
         # Skip - FileSystemExecutor doesn't have get_state_hash() method
         pytest.skip("FileSystemExecutor doesn't expose get_state_hash()")
     
-    def test_executor_capabilities_performance(self):
+    def test_executor_capabilities_performance(self, temp_dir):
         """Test that capabilities retrieval is performant."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         iterations = 1000
         
         start = time.perf_counter()
@@ -193,15 +201,15 @@ class TestMemoryUsage:
         peak_mb = peak / 1024 / 1024
         assert peak_mb < 10.0, f"ActionIntent memory usage too high: {peak_mb}MB"
     
-    def test_executor_memory_usage(self):
+    def test_executor_memory_usage(self, temp_dir):
         """Test that executor has reasonable memory footprint."""
         tracemalloc.start()
         
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Execute multiple actions
         for i in range(100):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
+            intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
             executor.execute(intent, None, {"final_verdict": "allow"})
         
         current, peak = tracemalloc.get_traced_memory()
@@ -270,9 +278,9 @@ class TestDeterministicPerformance:
 class TestScalability:
     """Test scalability characteristics."""
     
-    def test_linear_scaling_with_execution_count(self):
+    def test_linear_scaling_with_execution_count(self, temp_dir):
         """Test that execution time scales linearly with execution count."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Test with different execution counts
         counts = [10, 50, 100]
@@ -281,7 +289,7 @@ class TestScalability:
         for count in counts:
             start = time.perf_counter()
             for i in range(count):
-                intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
+                intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
                 executor.execute(intent, None, {"final_verdict": "allow"})
             end = time.perf_counter()
             times.append(end - start)

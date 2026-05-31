@@ -6,10 +6,18 @@ injection prevention, and audit integrity.
 """
 
 import pytest
+import tempfile
 from datetime import datetime, timezone
 from exoarmur.kernel.boundary import ActionIntent, ExecutorPlugin
 from exoarmur.kernel.ids import make_intent_id
 from exoarmur.executors import FileSystemExecutor
+
+
+@pytest.fixture
+def temp_dir():
+    """Fixture to provide a temporary directory for executor tests."""
+    with tempfile.TemporaryDirectory() as td:
+        yield td
 
 
 class TestInputValidation:
@@ -82,9 +90,9 @@ class TestInputValidation:
 class TestExecutorSecurity:
     """Test executor security properties."""
     
-    def test_executor_does_not_execute_arbitrary_code(self):
+    def test_executor_does_not_execute_arbitrary_code(self, temp_dir):
         """Test that executor doesn't execute arbitrary code from parameters."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         malicious_params = {
             "code": "__import__('os').system('rm -rf /')",
@@ -95,7 +103,7 @@ class TestExecutorSecurity:
             actor_id="test_actor",
             actor_type="file_system",
             action_type="create",
-            target="/tmp/test.txt",
+            target=f"{temp_dir}/test.txt",
             parameters=malicious_params
         )
         
@@ -105,20 +113,20 @@ class TestExecutorSecurity:
         # Result should be safe
         assert result is not None
     
-    def test_executor_sandboxing(self):
+    def test_executor_sandboxing(self, temp_dir):
         """Test that executor is properly sandboxed."""
         from exoarmur.kernel.boundary import ExecutorPlugin
         
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Executor should not have access to dangerous functions
         assert not hasattr(executor, 'eval')
         assert not hasattr(executor, 'exec')
         assert not hasattr(executor, '__import__')
     
-    def test_executor_no_direct_file_access(self):
+    def test_executor_no_direct_file_access(self, temp_dir):
         """Test that executor doesn't have unrestricted file access."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Executor should not have direct file system access outside governance
         # This is a design principle test
@@ -128,11 +136,11 @@ class TestExecutorSecurity:
 class TestAuditIntegrity:
     """Test audit trail integrity and immutability."""
     
-    def test_audit_trail_immutability(self):
+    def test_audit_trail_immutability(self, temp_dir):
         """Test that audit trail is immutable."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
-        intent = ActionIntent.create("actor", "type", "create", "/tmp/test.txt")
+        intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test.txt")
         result = executor.execute(intent, None, {"final_verdict": "allow"})
         
         # Execution ID should be immutable
@@ -147,10 +155,6 @@ class TestAuditIntegrity:
         # Skip - FileSystemExecutor doesn't have get_state_hash() method
         # Platform executors have it, but it's not part of the ExecutorPlugin protocol
         pytest.skip("FileSystemExecutor doesn't expose get_state_hash()")
-        
-        # Hash should be a valid SHA-256 hash (64 hex characters)
-        assert len(hash1) == 64
-        assert all(c in "0123456789abcdef" for c in hash1)
     
     def test_audit_chain_integrity(self):
         """Test that audit chain maintains integrity."""
@@ -166,13 +170,13 @@ class TestTamperDetection:
         # Skip - FileSystemExecutor doesn't have get_state_hash() method
         pytest.skip("FileSystemExecutor doesn't expose get_state_hash()")
     
-    def test_execution_id_uniqueness(self):
+    def test_execution_id_uniqueness(self, temp_dir):
         """Test that execution IDs are unique for tamper detection."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         execution_ids = []
         for i in range(5):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
+            intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
             result = executor.execute(intent, None, {"final_verdict": "allow"})
             execution_ids.append(result.execution_id)
         
@@ -191,11 +195,11 @@ class TestSecureDefaults:
         assert intent.parameters == {}
         assert intent.safety_context == {}
     
-    def test_executor_default_constraints(self):
+    def test_executor_default_constraints(self, temp_dir):
         """Test that executor has secure default constraints."""
         from exoarmur.executors import FileSystemExecutor
         
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         capabilities = executor.capabilities()
         
         # Should have constraints defined (capabilities is a dict)
@@ -206,22 +210,22 @@ class TestSecureDefaults:
 class TestErrorHandlingSecurity:
     """Test secure error handling."""
     
-    def test_executor_handles_malformed_intent(self):
+    def test_executor_handles_malformed_intent(self, temp_dir):
         """Test that executor handles malformed intent gracefully."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         # Test with None intent
         try:
-            result = executor.execute(None)
+            result = executor.execute(None, None, {"final_verdict": "allow"})
             # If it doesn't raise, verify result is safe
             assert result is not None
         except (TypeError, AttributeError):
             # Expected to raise for None input
             pass
     
-    def test_executor_handles_invalid_parameters(self):
+    def test_executor_handles_invalid_parameters(self, temp_dir):
         """Test that executor handles invalid parameters gracefully."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         intent = ActionIntent.create(
             actor_id="test_actor",
@@ -240,9 +244,9 @@ class TestErrorHandlingSecurity:
 class TestResourceLimits:
     """Test resource limits and DoS prevention."""
     
-    def test_executor_handles_large_parameters(self):
+    def test_executor_handles_large_parameters(self, temp_dir):
         """Test that executor handles large parameters without DoS."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         large_params = {"data": "x" * 1000000}
         
@@ -250,7 +254,7 @@ class TestResourceLimits:
             actor_id="test_actor",
             actor_type="file_system",
             action_type="create",
-            target="/tmp/test.txt",
+            target=f"{temp_dir}/test.txt",
             parameters=large_params
         )
         
@@ -259,13 +263,13 @@ class TestResourceLimits:
         # Should handle without crashing
         assert result is not None
     
-    def test_executor_handles_rapid_requests(self):
+    def test_executor_handles_rapid_requests(self, temp_dir):
         """Test that executor handles rapid requests without DoS."""
-        executor = FileSystemExecutor()
+        executor = FileSystemExecutor(authorized_root=temp_dir)
         
         results = []
         for i in range(100):
-            intent = ActionIntent.create("actor", "type", "create", f"/tmp/test{i}.txt")
+            intent = ActionIntent.create("actor", "type", "create", f"{temp_dir}/test{i}.txt")
             result = executor.execute(intent, None, {"final_verdict": "allow"})
             results.append(result)
         

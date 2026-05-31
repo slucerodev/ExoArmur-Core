@@ -15,28 +15,16 @@ requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    # fastapi + pydantic are OpenAPI-snapshot-sensitive: their schema
-    # generators change between minor versions (e.g. ValidationError.ctx/input
-    # fields emitted on >=0.128 / >=2.13). The committed artifacts/openapi_v1.json
-    # snapshot is regenerated and verified against the versions below, which
-    # exactly match requirements.lock. Loosening these bounds will break
-    # tests/test_schema_snapshots.py::test_openapi_snapshot_unchanged for any
-    # consumer. Bump requires a coordinated snapshot regeneration — see
-    # scripts/export_openapi_and_schemas.py.
-    "fastapi>=0.127,<0.128",
-    "uvicorn[standard]>=0.24.0",
+    # pydantic is required for V1 contract models in spec/contracts/
     "pydantic>=2.12,<2.13",
     "python-ulid>=2.0.0",
     "click>=8.1.0",
-    "httpx>=0.25.0",
-    "nats-py>=2.7.0",
     "python-json-logger>=2.0.0",
     "cryptography>=46.0.7",
 ]
@@ -53,6 +41,13 @@ exoarmur = "exoarmur.cli:main"
 # an empty placeholder.
 postgres = [
     "asyncpg>=0.29.0",
+]
+# Demo API server (optional - not required for Core runtime)
+demo-api = [
+    "fastapi>=0.136.3",
+    "uvicorn[standard]>=0.24.0",
+    "httpx>=0.25.0",
+    "nats-py>=2.7.0",
 ]
 dev = [
   # Test runner + async
