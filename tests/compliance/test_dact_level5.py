@@ -7,6 +7,9 @@ The system must function without network dependencies for core governance.
 
 import pytest
 import subprocess
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class TestDACTLevel5AirGapIntegrity:
@@ -19,7 +22,7 @@ class TestDACTLevel5AirGapIntegrity:
              "src/exoarmur/kernel"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no network imports
@@ -32,7 +35,7 @@ class TestDACTLevel5AirGapIntegrity:
              "src/exoarmur/executors"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no network imports
@@ -45,7 +48,7 @@ class TestDACTLevel5AirGapIntegrity:
              "src/exoarmur/kernel"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no web interface code
@@ -229,7 +232,7 @@ class TestDACTLevel5DependencyAudit:
              "src/exoarmur/kernel"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no network imports in kernel
@@ -244,7 +247,7 @@ class TestDACTLevel5DependencyAudit:
              "src/exoarmur/kernel"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no network imports in kernel

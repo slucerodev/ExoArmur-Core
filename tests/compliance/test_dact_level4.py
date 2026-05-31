@@ -8,6 +8,9 @@ Machine learning components must not be in the authority path for execution deci
 import pytest
 import subprocess
 import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class TestDACTLevel4MLIsolation:
@@ -21,7 +24,7 @@ class TestDACTLevel4MLIsolation:
              "src/exoarmur/kernel"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no ML imports
@@ -34,7 +37,7 @@ class TestDACTLevel4MLIsolation:
              "src/exoarmur/executors"],
             capture_output=True,
             text=True,
-            cwd="/home/oem/CascadeProjects/ExoArmur"
+            cwd=str(REPO_ROOT)
         )
         
         # Should find no ML imports
@@ -54,7 +57,7 @@ class TestDACTLevel4MLIsolation:
                 ["python", "-c", f"import sys; sys.path.insert(0, 'src'); from exoarmur.kernel import *"],
                 capture_output=True,
                 text=True,
-                cwd="/home/oem/CascadeProjects/ExoArmur"
+                cwd=str(REPO_ROOT)
             )
             
             # Should import without ML dependencies
@@ -142,7 +145,10 @@ class TestDACTLevel4AdvisoryMLPolicy:
         for module_name in kernel_modules:
             try:
                 module = __import__(f"exoarmur.kernel.{module_name}", fromlist=[module_name])
-                source = open(module.__file__).read()
+                if module.__file__:
+                    source = open(module.__file__).read()
+                else:
+                    continue
                 
                 # Should not contain ML-related terms
                 assert "torch" not in source

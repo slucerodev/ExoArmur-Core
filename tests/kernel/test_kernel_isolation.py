@@ -6,6 +6,9 @@ This test ensures DACT Level 5 kernel isolation is maintained.
 
 import pytest
 import subprocess
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_kernel_no_vendor_sdk_imports():
@@ -16,7 +19,7 @@ def test_kernel_no_vendor_sdk_imports():
              "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no network imports in kernel
@@ -30,7 +33,7 @@ def test_kernel_no_openai_imports():
          "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no OpenAI imports in kernel
@@ -44,7 +47,7 @@ def test_kernel_no_anthropic_imports():
          "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no Anthropic imports in kernel
@@ -58,7 +61,7 @@ def test_kernel_no_langchain_imports():
          "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no LangChain imports in kernel
@@ -72,7 +75,7 @@ def test_kernel_no_transformers_imports():
          "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no transformers imports in kernel
@@ -86,7 +89,7 @@ def test_kernel_no_torch_imports():
          "src/exoarmur/kernel"],
         capture_output=True,
         text=True,
-        cwd="/home/oem/CascadeProjects/ExoArmur"
+        cwd=str(REPO_ROOT)
     )
     
     # Should find no torch imports in kernel
