@@ -13,7 +13,7 @@ the release security gate verifies current working tree cleanliness.
 
 ## Dependency Vulnerability Status
 
-**Local Clean Install:** The current default Core install (`pip install exoarmur-core`) shows zero known vulnerabilities when scanned with `pip-audit` after a fresh virtual environment installation.
+**Local Clean Install:** The current default Core install (`pip install exoarmur-core`) shows zero known vulnerabilities when scanned with `pip-audit` after a fresh virtual environment installation with upgraded pip (pip 26.1.2).
 
 **GitHub Dependabot:** GitHub Dependabot may report alerts that do not appear in local clean installs. This can occur due to:
 - Stale dependency graph data in GitHub's system
