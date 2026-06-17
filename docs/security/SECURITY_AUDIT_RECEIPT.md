@@ -1,6 +1,6 @@
 # Security Audit Receipt
 
-*Prepared for: Prospective Acquirers and Strategic Buyers*
+*Status document for ExoArmur-Core security posture*
 *Date: June 1, 2026*
 *Version: 2.1.0*
 
@@ -283,51 +283,36 @@ ExoArmur addresses four primary threat classes:
 
 ## Recommendations
 
-### For Private NDA Evaluation
+### For Experimentation / Research
 
-**Security Posture:** Acceptable for evaluation under NDA
+**Security Posture:** Suitable for research, education, and integration prototyping.
 
 **Rationale:**
-- Comprehensive internal security validation
-- Clean security scan results
+- Clean automated scan results
 - Well-documented threat model
 - Clear security limitations disclosed
+- No known vulnerabilities in dependencies
 
 **Requirements:**
-- Accept self-validated security (no third-party audit)
-- Accept security limitations as documented
-- Plan for third-party security audit before production
+- Accept self-validated security (no third-party audit yet)
+- Review limitations before handling sensitive data
 
 ### For Production Deployment
 
-**Security Posture:** Not ready without additional work
+**Security Posture:** Requires additional hardening.
 
 **Required Before Production:**
 1. Third-party security audit
 2. TrustEvaluator implementation
 3. Authentication/authorization integration
 4. Audit storage backend integration
-5. Production monitoring infrastructure
-6. Incident response procedures
-7. Security operations team
-
-### For Public Release
-
-**Security Posture:** Not ready without additional work
-
-**Required Before Public Release:**
-1. Third-party security audit
-2. Legal review of license terms
-3. Production certification (if applicable)
-4. Security operations team
-5. Public disclosure process
-6. Vulnerability reward program
+5. Production monitoring and incident response
 
 ## Conclusion
 
 ExoArmur-Core demonstrates a strong internal security posture with comprehensive automated security scanning, clean scan results, and a well-documented threat model. However, the system lacks third-party security audit, which is a limitation for production deployment and public release.
 
-For private NDA evaluation and IP-only sale diligence, the current security posture is acceptable. For production deployment or public release, third-party security audit is required.
+For research, education, and integration prototyping, the current security posture is acceptable. For production deployment, third-party security audit and additional hardening are required.
 
 ## Contact
 

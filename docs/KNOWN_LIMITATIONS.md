@@ -4,7 +4,7 @@
 
 ## Overview
 
-This document catalogues the known limitations of ExoArmur-Core as of the current version (2.1.0). These limitations are disclosed to enable informed evaluation and due diligence.
+This document catalogues the known limitations of ExoArmur-Core as of the current version (2.1.0). These limitations are disclosed so users and contributors can make informed decisions about adoption and contribution.
 
 ## Security & Certification Limitations
 

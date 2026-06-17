@@ -1,112 +1,93 @@
 # Contributing to ExoArmur Core
 
-## Contribution Policy
+Thank you for your interest in ExoArmur. This project is a minimal deterministic governance kernel — correctness and replayability are more important than features. Every contribution must preserve the architectural invariants documented below.
 
-ExoArmur Core is proprietary software. Contributions are accepted only by written agreement.
+## Quick Start
 
-### Authorized Contributors
-
-If you have a written agreement to contribute:
-
-1. Ensure all changes pass the full test suite: `python -m pytest -q`
-2. Verify CLI functionality: `exoarmur --version` and `exoarmur demo --operator-decision deny`
-3. Check that no architectural invariants are violated
-4. Update documentation if applicable
-5. Submit changes through the agreed-upon review process
-
-### IP and Licensing
-
-All submitted changes require explicit IP/licensing agreement before acceptance. Without a signed agreement, contributions cannot be accepted.
-
-## Development Setup (For Authorized Evaluators)
-
-### Prerequisites
-- Python 3.10+
-- Git
-- Docker (optional, for live demos)
-
-### Installation
 ```bash
-# Clone the repository
 git clone https://github.com/slucerodev/ExoArmur-Core
 cd ExoArmur-Core
-
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install the package
-pip install .
-```
-
-### Development Installation
-```bash
-# Install with development dependencies
-pip install ".[dev]"
-```
-
-### Editable Installs - Important Notice
-
-**Editable installs (`pip install -e .`) are supported and are part of the current validation flow.**
-
-**Recommended development workflow:**
-1. Make changes to source code
-2. Install in editable mode: `pip install -e .` or `pip install -e ".[dev]"`
-3. Run tests to verify changes
-4. Commit changes when tests pass
-
-**Testing changes:**
-```bash
-# After making changes, reinstall and test
-pip install -e .
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 python -m pytest -q
-exoarmur demo --operator-decision deny
 ```
+
+## Before You Contribute
+
+1. **Open an issue first** for large changes (new features, API changes, refactors).
+2. **One-axis changes only** — each PR should target exactly one of: replay correctness, dependency isolation, determinism under concurrency, or interface normalization.
+3. **All tests must pass** with no new skips or xfails.
+4. **The Golden Demo must remain unchanged** — run `exoarmur demo --operator-decision deny` and verify output.
 
 ## Running Tests
 
-### Full Test Suite
 ```bash
+# Full suite
 python -m pytest -q
+
+# With coverage
+python -m pytest --cov=src/exoarmur --cov-report=term-missing -q
+
+# Determinism gate (run three times, hashes must match)
+for i in 1 2 3; do python -m pytest tests/ -q; done
 ```
 
-### Test Expectations
-- All tests should pass; use the live CI output as the source of truth for current totals
-- Some tests are intentionally skipped with documented justification
-- Expected failures (xfailed) are documented and acceptable
+## Architecture Safety Rules (Non-Negotiable)
 
-## Architecture Safety Rules
+These rules are the project's contract with its users. Violating any of them is grounds for immediate rejection, regardless of how clever or useful the change is.
 
-**CRITICAL: These rules must never be violated**
+### 1. ProxyPipeline Is the Sole Execution Boundary
+- Every action that produces a real-world side effect must pass through `ProxyPipeline.execute_with_trace()`.
+- No direct executor invocation. No governance bypass. No exceptions.
 
-1. **ProxyPipeline is the sole execution boundary**
-   - All actions must pass through ProxyPipeline.execute_with_trace()
-   - No direct executor invocation or bypass of governance controls
-   - No real-world side effects outside the governance path
+### 2. Executors Are Untrusted
+- Executors receive only `ActionIntent` objects.
+- Executors return only `ExecutorResult` objects.
+- Executors may not access governance components, modify traces, or read/write audit state.
 
-2. **Executors must remain untrusted modules**
-   - Executors receive only ActionIntent objects
-   - Executors return only ExecutorResult objects
-   - Executors cannot access governance components or modify traces
+### 3. Determinism Is Not Optional
+- Same inputs + same clock → identical outputs + identical trace hashes.
+- No `time.time()` outside the clock abstraction. No randomness in the decision path. No unordered collection iteration in trace generation.
+- If a change breaks replay determinism, it is rejected.
 
-3. **Deterministic execution must not be violated**
-   - Same inputs must always produce identical outputs
-   - No hidden state or non-deterministic behavior
-   - All audit trails must be replayable
+### 4. V1 Contracts Are Immutable
+- Files in `spec/contracts/` are locked. Additive-only changes via new versions.
+- No weakening of existing assertions. No test skips to mask failures.
 
-4. **CI invariant gates must pass**
-   - All automated checks must pass
-   - No weakening of assertions or test skips
-   - Golden Demo behavior must remain unchanged
+### 5. No Hidden State
+- All state that affects output must be captured in the trace or the intent.
+- If replaying a trace produces a different result, there is a bug.
 
-## Architecture Resources
+## What We Need Help With
 
-### Key Documents
-- `docs/ARCHITECTURE.md` - High-level architecture overview
-- `docs/GOVERNANCE.md` - Governance model details
-- `docs/PHASE_STATUS.md` - Current development phase status
+- **Formal verification** — theorem-prover proofs of the ProxyPipeline invariants
+- **Language ports** — Rust, Go, or TypeScript implementations that pass the cross-language conformance checklist in `docs/PORTING_BLUEPRINT.md`
+- **Executor implementations** — real platform integrations (OpenAI, Anthropic, etc.) as separate installable packages
+- **Documentation** — clearer explanations, diagrams, integration guides
+- **Bug reports** — especially determinism violations or replay hash mismatches
 
-### Understanding the Codebase
-- Start with `src/exoarmur/cli.py` for CLI interface
-- Review `src/exoarmur/core/` for core governance components
-- Check `spec/contracts/` for contract definitions
+## What We Will Likely Reject
+
+- Features that add non-determinism (wall-clock timeouts, UUID generation, randomness)
+- Changes that weaken the executor boundary
+- "Simplifications" that break existing tests
+- Vendor-specific code in the Core kernel (belongs in separate packages)
+
+## Code Style
+
+- `black` + `isort` are enforced in CI.
+- `mypy --strict` is encouraged; type hints on all public APIs.
+- Docstrings use Google style.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text.
+
+## Resources
+
+- [Architecture](docs/ARCHITECTURE.md) — System design and component map
+- [Porting Blueprint](docs/PORTING_BLUEPRINT.md) — Language-agnostic spec for reimplementations
+- [DACT Standard](docs/DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test
+- [Security Policy](SECURITY.md) — Threat model and responsible disclosure
+- [Project Status](PROJECT_STATUS.md) — What's validated, what's pending

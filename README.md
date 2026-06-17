@@ -170,14 +170,12 @@ Reference implementation. Single maintainer. Not production-certified. Not exter
 
 ## License
 
-License/status: private repository; evaluation/licensing terms available by written agreement.
+Apache 2.0 — see [LICENSE](LICENSE) for full terms.
 
-This repository is not currently distributed as open source. Do not redistribute without written permission.
-
-See the [LICENSE](LICENSE) file for details.
-
-**Note:** License language should be reviewed by legal counsel before public release, commercial licensing, or acquisition.
+ExoArmur Core is free, open-source software. You may use, modify, and distribute it under the terms of the Apache License 2.0. Commercial support, hosted offerings, and proprietary module integrations are not covered by this license and require separate agreement.
 
 ## Contributing
 
-For technical review, architecture feedback, or formal verification collaboration, please open an issue on GitHub.
+We welcome contributions — bug reports, architecture feedback, porting efforts, and formal verification collaboration. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, guidelines, and safety rules.
+
+Please open an issue before proposing large changes so we can align on design.
