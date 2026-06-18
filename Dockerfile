@@ -61,17 +61,17 @@ USER exoarmur
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8000
 
 # Metadata
-LABEL org.exoarmur.name="ExoArmur Deterministic Governance Demo"
-LABEL org.exoarmur.version="1.0.0"
-LABEL org.exoarmur.description="Demonstrates deterministic governance capabilities"
+LABEL org.exoarmur.name="ExoArmur Deterministic Governance API"
+LABEL org.exoarmur.version="2.2.0"
+LABEL org.exoarmur.description="Deterministic governance HTTP API"
 LABEL org.exoarmur.determinism="enforced"
 LABEL org.exoarmur.python-hash-seed="0"
 
 # Run the production FastAPI application
-CMD ["uvicorn", "exoarmur.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]
+CMD ["uvicorn", "scripts.run_api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

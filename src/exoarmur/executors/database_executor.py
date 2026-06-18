@@ -748,7 +748,7 @@ class DatabaseExecutor(ExecutorPlugin):
         else:
             cursor.execute(
                 f"SELECT * FROM {table} LIMIT ?",  # nosec B608 - validated by _validate_sql_identifier
-                [limit]
+                [limit],
             )
 
         rows = cursor.fetchall()
@@ -817,7 +817,7 @@ class DatabaseExecutor(ExecutorPlugin):
             where_sql = " AND ".join([f"{k} = ?" for k in where_clause.keys()])
             cursor.execute(
                 f"DELETE FROM {table} WHERE {where_sql}",  # nosec B608 - validated by _validate_sql_identifier
-                list(where_clause.values())
+                list(where_clause.values()),
             )
         else:
             cursor.execute(
