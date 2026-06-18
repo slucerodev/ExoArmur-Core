@@ -8,7 +8,8 @@ so the file stays small and navigable.
 
 import time
 import uuid
-from typing import Any, Callable
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator, Callable
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,11 +19,26 @@ from exoarmur import __version__ as core_version
 from exoarmur.api.models import ErrorEnvelope
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Startup / shutdown — optional PostgreSQL pool."""
+    from exoarmur.api.db import init_db, close_db, get_dsn
+
+    dsn = get_dsn()
+    if dsn:
+        pool = await init_db(dsn)
+        if pool:
+            print(f"[startup] PostgreSQL pool connected: {dsn.split('@')[-1]}")
+    yield
+    await close_db()
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="ExoArmur API",
         description="Deterministic governance kernel HTTP API",
         version=core_version,
+        lifespan=_lifespan,
     )
 
     # CORS — dashboard runs on :3000, API on :8000
