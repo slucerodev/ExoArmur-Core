@@ -12,6 +12,8 @@ from fastapi import APIRouter, Query
 
 from exoarmur import __version__ as core_version
 from exoarmur.api.models import (
+    AICompletionRequest,
+    AICompletionResponse,
     BenchmarkDeterminism,
     BenchmarkNoise,
     BenchmarkReplay,
@@ -426,4 +428,141 @@ async def replay(request: ReplayRequest) -> ReplayResult:
         stages=stages,
         started_at=started_at,
         finished_at=utc_now().isoformat(),
+    )
+
+
+# ============================================================================
+# AI Completion (Phase 7 — OpenAI executor governance)
+# ============================================================================
+
+
+@router.post("/ai-complete", response_model=AICompletionResponse)
+async def ai_complete(request: AICompletionRequest) -> AICompletionResponse:
+    """
+    Execute an AI completion through the ExoArmur governance boundary.
+
+    In REPLAY mode (default) responses are mocked deterministically.
+    In LIVE mode a real OpenAI API key is required.
+    """
+    from exoarmur.api.models import AICompletionRequest, AICompletionResponse
+    from exoarmur.kernel.boundary import (
+        ActionIntent,
+        PolicyDecision,
+        PolicyVerdict,
+        ProxyPipeline,
+        SafetyGate,
+        V2AuditEmitter,
+        V2EnvironmentState,
+        V2PolicyState,
+        V2TrustState,
+    )
+
+    # Build intent
+    intent = ActionIntent.create(
+        actor_id="api_user",
+        actor_type="human",
+        action_type=request.operation,
+        target=request.model,
+        parameters={
+            "operation": request.operation,
+            "model": request.model,
+            "messages": [m.model_dump() if hasattr(m, "model_dump") else dict(m) for m in request.messages],
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+        },
+    )
+
+    # Minimal policy: always ALLOW for demo
+    class _AllowPolicy:
+        def evaluate(self, intent):
+            return PolicyDecision.create(
+                intent_id=intent.intent_id,
+                verdict=PolicyVerdict.ALLOW,
+                rationale="Demo policy allows all completions",
+            )
+
+        def approval_status(self, intent_id):
+            from exoarmur.kernel.boundary import ApprovalStatus
+            return ApprovalStatus.NOT_REQUIRED
+
+    # Pipeline components
+    policy = _AllowPolicy()
+    safety = SafetyGate()
+    emitter = V2AuditEmitter()
+
+    # Lazy import executor so bridge.py doesn't fail when module not installed
+    try:
+        from exoarmur_openai_executor import OpenAIExecutor
+    except ImportError:
+        return AICompletionResponse(
+            success=False,
+            content="OpenAI executor not installed. Run: pip install -e /path/to/exoarmur-openai-executor",
+            model=request.model,
+            execution_id="",
+            state_hash="",
+            execution_time_ms=0,
+            mode="REPLAY",
+            governance_verdict="deny",
+            governance_blocked=True,
+        )
+
+    executor = OpenAIExecutor(mode="REPLAY")
+    pipeline = ProxyPipeline(
+        policy=policy,
+        safety_gate=safety,
+        executor=executor,
+        audit_emitter=emitter,
+    )
+
+    result, trace = pipeline.execute_with_trace(intent)
+
+    # ProxyPipeline returns ExecutorResult on success, ExecutionDispatch on block
+    from exoarmur.kernel.boundary import ExecutorResult
+
+    is_blocked = not isinstance(result, ExecutorResult)
+    content = None
+    if not is_blocked and result.output:
+        choices = result.output.get("choices", [])
+        if choices:
+            first = choices[0]
+            if "message" in first:
+                content = first["message"].get("content")
+            elif "text" in first:
+                content = first["text"]
+
+    # Serialize trace events
+    trace_events = []
+    for ev in trace.events:
+        trace_events.append({
+            "stage": ev.stage.value if hasattr(ev.stage, "value") else str(ev.stage),
+            "ok": ev.ok,
+            "code": ev.code,
+            "details": ev.details,
+        })
+
+    if is_blocked:
+        return AICompletionResponse(
+            success=False,
+            content=None,
+            model=request.model,
+            execution_id="",
+            state_hash="",
+            execution_time_ms=0,
+            mode="REPLAY",
+            trace=trace_events,
+            governance_verdict=trace.final_verdict or "deny",
+            governance_blocked=True,
+        )
+
+    return AICompletionResponse(
+        success=result.success,
+        content=content,
+        model=request.model,
+        execution_id=result.execution_id or "",
+        state_hash=result.evidence.get("state_hash", ""),
+        execution_time_ms=result.evidence.get("execution_time_ms", 0),
+        mode="REPLAY",
+        trace=trace_events,
+        governance_verdict=trace.final_verdict or "allow",
+        governance_blocked=not result.success,
     )

@@ -358,3 +358,29 @@ class ConsistencyCheckResponse(BaseModel):
     db_count: int
     consistent: bool
     checked_at: str
+
+
+# ============================================================================
+# AI Completion (Phase 7 — OpenAI executor governance)
+# ============================================================================
+
+
+class AICompletionRequest(BaseModel):
+    model: str = Field(default="gpt-3.5-turbo", min_length=1)
+    messages: List[Dict[str, str]] = Field(default_factory=lambda: [{"role": "user", "content": "Hello"}])
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    max_tokens: int = Field(default=256, ge=1, le=4096)
+    operation: Literal["chat_completion", "completion"] = "chat_completion"
+
+
+class AICompletionResponse(BaseModel):
+    success: bool
+    content: Optional[str] = None
+    model: str
+    execution_id: str
+    state_hash: str
+    execution_time_ms: int
+    mode: Literal["REPLAY", "LIVE"]
+    trace: List[Dict[str, Any]] = Field(default_factory=list)
+    governance_verdict: str = Field(default="allow")
+    governance_blocked: bool = Field(default=False)

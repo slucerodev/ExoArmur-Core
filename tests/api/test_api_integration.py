@@ -287,3 +287,46 @@ async def test_visibility_timeline_empty(client: AsyncClient) -> None:
     assert data["correlation_id"] == "test-corr"
     assert data["observations"] == []
     assert data["beliefs"] == []
+
+
+@pytest.mark.anyio
+async def test_ai_completion_governed(client: AsyncClient) -> None:
+    """Phase 7: OpenAI executor exercised through governance boundary."""
+    r = await client.post(
+        "/api/cli/ai-complete",
+        json={
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "Hello, world!"}],
+            "temperature": 0.7,
+            "max_tokens": 128,
+            "operation": "chat_completion",
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["success"] is True
+    assert data["model"] == "gpt-3.5-turbo"
+    assert data["mode"] == "REPLAY"
+    assert data["governance_blocked"] is False
+    assert data["content"] is not None
+    assert isinstance(data["content"], str)
+    assert len(data["content"]) > 0
+    assert "execution_id" in data
+    assert "state_hash" in data
+    assert "trace" in data
+    assert len(data["trace"]) > 0
+    # Determinism: same request → same content
+    r2 = await client.post(
+        "/api/cli/ai-complete",
+        json={
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "Hello, world!"}],
+            "temperature": 0.7,
+            "max_tokens": 128,
+            "operation": "chat_completion",
+        },
+    )
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert data2["content"] == data["content"]
+    assert data2["state_hash"] == data["state_hash"]
