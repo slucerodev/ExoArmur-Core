@@ -18,7 +18,7 @@ A deterministic governance runtime that sits between an AI decision layer and ex
 
 ## Pilot Goal (Bounded)
 
-The near-term goal is one authenticated, policy-controlled real workflow: an operator-authenticated caller, a verified operator policy, real approvals for elevated action classes, durable evidence records, an emergency pause (kill switch), and an operator-facing GUI. Several of these capabilities are **planned, not yet implemented** — see [Known Limitations](docs/KNOWN_LIMITATIONS.md) for the current state.
+The bounded pilot — one authenticated, policy-controlled real file-write workflow with human approval of the exact action, durable global/tenant pauses, durable evidence, and an operator GUI — is implemented on the `pilot/governed-workflow` branch; see [docs/PILOT.md](docs/PILOT.md). On `main` the legacy API remains unauthenticated with hardcoded safety inputs — see [Known Limitations](docs/KNOWN_LIMITATIONS.md).
 
 ## Installation
 
@@ -168,7 +168,7 @@ The kernel consists of:
 
 ## Status
 
-Reference implementation (v2.2.0). Single maintainer. Apache-2.0 licensed, public repository. Not production-certified. Not externally audited. The deterministic kernel and replay verification are internally evaluated; the HTTP API/demo layer is **not authenticated** and does not yet provide authoritative kill switches, trusted safety inputs, or approval-to-execution resume wiring — see [Known Limitations](docs/KNOWN_LIMITATIONS.md). Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
+Reference implementation (v2.2.0). Single maintainer. Apache-2.0 licensed, public repository. Not production-certified. Not externally audited. The deterministic kernel and replay verification are internally evaluated. The legacy HTTP demo layer is **not authenticated**; the authenticated, policy-controlled pilot workflow lives on the `pilot/governed-workflow` branch — see [docs/PILOT.md](docs/PILOT.md) and [Known Limitations](docs/KNOWN_LIMITATIONS.md). Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
 
 ## Documentation
 

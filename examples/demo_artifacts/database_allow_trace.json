@@ -3,9 +3,9 @@
     {
       "code": "received",
       "details": {
-        "intent_id": "4YWXHBCDJ3P32V1V6WN7YHAN27"
+        "intent_id": "343AV44QQYDW21NBHMXDKX872P"
       },
-      "event_id": "37R92EGWSP523D5GV1PSXKB1GD",
+      "event_id": "6VE85PQ4TS83QQ7BSSJXSCMMW9",
       "ok": true,
       "sequence": 0,
       "stage": "intent_received",
@@ -16,7 +16,7 @@
       "details": {
         "verdict": "allow"
       },
-      "event_id": "4VR5X86TW9Y98H7B4XHSRE9ACB",
+      "event_id": "700GRFAVHNJ9ZK94SV60C8YSDW",
       "ok": true,
       "sequence": 0,
       "stage": "policy_evaluated",
@@ -25,10 +25,11 @@
     {
       "code": "evaluated",
       "details": {
-        "verdict": "allow"
+        "source": null,
+        "verdict": "deny"
       },
-      "event_id": "0R739H1GMX6JQ344R7MKKS1686",
-      "ok": true,
+      "event_id": "2A1SFY10NN56MCZZS340Y0CJMH",
+      "ok": false,
       "sequence": 0,
       "stage": "safety_evaluated",
       "timestamp": null
@@ -36,9 +37,9 @@
     {
       "code": "resolved",
       "details": {
-        "final_verdict": "allow"
+        "final_verdict": "deny"
       },
-      "event_id": "7VAT9J346FCDJNADZXHVHBEPC5",
+      "event_id": "0J02GSK1BYX20C23M93MPRAWRJ",
       "ok": true,
       "sequence": 0,
       "stage": "verdict_resolved",
@@ -49,53 +50,30 @@
       "details": {
         "result": "valid"
       },
-      "event_id": "4KRFS701EGAJFJN55K48A0MGAV",
+      "event_id": "6HS2VJNT7A017Z6Y8AC68H3GGD",
       "ok": true,
       "sequence": 0,
       "stage": "target_validated",
       "timestamp": null
     },
     {
-      "code": "dispatched",
+      "code": "blocked",
       "details": {
-        "success": true
+        "final_verdict": "deny"
       },
-      "event_id": "3W9V79TFRK4T0644W0MF8WREVD",
-      "ok": true,
+      "event_id": "3P5EB6NQK6GJQWKG78GV4QY8GN",
+      "ok": false,
       "sequence": 0,
       "stage": "executor_dispatched",
-      "timestamp": null
-    },
-    {
-      "code": "completed",
-      "details": {
-        "success": true
-      },
-      "event_id": "2D19R9N1RR5MTHDR8H4FAYF9VF",
-      "ok": true,
-      "sequence": 0,
-      "stage": "completed",
       "timestamp": null
     }
   ],
   "executor_result": {
     "error": null,
-    "evidence": {
-      "action_class": "A2_hard_containment",
-      "database": "/tmp/demo/demo.db",
-      "execution_time_ms": 0,
-      "operation": "create_table",
-      "post_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-      "pre_hash": null,
-      "result": {
-        "table_created": null
-      },
-      "rollback_plan_id": "3aa133392e6799e9029cdd39a24c327a",
-      "table": null
-    },
-    "success": true
+    "evidence": null,
+    "success": null
   },
-  "final_verdict": "allow",
-  "intent_id": "4YWXHBCDJ3P32V1V6WN7YHAN27",
-  "trace_id": "6KHHQA25Z4JYYX33BE2ZHTCJD0"
+  "final_verdict": "deny",
+  "intent_id": "343AV44QQYDW21NBHMXDKX872P",
+  "trace_id": "1QZS9NWA63DHKHCP1H867YRGZW"
 }

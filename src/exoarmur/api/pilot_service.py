@@ -276,10 +276,13 @@ class PilotService:
             action_id = canonical_hash(
                 {"idem": idempotency_key, "tenant": tenant_id}
             )[:32]
-            now = utc_now()
-            from datetime import timedelta
+            # Approval expiry is an operational control: use real wall-clock
+            # time, not the kernel's injectable deterministic clock.
+            from datetime import datetime, timedelta, timezone
 
-            expires = now + timedelta(hours=self.approval_ttl_hours)
+            expires = datetime.now(timezone.utc) + timedelta(
+                hours=self.approval_ttl_hours
+            )
 
             status = {
                 "allow": "APPROVED",
@@ -492,7 +495,7 @@ class PilotService:
             exp = datetime.fromisoformat(record.expires_at)
             if exp.tzinfo is None:
                 exp = exp.replace(tzinfo=timezone.utc)
-            if exp < utc_now():
+            if exp < datetime.now(timezone.utc):
                 await self._set_status(action_id, "EXPIRED")
                 raise ValueError("Approval expired")
 
@@ -722,6 +725,8 @@ class PilotService:
         if record is None:
             raise KeyError("Action not found")
 
+        from datetime import datetime, timezone
+
         # parameters store the executor op name; the submit-time hash used
         # the pilot operation name, so recompute with record.operation.
         recomputed_params = self._params_hash(
@@ -751,7 +756,7 @@ class PilotService:
             "status": record.status,
             "checks": checks,
             "overall": overall,
-            "verified_at": utc_now().isoformat(),
+            "verified_at": datetime.now(timezone.utc).isoformat(),
         }
 
 

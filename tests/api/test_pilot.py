@@ -370,6 +370,48 @@ async def test_restart_preserves_state(pilot_env):
     assert (ws / "persist.txt").read_text() == "durable"
 
 
+async def test_expired_approval_blocks_execution(pilot_env):
+    client, ws = pilot_env
+    r = await _submit(client, path="expired.txt")
+    aid = r.json()["action"]["action_id"]
+
+    import asyncpg
+    from exoarmur.api import db as api_db
+    pool = await api_db.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE governed_actions SET expires_at = now() - interval '1 hour'"
+            " WHERE action_id=$1", aid)
+
+    r2 = await client.post(f"/api/pilot/actions/{aid}/approve",
+                           headers=_auth(APPROVER_KEY))
+    assert r2.status_code >= 400
+    assert not (ws / "expired.txt").exists()
+    detail = await client.get(f"/api/pilot/actions/{aid}",
+                              headers=_auth(APPROVER_KEY))
+    assert detail.json()["status"] == "EXPIRED"
+
+
+async def test_changed_parameters_require_separate_approval(pilot_env):
+    """Approval binds to the frozen action; a different proposal is a new
+    action that stays pending until its own approval."""
+    client, ws = pilot_env
+    r1 = await _submit(client, path="same.txt", content="version-one")
+    a1 = r1.json()["action"]["action_id"]
+    r2 = await _submit(client, path="same.txt", content="version-two")
+    a2 = r2.json()["action"]["action_id"]
+    assert a1 != a2
+
+    await client.post(f"/api/pilot/actions/{a1}/approve",
+                      headers=_auth(APPROVER_KEY))
+    assert (ws / "same.txt").read_text() == "version-one"
+
+    pending = await client.get(f"/api/pilot/actions/{a2}",
+                               headers=_auth(APPROVER_KEY))
+    assert pending.json()["status"] == "PENDING_APPROVAL"
+    assert (ws / "same.txt").read_text() == "version-one"
+
+
 async def test_gui_served(pilot_env):
     client, _ = pilot_env
     r = await client.get("/api/pilot/gui")
