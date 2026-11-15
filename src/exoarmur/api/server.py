@@ -77,12 +77,13 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content=envelope.model_dump())
 
     # Register route modules
-    from exoarmur.api.routes import core, bridge, v1, v2
+    from exoarmur.api.routes import core, bridge, v1, v2, pilot
 
     app.include_router(core.router, tags=["Core"])
     app.include_router(bridge.router, prefix="/api/cli", tags=["Bridge"])
     app.include_router(v1.router, prefix="/v1", tags=["V1"])
     app.include_router(v2.router, prefix="/api/v2", tags=["V2"])
+    app.include_router(pilot.router, prefix="/api/pilot", tags=["Pilot"])
 
     return app
 

@@ -451,6 +451,7 @@ async def ai_complete(request: AICompletionRequest) -> AICompletionResponse:
         PolicyVerdict,
         ProxyPipeline,
         SafetyGate,
+        SafetyInputs,
         V2AuditEmitter,
         V2EnvironmentState,
         V2PolicyState,
@@ -507,11 +508,29 @@ async def ai_complete(request: AICompletionRequest) -> AICompletionResponse:
         )
 
     executor = OpenAIExecutor(mode="REPLAY")
+
+    # Demo-only safety inputs: explicitly labeled, never used by the pilot
+    # governed path. These are placeholders demonstrating pipeline mechanics,
+    # not trusted operational values.
+    def _demo_safety_inputs(intent: ActionIntent) -> SafetyInputs:
+        return SafetyInputs(
+            policy_state=V2PolicyState(
+                policy_verified=True,
+                kill_switch_global=False,
+                kill_switch_tenant=False,
+                required_approval="none",
+            ),
+            trust_state=V2TrustState(emitter_trust_score=0.85),
+            environment_state=V2EnvironmentState(),
+            source="demo_ai_complete",
+        )
+
     pipeline = ProxyPipeline(
         policy=policy,
         safety_gate=safety,
         executor=executor,
         audit_emitter=emitter,
+        safety_context_provider=_demo_safety_inputs,
     )
 
     result, trace = pipeline.execute_with_trace(intent)

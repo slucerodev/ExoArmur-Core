@@ -33,6 +33,7 @@ from exoarmur.kernel.boundary import (
     PolicyVerdict,
     ProxyPipeline,
     SafetyGate,
+    SafetyInputs,
     SafetyVerdict,
     V2AuditEmitter,
     V2EnvironmentState,
@@ -40,6 +41,21 @@ from exoarmur.kernel.boundary import (
     V2TrustState,
 )
 from exoarmur.kernel.clock import DeterministicClock, set_clock
+
+
+def _test_safety_inputs(intent) -> SafetyInputs:
+    """Explicit test safety inputs — not a production default."""
+    return SafetyInputs(
+        policy_state=V2PolicyState(
+            policy_verified=True,
+            kill_switch_global=False,
+            kill_switch_tenant=False,
+            required_approval="none",
+        ),
+        trust_state=V2TrustState(emitter_trust_score=0.9),
+        environment_state=V2EnvironmentState(),
+        source="test_fixture",
+    )
 
 
 class FakePDP(PolicyDecisionPoint):
@@ -499,7 +515,7 @@ class TestFileSystemExecutorProxyPipelineIntegration:
         safety_gate = SafetyGate()  # Use real SafetyGate
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(pdp, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create test file to delete
         test_file = Path(temp_dir) / "pipeline_test.txt"

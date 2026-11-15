@@ -6,6 +6,7 @@ in-memory stores.  When the URL is present, `init_db()` creates the schema
 from migration files and returns a connection pool.
 """
 
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -15,6 +16,16 @@ import asyncpg
 POOL: Optional[asyncpg.Pool] = None
 
 DEFAULT_DSN = "postgresql://exoarmur:exoarmur@localhost:5432/exoarmur"
+
+
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    """Per-connection setup: JSONB codec so repositories can pass dicts."""
+    await conn.set_type_codec(
+        "jsonb",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
 
 
 def get_dsn() -> Optional[str]:
@@ -32,6 +43,7 @@ async def init_db(dsn: Optional[str] = None) -> Optional[asyncpg.Pool]:
         url,
         min_size=int(os.getenv("EXOARMUR_DB_POOL_SIZE", "5")),
         max_size=int(os.getenv("EXOARMUR_DB_POOL_SIZE", "5")) * 2,
+        init=_init_connection,
     )
     await _run_migrations()
     return POOL

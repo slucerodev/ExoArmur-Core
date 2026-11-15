@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ExoArmur Pilot — Operator Console</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a2230; --border:#2a3550; --text:#dbe4f0;
+          --muted:#8fa3c0; --accent:#4da3ff; --ok:#3ecf8e; --warn:#ffb84d; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; gap:16px; align-items:center; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  .badge { padding:2px 10px; border-radius:10px; font-size:12px; border:1px solid var(--border); }
+  .badge.paused { color:var(--bad); border-color:var(--bad); }
+  .badge.ok { color:var(--ok); border-color:var(--ok); }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 20px; max-width:1200px; }
+  @media (max-width:800px){ main{grid-template-columns:1fr;} }
+  section { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  section h2 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  button { background:var(--accent); color:#08111f; border:0; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:600; }
+  button.deny { background:var(--bad); color:#fff; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+  button:disabled { opacity:.5; cursor:default; }
+  input,textarea,select { width:100%; background:#0d1420; color:var(--text); border:1px solid var(--border); border-radius:5px; padding:7px; font:inherit; }
+  textarea { min-height:90px; font-family:ui-monospace,monospace; font-size:12px; }
+  label { display:block; margin:8px 0 3px; color:var(--muted); font-size:12px; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  .msg { padding:8px 10px; border-radius:5px; margin:8px 0; font-size:13px; }
+  .msg.err { background:#3a1620; color:var(--bad); }
+  .msg.ok { background:#12301f; color:var(--ok); }
+  .mono { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all; }
+  .status { font-weight:600; }
+  .status.EXECUTED,.status.APPROVED { color:var(--ok); }
+  .status.PENDING_APPROVAL,.status.EXECUTING { color:var(--warn); }
+  .status.DENIED,.status.FAILED,.status.BLOCKED,.status.EXPIRED { color:var(--bad); }
+  #login { max-width:380px; margin:80px auto; }
+  pre { background:#0d1420; border:1px solid var(--border); border-radius:5px; padding:8px; overflow:auto; font-size:12px; }
+  .hidden { display:none; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ExoArmur Pilot Console</h1>
+  <span id="pauseBadge" class="badge">…</span>
+  <span id="policyBadge" class="badge">…</span>
+  <span style="flex:1"></span>
+  <span id="who" class="badge"></span>
+  <button class="ghost" id="logoutBtn">Log out</button>
+</header>
+
+<div id="login">
+  <section>
+    <h2>Operator sign-in</h2>
+    <p style="color:var(--muted)">Enter an operator API key. The key is exchanged for a short-lived session cookie; it is not stored in the browser.</p>
+    <label>API key</label>
+    <input type="password" id="apiKey" autocomplete="off">
+    <div style="margin-top:10px"><button id="loginBtn">Sign in</button></div>
+    <div id="loginMsg"></div>
+  </section>
+</div>
+
+<main id="app" class="hidden">
+  <section>
+    <h2>Propose file action</h2>
+    <div id="submitMsg"></div>
+    <label>Operation</label>
+    <select id="op">
+      <option value="create_file">create_file (new file)</option>
+      <option value="modify_file">modify_file (existing file)</option>
+    </select>
+    <label>Path (relative to workspace)</label>
+    <input id="path" placeholder="reports/out.txt">
+    <label>Content</label>
+    <textarea id="content"></textarea>
+    <div style="margin-top:10px"><button id="submitBtn">Submit for governance</button></div>
+  </section>
+
+  <section>
+    <h2>Execution pauses</h2>
+    <div id="pauseMsg"></div>
+    <p>Global pause blocks all governed dispatch. Tenant pause blocks only this tenant.</p>
+    <div class="row">
+      <button id="pauseGlobal" class="deny">Pause globally</button>
+      <button id="resumeGlobal">Resume global</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="pauseTenant" class="deny">Pause tenant</button>
+      <button id="resumeTenant">Resume tenant</button>
+    </div>
+    <h2 style="margin-top:18px">Active policy</h2>
+    <div id="policyView" class="mono">…</div>
+  </section>
+
+  <section>
+    <h2>Approval queue</h2>
+    <div id="queueMsg"></div>
+    <table><thead><tr>
+      <th>Action</th><th>Target</th><th>Class</th><th>Requester</th><th>Expires</th><th></th>
+    </tr></thead><tbody id="queue"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Action history</h2>
+    <div id="histMsg"></div>
+    <table><thead><tr>
+      <th>When</th><th>Op</th><th>Path</th><th>Status</th><th>By</th><th></th>
+    </tr></thead><tbody id="history"></tbody></table>
+    <div id="detail"></div>
+  </section>
+</main>
+
+<script>
+const API = '/api/pilot';
+let me = null;
+
+async function req(path, opts={}) {
+  opts.headers = Object.assign({'x-exoarmur-request':'1','content-type':'application/json'}, opts.headers||{});
+  const r = await fetch(API+path, opts);
+  if (r.status === 401) { showLogin(); throw new Error('auth'); }
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(data.detail || ('HTTP '+r.status));
+  return data;
+}
+function msg(el, text, ok) { el.innerHTML = `<div class="msg ${ok?'ok':'err'}">${text}</div>`; }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function showLogin(){ document.getElementById('login').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden'); }
+function showApp(){ document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden'); }
+
+document.getElementById('loginBtn').onclick = async () => {
+  const key = document.getElementById('apiKey').value.trim();
+  const r = await fetch(API+'/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({api_key:key})});
+  if(!r.ok){ msg(document.getElementById('loginMsg'),'Login failed: '+(await r.json()).detail, false); return; }
+  me = await r.json();
+  document.getElementById('who').textContent = me.principal_id;
+  showApp(); refresh();
+};
+document.getElementById('logoutBtn').onclick = async ()=>{ await fetch(API+'/auth/logout',{method:'POST'}); showLogin(); };
+
+document.getElementById('submitBtn').onclick = async () => {
+  const body = {operation:op.value, path:path.value.trim(), content:content.value};
+  try { const d = await req('/actions',{method:'POST',body:JSON.stringify(body)});
+    msg(document.getElementById('submitMsg'), `Submitted ${d.action.action_id} — status ${d.action.status}`, true); refresh();
+  } catch(e){ msg(document.getElementById('submitMsg'), e.message, false); }
+};
+const op=document.getElementById('op'), path=document.getElementById('path'), content=document.getElementById('content');
+
+async function pause(scope, paused){
+  try { await req('/pauses',{method:'PUT',body:JSON.stringify({scope,paused})}); refresh(); }
+  catch(e){ msg(document.getElementById('pauseMsg'), e.message, false); }
+}
+document.getElementById('pauseGlobal').onclick=()=>pause('global',true);
+document.getElementById('resumeGlobal').onclick=()=>pause('global',false);
+document.getElementById('pauseTenant').onclick=()=>pause('tenant',true);
+document.getElementById('resumeTenant').onclick=()=>pause('tenant',false);
+
+async function decide(id, decision){
+  const reason = decision==='deny' ? prompt('Denial reason (required):') : null;
+  if(decision==='deny' && !reason) return;
+  try {
+    await req(`/actions/${id}/${decision}`,{method:'POST',body:JSON.stringify(decision==='deny'?{reason}: {})});
+    refresh();
+  } catch(e){ alert(e.message); }
+}
+
+async function refresh(){
+  try {
+    const [st, pol, acts] = await Promise.all([
+      req('/status'), req('/policy'), req('/actions')]);
+    const pb=document.getElementById('pauseBadge');
+    const g=st.pauses?.global, t=st.pauses?.tenant;
+    pb.textContent = g?'GLOBAL PAUSED':(t?'TENANT PAUSED':'RUNNING');
+    pb.className='badge '+((g||t)?'paused':'ok');
+    document.getElementById('policyBadge').textContent =
+      pol.loaded?`policy ${pol.sha256.slice(0,12)}`:'NO POLICY';
+    document.getElementById('policyView').textContent = pol.loaded
+      ? JSON.stringify({version:pol.version,rules:pol.rules},null,1)
+      : 'Policy unavailable: '+(st.policy_error||'not loaded');
+    renderQueue(acts.actions.filter(a=>a.status==='PENDING_APPROVAL'));
+    renderHistory(acts.actions);
+  } catch(e){ if(e.message!=='auth') console.error(e); }
+}
+
+function renderQueue(items){
+  const tb=document.getElementById('queue'); tb.innerHTML='';
+  if(!items.length){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted)">No pending approvals</td></tr>'; return; }
+  for(const a of items){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="mono">${esc(a.operation)}</td>
+      <td class="mono">${esc(a.path)}<br><span style="color:var(--muted)">${a.content_length} bytes</span></td>
+      <td>${esc(a.action_class)}</td><td class="mono">${esc(a.principal_id)}</td>
+      <td>${esc((a.expires_at||'').slice(0,19).replace('T',' '))}</td>
+      <td><button onclick="decide('${a.action_id}','approve')">Approve</button>
+          <button class="deny" onclick="decide('${a.action_id}','deny')">Deny</button></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+async function showDetail(id){
+  try{
+    const a = await req('/actions/'+id);
+    const v = await req('/actions/'+id+'/verify').catch(()=>null);
+    document.getElementById('detail').innerHTML =
+      `<h2 style="margin-top:14px">Action detail — ${esc(id)}</h2>
+       <pre>${esc(JSON.stringify({status:a.status,parameters:a.parameters,result:a.result,evidence:a.evidence,verify:v},null,2))}</pre>`;
+  }catch(e){ document.getElementById('detail').innerHTML=`<div class="msg err">${esc(e.message)}</div>`; }
+}
+
+function renderHistory(items){
+  const tb=document.getElementById('history'); tb.innerHTML='';
+  for(const a of items.slice(0,50)){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc((a.created_at||'').slice(0,19).replace('T',' '))}</td>
+      <td>${esc(a.operation)}</td><td class="mono">${esc(a.path)}</td>
+      <td class="status ${esc(a.status)}">${esc(a.status)}</td>
+      <td class="mono">${esc(a.approved_by||a.principal_id)}</td>
+      <td><button class="ghost" onclick="showDetail('${a.action_id}')">Detail</button></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+// If a session cookie already exists, skip the login form.
+fetch(API+'/status').then(r=>{ if(r.ok){ req('/status').then(()=>{ me={principal_id:'operator'}; document.getElementById('who').textContent='operator'; showApp(); refresh(); }).catch(()=>showLogin()); } else showLogin(); }).catch(()=>showLogin());
+</script>
+</body>
+</html>
