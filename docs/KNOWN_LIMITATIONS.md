@@ -48,7 +48,9 @@ the `main`/`baseline-2.2.0-alignment` baseline the following gaps remain:
   authenticated surface; legacy routes remain unauthenticated by design until
   migrated.
 - **Path Forward**: Extend pilot-grade authentication to legacy routes or
-  retire them.
+  retire them. Deployments of the supported pilot should use the isolated
+  `exoarmur.api.server:create_pilot_app` factory, which does not mount the
+  legacy routers at all.
 
 ### Hardcoded Safety Inputs in ProxyPipeline (baseline)
 - **Status**: On the baseline, `ProxyPipeline.execute_with_trace()` uses

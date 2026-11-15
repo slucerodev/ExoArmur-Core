@@ -33,10 +33,11 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await close_db()
 
 
-def create_app() -> FastAPI:
+def _base_app(title: str, description: str) -> FastAPI:
+    """Shared middleware/lifespan; routers are mounted by the factories."""
     app = FastAPI(
-        title="ExoArmur API",
-        description="Deterministic governance kernel HTTP API",
+        title=title,
+        description=description,
         version=core_version,
         lifespan=_lifespan,
     )
@@ -76,13 +77,45 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(status_code=500, content=envelope.model_dump())
 
-    # Register route modules
+    return app
+
+
+def create_app() -> FastAPI:
+    """Full application: core health plus all legacy/demo routers.
+
+    Retained for the deterministic demo/CLI surface. The supported,
+    authenticated pilot surface is ``create_pilot_app``.
+    """
+    app = _base_app(
+        "ExoArmur API",
+        "Deterministic governance kernel HTTP API",
+    )
+
     from exoarmur.api.routes import core, bridge, v1, v2, pilot
 
     app.include_router(core.router, tags=["Core"])
     app.include_router(bridge.router, prefix="/api/cli", tags=["Bridge"])
     app.include_router(v1.router, prefix="/v1", tags=["V1"])
     app.include_router(v2.router, prefix="/api/v2", tags=["V2"])
+    app.include_router(pilot.router, prefix="/api/pilot", tags=["Pilot"])
+
+    return app
+
+
+def create_pilot_app() -> FastAPI:
+    """Isolated pilot application: health plus ``/api/pilot/*`` only.
+
+    The legacy/demo routers (``/v1/*``, ``/api/v2/*``, ``/api/cli/*``) are
+    NOT mounted — they remain available via ``create_app``.
+    """
+    app = _base_app(
+        "ExoArmur Pilot API",
+        "Authenticated, policy-controlled governed execution pilot",
+    )
+
+    from exoarmur.api.routes import core, pilot
+
+    app.include_router(core.router, tags=["Core"])
     app.include_router(pilot.router, prefix="/api/pilot", tags=["Pilot"])
 
     return app

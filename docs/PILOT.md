@@ -72,8 +72,13 @@ export EXOARMUR_POLICY_FILE=/tmp/exoarmur_pilot/policy.json
 export EXOARMUR_POLICY_SHA256=<digest printed by bootstrap>
 export EXOARMUR_APPROVAL_TTL_HOURS=24   # optional, default 24
 
-uvicorn "exoarmur.api.server:create_app" --factory --host 127.0.0.1 --port 8000
+uvicorn "exoarmur.api.server:create_pilot_app" --factory --host 127.0.0.1 --port 8000
 ```
+
+`create_pilot_app` mounts only `/health` and `/api/pilot/*` — the legacy
+demo routers (`/v1/*`, `/api/v2/*`, `/api/cli/*`) are not exposed. They
+remain available separately via `exoarmur.api.server:create_app` for the
+deterministic demo/CLI surface.
 
 The service fails closed: if the policy file is missing, altered, or the
 digest does not match `EXOARMUR_POLICY_SHA256`, every governed action is
@@ -143,7 +148,7 @@ database.
 
 ## 8. Operator GUI
 
-Open `http://127.0.0.1:8000/api/pilot/gui`. Enter an API key to log in
+Open `http://127.0.0.1:8000/api/pilot/gui` (served by the pilot app). Enter an API key to log in
 (the key is kept in memory for the session only — never in browser
 storage). The console shows pending approvals with exact parameters,
 action history, evidence verification, active policy version, supported

@@ -412,6 +412,117 @@ async def test_changed_parameters_require_separate_approval(pilot_env):
     assert (ws / "same.txt").read_text() == "version-one"
 
 
+# ---------------------------------------------------------------------------
+# App isolation + session-key binding
+# ---------------------------------------------------------------------------
+
+
+async def test_pilot_app_excludes_legacy_routes(pilot_env):
+    """create_pilot_app mounts only health + /api/pilot/*."""
+    from exoarmur.api.server import create_pilot_app
+
+    app = create_pilot_app()
+    async with AsyncClient(transport=ASGITransport(app=app),
+                           base_url="http://test") as c:
+        assert (await c.get("/health")).status_code == 200
+        assert (await c.get("/api/pilot/status",
+                            headers=_auth(AGENT_KEY))).status_code == 200
+        # Legacy/demo routers must be absent
+        assert (await c.get("/v1/approvals/x")).status_code == 404
+        assert (await c.post("/api/cli/replay", json={})).status_code == 404
+        assert (await c.get("/api/v2/visibility/statistics")).status_code == 404
+        # And the full app still serves them (unchanged behavior)
+    from exoarmur.api.server import create_app
+    app2 = create_app()
+    async with AsyncClient(transport=ASGITransport(app=app2),
+                           base_url="http://test") as c:
+        # Route exists on the full app (any non-404 response proves mounting)
+        assert (await c.post("/api/cli/replay", json={})).status_code != 404
+        assert (await c.get("/api/v2/visibility/statistics")).status_code != 404
+
+
+async def _login(client, key: str):
+    return await client.post("/api/pilot/auth/login", json={"api_key": key})
+
+
+async def test_session_invalidated_on_key_revoke(pilot_env):
+    client, _ = pilot_env
+    r = await _login(client, APPROVER_KEY)
+    assert r.status_code == 200
+    assert (await client.get("/api/pilot/status")).status_code == 200
+
+    from exoarmur.api import db as api_db
+    pool = await api_db.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE api_keys SET revoked = TRUE WHERE principal_id = 'operator-1'")
+    assert (await client.get("/api/pilot/status")).status_code == 401
+
+
+async def test_session_invalidated_on_key_expiry(pilot_env):
+    client, _ = pilot_env
+    r = await _login(client, APPROVER_KEY)
+    assert r.status_code == 200
+    assert (await client.get("/api/pilot/status")).status_code == 200
+
+    from exoarmur.api import db as api_db
+    pool = await api_db.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE api_keys SET expires_at = NOW() - interval '1 hour'"
+            " WHERE principal_id = 'operator-1'")
+    assert (await client.get("/api/pilot/status")).status_code == 401
+
+
+async def test_session_invalidated_on_session_expiry(pilot_env):
+    client, _ = pilot_env
+    r = await _login(client, APPROVER_KEY)
+    assert r.status_code == 200
+    assert (await client.get("/api/pilot/status")).status_code == 200
+
+    from exoarmur.api import db as api_db
+    pool = await api_db.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE operator_sessions SET expires_at = NOW() - interval '1 hour'")
+    assert (await client.get("/api/pilot/status")).status_code == 401
+
+
+async def test_session_permissions_bound_to_issuing_key(pilot_env):
+    """Two api_keys rows for the same principal must not share grants:
+    a session issued by key A resolves permissions only from key A."""
+    client, _ = pilot_env
+    KEY2 = "exk_test_agent1_alt_key"
+
+    from exoarmur.api import db as api_db
+    pool = await api_db.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO api_keys (key_hash, principal_id, tenant_ids, permissions)"
+            " VALUES ($1,'agent-1',ARRAY['tenant-2'],"
+            " ARRAY['action:submit','action:read','action:resume',"
+            "       'approval:grant','approval:deny'])",
+            _key_hash(KEY2))
+
+    # Session issued by AGENT_KEY (tenant-1, NO approval:grant)
+    r = await _login(client, AGENT_KEY)
+    assert r.status_code == 200
+    assert "approval:grant" not in r.json()["permissions"]
+
+    # Pending action in tenant-1
+    r2 = await _submit(client)
+    aid = r2.json()["action"]["action_id"]
+
+    # Cookie-session approve attempt: must fail on missing permission from
+    # the ISSUING key — not silently resolve the other key's approval:grant.
+    r3 = await client.post(
+        f"/api/pilot/actions/{aid}/approve",
+        headers={"x-exoarmur-request": "1"},
+    )
+    assert r3.status_code == 403
+    assert "approval:grant" in r3.json()["detail"]
+
+
 async def test_gui_served(pilot_env):
     client, _ = pilot_env
     r = await client.get("/api/pilot/gui")

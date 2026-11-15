@@ -131,12 +131,19 @@ async def get_session_principal(request: Request) -> Principal:
     if pool is None:
         raise HTTPException(status_code=401, detail="Session store unavailable")
     async with pool.acquire() as conn:
+        # The session is bound to the exact api_keys record (key_hash) that
+        # authenticated its creation — never to "any key of this principal".
+        # Revoked or expired issuing keys invalidate the session, and
+        # permissions/tenants are always resolved from that key row.
         row = await conn.fetchrow(
             """
-            SELECT s.principal_id, k.tenant_ids, k.permissions
+            SELECT k.principal_id, k.tenant_ids, k.permissions
             FROM operator_sessions s
-            JOIN api_keys k ON k.principal_id = s.principal_id
-            WHERE s.token_hash = $1 AND s.expires_at > NOW()
+            JOIN api_keys k ON k.key_hash = s.key_hash
+            WHERE s.token_hash = $1
+              AND s.expires_at > NOW()
+              AND k.revoked = FALSE
+              AND (k.expires_at IS NULL OR k.expires_at > NOW())
             """,
             token_hash,
         )
@@ -149,8 +156,8 @@ async def get_session_principal(request: Request) -> Principal:
     )
 
 
-async def issue_session(principal: Principal) -> str:
-    """Create an operator session token; returns the raw token (cookie value)."""
+async def issue_session(principal: Principal, key_hash: str) -> str:
+    """Create an operator session bound to ``key_hash``; returns raw token."""
     token = secrets.token_urlsafe(32)
     token_hash = hash_key(token)
     expires = _utcnow() + timedelta(hours=SESSION_TTL_HOURS)
@@ -158,14 +165,14 @@ async def issue_session(principal: Principal) -> str:
     if pool is None:
         raise HTTPException(status_code=503, detail="Session store unavailable")
     async with pool.acquire() as conn:
-        # Permissions snapshot at issuance; session inherits key's grants.
         await conn.execute(
             """
-            INSERT INTO operator_sessions (token_hash, principal_id, expires_at)
-            VALUES ($1, $2, $3)
+            INSERT INTO operator_sessions (token_hash, principal_id, key_hash, expires_at)
+            VALUES ($1, $2, $3, $4)
             """,
             token_hash,
             principal.principal_id,
+            key_hash,
             expires,
         )
     return token
