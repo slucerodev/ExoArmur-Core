@@ -38,7 +38,9 @@ with approvals, durable pauses, evidence, and an operator GUI) is merged on
 `main` — see [docs/PILOT.md](PILOT.md). Two application factories exist:
 
 - **`exoarmur.api.server:create_pilot_app`** — the supported pilot surface:
-  `/health` plus `/api/pilot/*` only. This is the factory to deploy.
+  `/health` plus `/api/pilot/*` only (FastAPI `/docs`, `/redoc`,
+  `/openapi.json` schema endpoints are also enabled). This is the factory
+  to deploy.
 - **`exoarmur.api.server:create_app`** — the legacy/demo surface: it
   additionally mounts `/v1/*`, `/api/v2/*`, and `/api/cli/*`, which remain
   **unauthenticated** and are not part of the supported pilot.

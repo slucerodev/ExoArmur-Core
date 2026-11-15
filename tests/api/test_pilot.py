@@ -431,6 +431,11 @@ async def test_pilot_app_excludes_legacy_routes(pilot_env):
         assert (await c.get("/v1/approvals/x")).status_code == 404
         assert (await c.post("/api/cli/replay", json={})).status_code == 404
         assert (await c.get("/api/v2/visibility/statistics")).status_code == 404
+        # Unauthenticated admin endpoint must also be absent from pilot
+        assert (await c.get("/admin/consistency")).status_code == 404
+        # FastAPI schema/docs endpoints are intentionally enabled
+        assert (await c.get("/openapi.json")).status_code == 200
+        assert (await c.get("/docs")).status_code == 200
         # And the full app still serves them (unchanged behavior)
     from exoarmur.api.server import create_app
     app2 = create_app()
@@ -439,6 +444,7 @@ async def test_pilot_app_excludes_legacy_routes(pilot_env):
         # Route exists on the full app (any non-404 response proves mounting)
         assert (await c.post("/api/cli/replay", json={})).status_code != 404
         assert (await c.get("/api/v2/visibility/statistics")).status_code != 404
+        assert (await c.get("/admin/consistency")).status_code != 404
 
 
 async def _login(client, key: str):

@@ -3,6 +3,14 @@
 
 **Version 2.0 — May 2026**
 
+> **How to read this document:** sections 1–7 state the *doctrine* — the
+> design claims and minimum requirements ExoArmur is built around. They
+> are goals and falsifiable criteria, not a statement of what the current
+> codebase delivers. The **VERIFICATION STATUS** section at the end is the
+> authoritative account of what is actually implemented and internally
+> evaluated on the current baseline, including known gaps. Where the two
+> differ, the verification status controls.
+
 ---
 
 ## Executive Summary — The Line in the Sand
@@ -29,7 +37,12 @@ This doctrine defines those minimum requirements.
 
 ---
 
-## What ExoArmur Demonstrates (Operational, Not Hypothetical)
+## What ExoArmur Is Designed to Demonstrate
+
+*The following are the doctrine's design claims. Each is a requirement the
+kernel architecture targets; current implementation status for each is
+reported in the VERIFICATION STATUS section at the end of this document —
+several are only partially met today.*
 
 ExoArmur is a minimal deterministic governance kernel validated under the following conditions:
 
@@ -296,13 +309,31 @@ Level 6 (formal verification) remains pending external/formal review.
 
 ### Known Gaps on This Baseline
 
-- No authentication on the HTTP API; approval endpoints accept self-asserted
-  `operator_id` headers.
-- `ProxyPipeline` safety inputs (policy verification, trust, kill switches)
-  are hardcoded placeholders, not trusted sources.
-- No durable kill switch or approval-to-execution resume wiring.
+The bounded pilot (merged on `main`, served by
+`exoarmur.api.server:create_pilot_app`) now provides authenticated
+API-key principals bound to server-side permissions and tenants,
+digest-pinned operator policy, operator-configured (not measured) trust
+inputs, durable global/tenant execution pauses enforced immediately
+before dispatch, approval-bound resume of the exact frozen action, and
+persisted evidence with hash-consistency verification. An operator GUI is
+served at `/api/pilot/gui`.
+
+Remaining gaps:
+
+- The legacy `create_app` routes (`/v1/*`, `/api/v2/*`, `/api/cli/*`) and
+  `/admin/consistency` remain **unauthenticated**; approval endpoints
+  there accept self-asserted `operator_id` headers. They are not part of
+  the supported pilot surface.
+- `kernel/trust_evaluator.py` remains interface-only; pilot trust scores
+  are operator-configured assertions.
+- Evidence signatures are stored but not verified (`NOT_CHECKED`); the
+  pilot's `verify` endpoint checks stored-content hash consistency only.
+- No counterfactual engine exists on this baseline.
 - Vendor executors (OpenAI, Anthropic, HuggingFace, LangChain) are scaffolds
   returning mock data.
+- Pilot scope is local PostgreSQL + local workspace, filesystem
+  create/modify only, unpaginated history, and ambiguous `EXECUTING`
+  states are reported rather than retried.
 
 See `docs/KNOWN_LIMITATIONS.md` for the full disclosure.
 
@@ -323,5 +354,4 @@ grep -r "import urllib\|import requests\|import socket\|import nats" \
 
 ---
 
-*This document contains both the theoretical framework (the Doctrine) and the empirical verification that ExoArmur satisfies all stated requirements.*
- 
+*This document pairs the theoretical framework (the Doctrine) with an honest account of what the current baseline implements. It does **not** claim that ExoArmur satisfies all stated requirements — counterfactual replay is not implemented, evidence signatures are unverified, and several doctrine properties hold only in scoped or partial form (see VERIFICATION STATUS and KNOWN_LIMITATIONS).*

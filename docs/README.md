@@ -7,7 +7,7 @@ This directory contains comprehensive documentation for ExoArmur Core.
 ### Core Documentation
 
 - [Architecture](ARCHITECTURE.md) — System architecture overview, kernel components, determinism guarantees
-- [The ExoArmur Doctrine](DOCTRINE.md) — Verified claims and compliance requirements
+- [The ExoArmur Doctrine](DOCTRINE.md) — Design doctrine and claims, with a verification-status section separating goals from current implementation
 - [ML Isolation Policy](ML_ISOLATION.md) — Advisory-only ML components and verification
 - [DACT Standard v0.2](DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test specification (ExoArmur's own evaluation framework, not an independent standard)
 - [Known Limitations](KNOWN_LIMITATIONS.md) — Disclosed gaps and pilot status: legacy unauthenticated routes, scaffold executors, unverified signatures

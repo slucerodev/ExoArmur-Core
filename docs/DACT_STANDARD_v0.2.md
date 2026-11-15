@@ -4,6 +4,16 @@
 
 The Deterministic Autonomy Compliance Test (DACT) is a specification for evaluating autonomous systems on their ability to produce deterministic, auditable, and verifiable execution. DACT v0.2 defines six levels of compliance, ranging from basic deterministic replay to formal verification.
 
+> **Implementation status:** DACT is ExoArmur's own evaluation framework, not
+> an independent standard. On the current baseline, dedicated compliance
+> tests exist for Levels 1, 4, and 5 (`tests/compliance/`); Level 2 is
+> partially met (canonical hashes verified, signatures `NOT_CHECKED`);
+> Level 3 counterfactual analysis is **not implemented**; Level 6 is
+> pending. The command examples below are illustrative of the spec —
+> several (`exoarmur counterfactual`, `exoarmur verify-bundle`,
+> `scripts/run_baseline.py`) do not exist on this baseline. See
+> `docs/DOCTRINE.md` VERIFICATION STATUS and `docs/KNOWN_LIMITATIONS.md`.
+
 ## Compliance Levels
 
 ### Level 1: Deterministic Replay

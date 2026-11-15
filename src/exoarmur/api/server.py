@@ -103,10 +103,13 @@ def create_app() -> FastAPI:
 
 
 def create_pilot_app() -> FastAPI:
-    """Isolated pilot application: health plus ``/api/pilot/*`` only.
+    """Isolated pilot application: ``/health`` plus ``/api/pilot/*`` only.
 
-    The legacy/demo routers (``/v1/*``, ``/api/v2/*``, ``/api/cli/*``) are
-    NOT mounted — they remain available via ``create_app``.
+    The legacy/demo routers (``/v1/*``, ``/api/v2/*``, ``/api/cli/*``) and
+    the unauthenticated ``/admin/consistency`` endpoint are NOT mounted —
+    they remain available via ``create_app``. FastAPI's default
+    ``/docs``, ``/redoc`` and ``/openapi.json`` schema endpoints are
+    intentionally enabled on both factories.
     """
     app = _base_app(
         "ExoArmur Pilot API",
@@ -115,7 +118,7 @@ def create_pilot_app() -> FastAPI:
 
     from exoarmur.api.routes import core, pilot
 
-    app.include_router(core.router, tags=["Core"])
+    app.include_router(core.health_router, tags=["Core"])
     app.include_router(pilot.router, prefix="/api/pilot", tags=["Pilot"])
 
     return app

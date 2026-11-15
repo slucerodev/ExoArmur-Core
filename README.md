@@ -19,7 +19,17 @@ Then follow the full runbook — create a PostgreSQL database, bootstrap the age
 
 **[docs/PILOT.md — Pilot Runbook](docs/PILOT.md)**
 
-The supported server is `exoarmur.api.server:create_pilot_app`, which exposes `/health` and `/api/pilot/*` only. The operator console is at `/api/pilot/gui`.
+The supported server is `exoarmur.api.server:create_pilot_app`, which exposes `/health` and `/api/pilot/*` only (FastAPI's `/docs`, `/redoc`, `/openapi.json` schema endpoints are also enabled). The operator console is at `/api/pilot/gui`.
+
+**Operator console (real screenshots from a local pilot instance):**
+
+*Approval review — the operator sees the exact frozen content, requester, target, expiry, and approval requirement before "Approve & execute" dispatches immediately:*
+
+![Pilot approval review](docs/assets/pilot-approval-review.png)
+
+*Executed outcome — status, verification verdict (hash consistency, not signer verification), and the full execution timeline:*
+
+![Pilot executed action detail](docs/assets/pilot-executed-detail.png)
 
 ## What ExoArmur Is
 
@@ -144,13 +154,13 @@ DACT (Deterministic Autonomy Compliance Test) v0.2 is **ExoArmur's own evaluatio
 | Level | Requirement | Status |
 |-------|-------------|--------|
 | 1 | Deterministic Replay | ✅ Internally evaluated by the test suite |
-| 2 | Cryptographic Attestation | ✅ Internally evaluated (canonical hashes; evidence signatures are recorded but **not** verified — see below) |
-| 3 | Counterfactual Analysis | ✅ Internally evaluated |
+| 2 | Cryptographic Attestation | ⚠️ Partially — canonical hashes over evidence; signatures stored but **not** verified (`NOT_CHECKED`) |
+| 3 | Counterfactual Analysis | ❌ Not implemented — no counterfactual engine exists on this baseline |
 | 4 | ML Isolation | ✅ Internally evaluated |
 | 5 | Air-Gap Integrity | ✅ Internally evaluated (kernel scope) |
 | 6 | Formal Verification | ⏳ Pending external/formal review |
 
-**Note:** Levels 1-5 are internally evaluated by the ExoArmur test suite. This is self-assessment against our own framework — not third-party certification. Level 6 remains pending.
+**Note:** DACT is ExoArmur's own framework — Levels 1, 4, 5 are internally evaluated by dedicated compliance tests; Level 2 is partial (hash consistency only, no signature verification); Level 3 is not implemented. This is self-assessment, not certification. Level 6 remains pending.
 
 **Honest scope of "replay verification":** the replay endpoints recompute canonical hashes from stored records and compare them. Recomputing a hash from stored content alone does not prove the original content was preserved — it detects inconsistencies between stored fields, not tampering that rewrote both content and hash. Separately, `kernel/replay_verification.py` compares stored request/response hashes against canonical recomputation (`VERIFIED`/`MISMATCH`/`MALFORMED`/`NOT_CHECKED`), and evidence signatures are explicitly reported as `NOT_CHECKED` because signature verification is not implemented.
 
@@ -184,7 +194,7 @@ Reference implementation (source version 2.2.0; the published PyPI release is ol
 ## Documentation
 
 - [Documentation Index](docs/README.md) — Table of contents for all documentation
-- [The ExoArmur Doctrine](docs/DOCTRINE.md) — Verified claims and compliance
+- [The ExoArmur Doctrine](docs/DOCTRINE.md) — Design doctrine and claims, with an explicit verification-status section separating goals from what is implemented
 - [Architecture](docs/ARCHITECTURE.md) — System architecture
 - [ML Isolation Policy](docs/ML_ISOLATION.md) — Advisory-only ML components
 - [DACT Standard v0.2](docs/DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test specification
