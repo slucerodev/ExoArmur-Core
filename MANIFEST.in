@@ -1,0 +1,2 @@
+include src/exoarmur/api/gui/index.html
+recursive-include src/exoarmur/api/migrations *.sql
