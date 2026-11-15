@@ -17,7 +17,7 @@ This document provides a comprehensive review of all third-party dependencies in
 | pydantic | 2.12.5 | MIT | Data validation and parsing | ✅ No known vulnerabilities |
 | pydantic-core | 2.41.5 | MIT | Pydantic core functionality | ✅ No known vulnerabilities |
 | cryptography | 48.0.0 | Apache 2.0 / BSD | Cryptographic operations | ✅ No known vulnerabilities |
-| python-ulid | 3.1.0 | MIT | Deterministic ID generation | ✅ No known vulnerabilities |
+| python-ulid | 4.1.0 | MIT | Deterministic ID generation | ✅ No known vulnerabilities |
 | click | 8.4.1 | BSD | CLI framework | ✅ No known vulnerabilities |
 | python-json-logger | 4.1.0 | BSD | Structured logging | ✅ No known vulnerabilities |
 | typing-extensions | 4.15.0 | MIT | Type hints | ✅ No known vulnerabilities |
@@ -58,7 +58,7 @@ python -m venv /tmp/exoarmur_audit_venv
 - **pydantic (2.12.5)** - Core data validation. Actively maintained, strong security track record. No known vulnerabilities.
 
 **Medium-Value Dependencies:**
-- **python-ulid (3.1.0)** - Deterministic ID generation. Minimal attack surface. No known vulnerabilities.
+- **python-ulid (4.1.0)** - Deterministic ID generation. Minimal attack surface. No known vulnerabilities.
 - **click (8.4.1)** - CLI framework. Mature, well-tested. No known vulnerabilities.
 
 **Low-Value Dependencies:**

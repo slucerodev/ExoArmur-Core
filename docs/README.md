@@ -37,7 +37,7 @@ This directory contains comprehensive documentation for ExoArmur Core.
 
 ## Documentation Status
 
-All core documentation is current and accurate as of May 30, 2026. Integration guides for platform executors are scaffold/reference implementations only — real platform integrations belong in optional addon packages.
+All core documentation is current as of the post-merge pilot alignment on `main` (November 2026). Integration guides for platform executors are scaffold/reference implementations only — real platform integrations belong in optional addon packages.
 
 ## Quick Links
 

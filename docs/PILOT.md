@@ -9,6 +9,18 @@ Scope: local PostgreSQL + local workspace only. This is a reference
 implementation, not a production deployment. See
 [Known Limitations](KNOWN_LIMITATIONS.md) for precise guarantees.
 
+Operational semantics worth stating plainly:
+
+- ExoArmur governs only actions submitted through `/api/pilot/*`. An agent
+  must be integrated to route its file writes through this API — ExoArmur
+  does not automatically intercept an agent's other filesystem access.
+- Trust scores and safety inputs are **operator-configured values** in the
+  policy file, not measured or verified signals.
+- Pauses block **subsequent dispatch**: they prevent pending/approved
+  actions from executing, but do not interrupt an effect already running.
+- Evidence verification is stored-content hash consistency — it detects
+  altered stored records, not signer authenticity or a compromised database.
+
 ## What is real vs. demo
 
 | Component | Status |
@@ -23,12 +35,24 @@ implementation, not a production deployment. See
 
 ## 1. Install
 
+The pilot is installed **from source**. The published PyPI package
+(`exoarmur-core` 2.1.0 at time of writing) predates the pilot and does not
+contain `create_pilot_app` or the pilot routes — do not use it for this
+guide.
+
+Operator install (runtime dependencies only):
+
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core
 cd ExoArmur-Core
+git checkout main
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,postgres,demo-api]"
+pip install -e ".[postgres,demo-api]"
 ```
+
+- `postgres` provides `asyncpg` (required — the pilot stores all state in PostgreSQL)
+- `demo-api` provides FastAPI/uvicorn/httpx (required — the pilot is an HTTP service)
+- Add `dev` (`pip install -e ".[dev]"`) only if you intend to run the test suite
 
 Requires Python 3.10+ and a reachable PostgreSQL 12+ database.
 Create a disposable database, e.g.:

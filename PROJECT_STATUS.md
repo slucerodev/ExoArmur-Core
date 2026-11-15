@@ -1,6 +1,6 @@
 # Project Status
 
-*Last validated: May 31, 2026 (test counts); documentation aligned to the 2.2.0 baseline on `baseline-2.2.0-alignment`*
+*Last validated: pilot merge validation November 15, 2026 (local runs; GitHub Actions blocked by billing restriction); earlier test counts dated May 31, 2026*
 
 ## At a glance
 
@@ -12,8 +12,8 @@
 | **Announced adopters / pilots** | None — seeking first integration |
 | **External security audit** | Not yet conducted |
 | **Internal audit discipline** | Self-audited; CI invariants enforced |
-| **Test suite** | 338 passed / 17 skipped / 0 failed at last recorded run (May 31, 2026); 396 tests collected on the 2.2.0 baseline — re-run before citing |
-| **CI workflows** | 10 active (see `.github/workflows/`) |
+| **Test suite** | 398 passed / 17 skipped at last full local run; `tests/api/test_pilot.py` 24 passed against real PostgreSQL (Nov 15, 2026). Earlier dated run: 338 passed / 17 skipped (May 31, 2026) |
+| **CI workflows** | 10 defined (see `.github/workflows/`); GitHub Actions could not run for the pilot merge due to a billing restriction — validation evidence is recorded local runs |
 | **Licensing** | Apache 2.0 (see LICENSE) |
 
 ## What ExoArmur is
@@ -90,42 +90,55 @@ Executor Contract Formalization should decide whether state hashing, execution h
   which is not part of this architecture).
 - **Federation in hostile environments** — federation crypto and handshake
   state machine have not been exercised against an external red team.
-- **Authenticated governed execution** — the HTTP API (`exoarmur.api`) has no
-  authentication. Approval endpoints accept a self-asserted `operator_id`
-  header, and telemetry ingest treats `operator_id` as audit metadata only.
-- **Authoritative kill switches** — `kernel/boundary.py::ProxyPipeline` accepts
-  kill-switch flags as inputs but currently constructs them hardcoded to
-  `False`; there is no durable switch store or pre-dispatch enforcement on this
-  baseline.
-- **Trusted safety inputs** — `ProxyPipeline.execute_with_trace()` hardcodes
-  `policy_verified=True`, `emitter_trust_score=0.85`, and
-  `required_approval="none"` when building the safety state. These are
-  placeholders, not measured or verified values.
-- **Operator policy source** — no digest-pinned or otherwise verified policy
-  file mechanism exists on this baseline; `POST /api/cli/ai-complete` uses an
-  allow-by-construction demo policy and REPLAY (mocked) executor mode only.
-- **Approval-to-execution resume** — approvals recorded via the API flip status
-  in the approval store; nothing re-dispatches the underlying intent after
-  APPROVED.
+- **Authenticated governed execution (pilot path)** — validated on
+  `create_pilot_app`: API-key auth, session binding to the issuing key,
+  server-side permission/tenant checks, digest-pinned operator policy.
+  The legacy `create_app` routes (`/v1/*`, `/api/v2/*`, `/api/cli/*`) remain
+  **unauthenticated** and are not part of the supported pilot.
+- **Authoritative kill switches (pilot path)** — durable global/tenant
+  `execution_pauses` in PostgreSQL are re-checked immediately before
+  executor dispatch, including approval resume. They block subsequent
+  dispatch only; they do not interrupt an already-running effect. The
+  legacy routes have no pause enforcement.
+- **Trusted safety inputs (pilot path)** — `ProxyPipeline` requires an
+  injectable `SafetyContextProvider` and fails closed without one; the
+  pilot supplies operator-configured values (configured, not measured).
+  The `ai-complete` demo passes explicitly labeled demo inputs.
+- **Operator policy source** — `EXOARMUR_POLICY_FILE` +
+  `EXOARMUR_POLICY_SHA256` pin a versioned JSON policy by digest;
+  missing/altered/unmatched policy denies. `POST /api/cli/ai-complete`
+  (legacy demo) still uses an allow-by-construction policy and REPLAY
+  (mocked) executor.
+- **Approval-to-execution resume (pilot path)** — approval re-validates
+  the stored action and dispatches it through the governed pipeline.
+  Legacy approval records remain record-keeping only.
 - **Real vendor executors** — OpenAI/Anthropic/HuggingFace/LangChain executors
   are scaffolds returning mock data; only FileSystem and SQLite
-  DatabaseExecutor perform real local effects.
+  DatabaseExecutor perform real local effects. The pilot exercises the
+  FileSystemExecutor only.
 
-## Bounded pilot goal
+## Bounded pilot (implemented on `main`)
 
-The target pilot is **one authenticated, policy-controlled real workflow**:
-an authenticated operator principal, a verified operator policy, human
-approvals for elevated action classes, durable evidence records, an emergency
-pause (kill switch), and an operator GUI. All of these are **planned**; the
-kernel boundary, replay verification, and executor scaffolding exist, but the
-items under "What is NOT validated" above are prerequisites, not completed
-work.
+The pilot — **one authenticated, policy-controlled real workflow** — is
+implemented and merged: an authenticated agent principal submits governed
+file-write proposals, an authenticated approver reviews the exact frozen
+parameters, approval resumes dispatch through `ProxyPipeline` → safety
+gate → `FileSystemExecutor` confined to `EXOARMUR_WORKSPACE_ROOT`, durable
+global/tenant pauses are enforced immediately before dispatch, and
+evidence is persisted with hash-consistency verification. An operator GUI
+is served at `/api/pilot/gui`. Runbook: [`docs/PILOT.md`](docs/PILOT.md).
+
+Remaining pilot limits: legacy `create_app` routes are unauthenticated;
+evidence verification is stored-content hash consistency (no signer
+verification); interrupted `EXECUTING` actions are reported as ambiguous,
+not retried; action history is unpaginated; the pilot covers one executor
+and two file operations on local PostgreSQL/filesystem only.
 
 ## Roadmap signal
 
-Development on `main` is guided by a phased plan. Near-term work is baseline
-governance hardening on the 2.2.0 architecture: trusted safety inputs,
-operator policy, authentication, durable kill switches, and approval resume —
+Development on `main` is guided by a phased plan. The bounded pilot is
+merged; near-term work is hardening the pilot surface (legacy route
+authentication or retirement, pagination, additional governed operations)
 followed by federation maturity and reserved extension surfaces.
 
 See [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the disclosed

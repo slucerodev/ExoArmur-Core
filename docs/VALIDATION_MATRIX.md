@@ -1,6 +1,6 @@
 # Validation Matrix
 
-*Last validated: June 1, 2026*
+*Last validated: pilot checks November 15, 2026 (local runs); earlier suite counts dated May–June 2026*
 
 ## Overview
 
@@ -10,8 +10,9 @@ This matrix documents the current validation status of ExoArmur-Core across all 
 
 | Category | Command | Result | Status |
 |----------|---------|--------|--------|
-| Unit Tests | `python -m pytest tests/ -q -rs` | 338 passed, 17 skipped, 0 failed | ✅ GREEN |
-| E2E Tests | `python -m pytest tests/e2e/ -v` | 22 passed, 0 failed | ✅ GREEN |
+| Unit Tests | `python -m pytest tests/ -q -rs` | 398 passed, 17 skipped (Nov 15, 2026 local run); 338 passed at May 31, 2026 run | ✅ GREEN |
+| Pilot Integration | `EXOARMUR_TEST_DATABASE_URL=… pytest tests/api/test_pilot.py` | 24 passed against real PostgreSQL | ✅ GREEN |
+| E2E Tests | `python -m pytest tests/e2e/ -v` | 22 passed, 0 failed (dated run) | ✅ GREEN |
 | Three-Run Stability | `for i in 1 2 3; do pytest; done` | Consistent results | ✅ GREEN |
 
 ## Code Quality Status
@@ -58,10 +59,10 @@ This matrix documents the current validation status of ExoArmur-Core across all 
 |---------|---------|---------------------|--------|
 | pydantic | 2.12.5 | None | ✅ Clean |
 | pydantic-core | 2.41.5 | None | ✅ Clean |
-| cryptography | 48.0.0 | None | ✅ Clean |
-| python-ulid | 3.1.0 | None | ✅ Clean |
-| click | 8.4.1 | None | ✅ Clean |
-| python-json-logger | 4.1.0 | None | ✅ Clean |
+| cryptography | 46.0.7 | None | ✅ Clean |
+| python-ulid | 4.1.0 | None | ✅ Clean |
+| click | 8.3.1 | None | ✅ Clean |
+| python-json-logger | 2.0.7 | None | ✅ Clean |
 | typing-extensions | 4.15.0 | None | ✅ Clean |
 | typing-inspection | 0.4.2 | None | ✅ Clean |
 | cffi | 2.0.0 | None | ✅ Clean |
@@ -121,9 +122,23 @@ python -m venv /tmp/exoarmur_audit_venv
 /tmp/exoarmur_audit_venv/bin/pip-audit
 ```
 
+## Pilot Validation (November 15, 2026 — local runs)
+
+GitHub Actions could not run for the pilot merge due to a billing
+restriction; the following was validated locally and recorded:
+
+| Check | Result | Status |
+|-------|--------|--------|
+| `tests/api/test_pilot.py` (real PostgreSQL) | 24 passed | ✅ GREEN |
+| `tests/api/` suite | 65 passed | ✅ GREEN |
+| Full suite | 398 passed, 17 skipped | ✅ GREEN |
+| Live uvicorn + PostgreSQL + FileSystemExecutor flow | submit → pending approval → approve → file written → verify | ✅ Demonstrated |
+| Operator GUI (desktop + 390px narrow) | approval review, blocked-approval feedback, stale-refresh handling | ✅ Demonstrated |
+| Clean-install defects (post-merge review) | `ulid.from_bytes` AttributeError on python-ulid 4.x; wheel missing GUI/migrations | 🔧 Fixed on `fix/pilot-install` — see PR |
+
 ## Current Baseline
 
-- **Version**: 2.2.0 (`baseline-2.2.0-alignment` branch)
+- **Version**: 2.2.0 source (`main`); published PyPI release is 2.1.0 and predates the pilot — install from source per [PILOT.md](PILOT.md)
 - **License**: Apache-2.0 (see LICENSE)
-- **Status**: Public reference implementation; governance-hardening pilot in progress
-- **Last validated**: May 31, 2026 — test counts below reflect that run; the suite has since grown (396 tests collected on 2.2.0). Re-run before citing current numbers.
+- **Status**: Public reference implementation; bounded pilot merged on `main`
+- **Last validated**: pilot checks November 15, 2026 (local); earlier full-suite counts dated May 31, 2026 — re-run before citing current numbers.
