@@ -33,7 +33,7 @@ class TestThinVerticalSlice:
     
     def setup_method(self):
         """Setup test fixtures"""
-        self.client = TestClient(app)
+        self.client = TestClient(app, headers={"X-API-Key": os.environ.get("EXOARMUR_TEST_API_KEY", "test-api-key-12345")})
         
         # Create test telemetry event
         self.telemetry_event = TelemetryEventV1(
@@ -245,7 +245,11 @@ class TestAsyncIntegration:
         """Test with async client"""
         from httpx import ASGITransport
         
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+            headers={"X-API-Key": os.environ.get("EXOARMUR_TEST_API_KEY", "test-api-key-12345")},
+        ) as client:
             event = TelemetryEventV1(
                 schema_version="1.0.0",
                 event_id="3EDW0S2AFBGFZ0T10NPVFXFT77",  # Valid ULID

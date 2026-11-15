@@ -179,3 +179,89 @@ This is equivalent to the `verify_all` test suite.
 2. Check docs/TEST_SUITES.md for test suite details  
 3. Review the code in `src/` to understand the architecture
 4. Start with `verify_core` tests for quick feedback during development
+
+## Governed Execution: Authentication & Operator Policy (Pilot)
+
+Execution-capable endpoints require an API key and an operator-approved,
+digest-pinned policy. There are no default or test credentials in the
+application path — configure both before use.
+
+### Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `EXOARMUR_API_KEY_STORE` | Path to JSON file of API key records (SHA-256 hashes only) |
+| `EXOARMUR_POLICY_FILE` | Path to versioned operator policy JSON (operator-controlled) |
+| `EXOARMUR_POLICY_SHA256` | Operator-pinned SHA-256 of the policy file bytes |
+| `EXOARMUR_OPERATOR_TRUST_SCORE` | Configured trust (0.0–1.0) for the pilot principal — not a measured score |
+| `NATS_URL` | NATS server for durable kill-switch state (default `nats://localhost:4222`) |
+
+### 1. Bootstrap one principal
+
+```bash
+python examples/bootstrap_api_key.py \
+    --key-id pilot-key-1 \
+    --principal-id agent-001 \
+    --tenant-id tenant-1 \
+    --permission execute:A0 --permission execute:A1 \
+    --permission approval:request --permission approval:grant \
+    --permission approval:deny --permission status:view \
+    --store /etc/exoarmur/api_keys.json
+```
+
+The raw key is printed once — store it in your secret manager. The store
+file contains only hashes.
+
+### 2. Install the operator policy
+
+Write the policy file (see `src/exoarmur/policy/operator_policy.py` for the
+schema: `version`, `rules[]` with `tenant_id`, `principal_id`, `operations`,
+`action_classes`, `required_approval`), then pin its digest:
+
+```bash
+sha256sum /etc/exoarmur/policy.json
+export EXOARMUR_POLICY_FILE=/etc/exoarmur/policy.json
+export EXOARMUR_POLICY_SHA256=<digest-from-sha256sum>
+export EXOARMUR_API_KEY_STORE=/etc/exoarmur/api_keys.json
+export EXOARMUR_OPERATOR_TRUST_SCORE=0.9
+```
+
+Any edit to the policy file without updating the pinned digest denies all
+policy-governed execution. Missing/invalid policy or credentials fail
+explicitly before execution.
+
+### 3. Make an authenticated request
+
+```bash
+curl -X POST http://localhost:8000/v1/telemetry/ingest \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: <RAW-KEY-FROM-STEP-1>" \
+    -d '{
+      "schema_version": "1.0.0",
+      "event_id": "<ULID>",
+      "tenant_id": "tenant-1",
+      "cell_id": "cell-1",
+      "observed_at": "2025-01-01T00:00:00Z",
+      "received_at": "2025-01-01T00:00:00Z",
+      "source": {"kind": "edr", "name": "test", "host": "h1", "sensor_id": "s1"},
+      "event_type": "process_start",
+      "severity": "low",
+      "attributes": {"process_name": "notepad.exe"},
+      "correlation_id": "corr-1",
+      "trace_id": "trace-1"
+    }'
+```
+
+Approval actions use the same header; `operator_id` in the request body
+must equal the authenticated principal or the request is rejected:
+
+```bash
+curl -X POST http://localhost:8000/v1/approvals/<approval_id>/approve \
+    -H "X-API-Key: <RAW-KEY>" \
+    -H "Content-Type: application/json" \
+    -d '{"operator_id": "agent-001"}'
+```
+
+Permissions: `execute:A0`–`execute:A3` gate dispatch per resolved action
+class; `approval:request` gates approval creation; `approval:grant` /
+`approval:deny` gate approval decisions; `status:view` gates status reads.

@@ -32,7 +32,7 @@ class TestIntentFreezeBinding:
     @pytest.fixture
     def client(self):
         """FastAPI test client"""
-        return TestClient(app)
+        return TestClient(app, headers={"X-API-Key": os.environ.get("EXOARMUR_TEST_API_KEY", "test-api-key-12345")})
     
     @pytest.fixture
     def sample_telemetry(self):

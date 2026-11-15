@@ -32,7 +32,7 @@ class TestApprovalWiring:
     @pytest.fixture
     def client(self):
         """FastAPI test client"""
-        return TestClient(runtime_main.app)
+        return TestClient(runtime_main.app, headers={"X-API-Key": os.environ.get("EXOARMUR_TEST_API_KEY", "test-api-key-12345")})
     
     @pytest.fixture
     def approval_service(self):
@@ -214,7 +214,7 @@ class TestApprovalWiring:
         # Approve the request via API
         response = client.post(
             f"/v1/approvals/{approval_id}/approve",
-            json={"operator_id": "operator-001", "reason": "Approved for testing"}
+            json={"operator_id": "test-operator", "reason": "Approved for testing"}
         )
         
         # Verify approval was successful
@@ -246,7 +246,7 @@ class TestApprovalWiring:
         # Deny the request via API
         response = client.post(
             f"/v1/approvals/{approval_id}/deny",
-            json={"operator_id": "operator-002", "reason": "Risk too high"}
+            json={"operator_id": "test-operator", "reason": "Risk too high"}
         )
         
         # Verify denial was successful
@@ -275,7 +275,7 @@ class TestApprovalWiring:
         # Try to deny without reason
         response = client.post(
             f"/v1/approvals/{approval_id}/deny",
-            json={"operator_id": "operator-003"}
+            json={"operator_id": "test-operator"}
         )
         
         # Verify 422 error

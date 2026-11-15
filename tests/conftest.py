@@ -107,3 +107,34 @@ def kill_switch_test_mode():
     os.environ["EXOARMUR_TESTING_KILL_SWITCH"] = "1"
     yield
     os.environ.pop("EXOARMUR_TESTING_KILL_SWITCH", None)
+
+@pytest.fixture(autouse=True)
+def api_key_store(tmp_path, monkeypatch):
+    """Provision a real API key store for endpoint tests.
+
+    Creates a JSON key-store file containing only the SHA-256 hash of the
+    conftest test key (EXOARMUR_TEST_API_KEY) and points
+    EXOARMUR_API_KEY_STORE at it. This exercises the real authentication
+    path — the key is a configured credential, not a test bypass.
+    """
+    import hashlib
+    import json
+    from exoarmur.auth.auth_service import Permission
+
+    raw_key = os.environ.get('EXOARMUR_TEST_API_KEY', 'test-api-key-12345')
+    record = {
+        "key_id": "conftest-test-key",
+        "key_hash": hashlib.sha256(raw_key.encode()).hexdigest(),
+        "tenant_ids": ["tenant-acme", "test-tenant", "tenant-1"],
+        "permissions": sorted(p.value for p in Permission),
+        "principal_id": "test-operator",
+        "created_at": "2024-01-01T00:00:00+00:00",
+        "expires_at": None,
+        "is_active": True,
+        "description": "conftest endpoint-test key",
+        "last_used_at": None,
+    }
+    store_path = tmp_path / "api_keys.json"
+    store_path.write_text(json.dumps([record]), encoding="utf-8")
+    monkeypatch.setenv("EXOARMUR_API_KEY_STORE", str(store_path))
+    return str(store_path)

@@ -3,13 +3,14 @@ ExoArmur Core FastAPI service — deterministic governance and replayable audit 
 Thin vertical slice: TelemetryEventV1 → SignalFactsV1 → BeliefV1 → CollectiveConfidence → SafetyGate → ExecutionIntentV1 → AuditRecordV1
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Header
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 import sys
 import os
 import asyncio
+import json
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import uuid
@@ -47,6 +48,12 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.auth.auth_service import (
+    AuthService,
+    AuthError,
+    Permission,
+    import_key_store_records,
+)
 from exoarmur.policy.operator_policy import (
     OperatorPolicy,
     OperatorPolicyDecisionPoint,
@@ -81,7 +88,63 @@ audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
 operator_policy: Optional[OperatorPolicy] = None
+auth_service: Optional[AuthService] = None
 background_tasks = set()  # Track background tasks for deterministic shutdown
+
+
+def _load_api_key_store() -> AuthService:
+    """Build the AuthService, loading operator-provisioned key records.
+
+    EXOARMUR_API_KEY_STORE points to a JSON file of serialized APIKey
+    records (hashes only — produced by the bootstrap procedure). Missing
+    or unreadable store yields an empty key store: every authenticated
+    request then fails explicitly. No default or test credentials exist.
+    """
+    service = AuthService()
+    path = os.environ.get("EXOARMUR_API_KEY_STORE", "").strip()
+    if not path:
+        return service
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            records = json.load(fh)
+        if not isinstance(records, list):
+            raise ValueError("key store file must contain a JSON list")
+        count = import_key_store_records(service.key_store, records)
+        logger.info("Loaded %d API key records from %s", count, path)
+    except (OSError, ValueError) as exc:
+        logger.error("API key store %s unavailable; all requests will fail auth: %s", path, exc)
+    return service
+
+
+async def _authenticate(
+    api_key: Optional[str],
+    permission: Permission,
+    tenant_id: str,
+    correlation_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+):
+    """Authenticate and authorize a request; raises HTTPException on failure."""
+    if auth_service is None:
+        raise HTTPException(status_code=503, detail="Authentication service not initialized")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Missing API key")
+    try:
+        auth_context = await auth_service.authenticate(api_key)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    try:
+        return await auth_service.authorize(auth_context, permission, tenant_id)
+    except AuthError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+
+
+# V1 action class -> required execution permission for dispatch
+_EXECUTE_PERMISSION_BY_CLASS = {
+    "A0_observe": Permission.EXECUTE_A0,
+    "A1_soft_containment": Permission.EXECUTE_A1,
+    "A2_hard_containment": Permission.EXECUTE_A2,
+    "A3_irreversible": Permission.EXECUTE_A3,
+}
 
 
 def _load_operator_policy() -> Optional[OperatorPolicy]:
@@ -251,10 +314,11 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     """Initialize ExoArmur Core components"""
     global nats_client, telemetry_validator, facts_deriver, local_decider
     global belief_generator, collective_aggregator, safety_gate, execution_gate, execution_kernel, audit_logger, approval_service, intent_store
-    global operator_policy
+    global operator_policy, auth_service
 
     nats_client = nats_client_instance
     operator_policy = _load_operator_policy()
+    auth_service = _load_api_key_store()
     
     # Initialize internal modules
     telemetry_validator = TelemetryValidator()
@@ -349,15 +413,30 @@ async def root():
 
 
 @app.post("/v1/telemetry/ingest", response_model=TelemetryIngestResponseV1)
-async def ingest_telemetry(event: TelemetryEventV1):
+async def ingest_telemetry(
+    event: TelemetryEventV1,
+    x_api_key: Optional[str] = Header(default=None),
+):
     """Ingest telemetry event and process through ADMO loop"""
     global telemetry_validator, facts_deriver, local_decider, belief_generator
     global collective_aggregator, safety_gate, execution_kernel, audit_logger
-    
+
     # Initialize components if not already done (for testing)
     if telemetry_validator is None:
         initialize_components()
-    
+
+    # Authenticate the caller before any processing. The API key identifies
+    # the authenticated principal; the telemetry subject_id is monitored
+    # data and is never used as caller identity.
+    auth_context = await _authenticate(
+        x_api_key,
+        Permission.EXECUTE_A0,
+        event.tenant_id,
+        correlation_id=event.correlation_id,
+        trace_id=event.trace_id,
+    )
+    authenticated_principal_id = auth_context.principal_id
+
     try:
         logger.info(f"Ingesting telemetry event {event.event_id}")
         
@@ -467,13 +546,11 @@ async def ingest_telemetry(event: TelemetryEventV1):
         
         if safety_verdict.verdict == "allow":
             # Identity constraint: operator policy rules bind an authenticated
-            # principal. This route has no authenticated principal context —
-            # the telemetry subject_id is data about the observed subject, not
-            # proof of the caller's identity — so governed execution remains
-            # blocked here until an authenticated dependency supplies one.
-            authenticated_principal_id = None
+            # principal. The API key above supplies it; the telemetry
+            # subject_id is data about the observed subject, not caller
+            # identity, and is never used for policy matching.
             policy_rule = None
-            if authenticated_principal_id is not None and operator_policy is not None:
+            if operator_policy is not None:
                 policy_rule = operator_policy.matching_rule(
                     execution_intent.tenant_id,
                     authenticated_principal_id,
@@ -484,8 +561,9 @@ async def ingest_telemetry(event: TelemetryEventV1):
                 audit_logger.emit_audit_record(
                     event_kind="execution_blocked",
                     payload_ref={"kind": "inline", "ref": {
-                        "reason": "no_authenticated_principal_or_policy_rule",
+                        "reason": "no_policy_rule_for_principal",
                         "verdict": safety_verdict.verdict,
+                        "principal_id": authenticated_principal_id,
                     }},
                     correlation_id=event.correlation_id,
                     trace_id=event.trace_id,
@@ -494,33 +572,70 @@ async def ingest_telemetry(event: TelemetryEventV1):
                     idempotency_key=idempotency_key
                 )
             else:
-                # Execute intent. The trusted safety context reuses the real
-                # upstream artifacts and the matched operator policy rule —
-                # never caller-supplied values.
-                trusted_context = TrustedSafetyContext(
-                    local_decision=local_decision,
-                    tenant_id=execution_intent.tenant_id,
-                    actor_id=authenticated_principal_id,
-                    trust_score=operator_trust,
-                    collective_state=collective_state,
-                    policy_verified=True,
-                    kill_switch_global=policy_state.kill_switch_global,
-                    kill_switch_tenant=policy_state.kill_switch_tenant,
-                    required_approval=policy_rule.required_approval,
-                    degraded_mode=environment_state.degraded_mode,
-                    action_classes=dict(policy_rule.action_classes),
-                    default_action_class=policy_rule.default_action_class,
-                )
-                executed = await _execute_intent_via_proxy_pipeline(
-                    execution_intent, trusted_context, actor_id=authenticated_principal_id
-                )
+                # The resolved action class requires its specific execute
+                # permission; a baseline ingest grant is not sufficient.
+                resolved_class = policy_rule.resolve_action_class(execution_intent.intent_type)
+                required_permission = _EXECUTE_PERMISSION_BY_CLASS.get(resolved_class)
+                if required_permission is None or required_permission not in auth_context.permissions:
+                    audit_logger.emit_audit_record(
+                        event_kind="execution_blocked",
+                        payload_ref={"kind": "inline", "ref": {
+                            "reason": "missing_execute_permission",
+                            "resolved_action_class": resolved_class,
+                            "required_permission": required_permission.value if required_permission else None,
+                            "principal_id": authenticated_principal_id,
+                        }},
+                        correlation_id=event.correlation_id,
+                        trace_id=event.trace_id,
+                        tenant_id=event.tenant_id,
+                        cell_id=event.cell_id,
+                        idempotency_key=idempotency_key
+                    )
+                else:
+                    # Execute intent. The trusted safety context reuses the real
+                    # upstream artifacts and the matched operator policy rule —
+                    # never caller-supplied values.
+                    trusted_context = TrustedSafetyContext(
+                        local_decision=local_decision,
+                        tenant_id=execution_intent.tenant_id,
+                        actor_id=authenticated_principal_id,
+                        trust_score=operator_trust,
+                        collective_state=collective_state,
+                        policy_verified=True,
+                        kill_switch_global=policy_state.kill_switch_global,
+                        kill_switch_tenant=policy_state.kill_switch_tenant,
+                        required_approval=policy_rule.required_approval,
+                        degraded_mode=environment_state.degraded_mode,
+                        action_classes=dict(policy_rule.action_classes),
+                        default_action_class=policy_rule.default_action_class,
+                    )
+                    executed = await _execute_intent_via_proxy_pipeline(
+                        execution_intent, trusted_context, actor_id=authenticated_principal_id
+                    )
 
-                # Audit: intent executed (only on actual executor success)
+                    # Audit: intent executed (only on actual executor success)
+                    audit_logger.emit_audit_record(
+                        event_kind="intent_executed" if executed else "execution_blocked",
+                        payload_ref={"kind": "inline", "ref": {
+                            "intent_id": execution_intent.intent_id,
+                            "executed": executed,
+                            "principal_id": authenticated_principal_id,
+                        }},
+                        correlation_id=event.correlation_id,
+                        trace_id=event.trace_id,
+                        tenant_id=event.tenant_id,
+                        cell_id=event.cell_id,
+                        idempotency_key=idempotency_key
+                    )
+        elif safety_verdict.verdict in ["require_human", "require_quorum"]:
+            # Requesting an approval requires the approval:request permission
+            if Permission.REQUEST_APPROVAL not in auth_context.permissions:
                 audit_logger.emit_audit_record(
-                    event_kind="intent_executed" if executed else "execution_blocked",
+                    event_kind="execution_blocked",
                     payload_ref={"kind": "inline", "ref": {
-                        "intent_id": execution_intent.intent_id,
-                        "executed": executed,
+                        "reason": "missing_approval_request_permission",
+                        "verdict": safety_verdict.verdict,
+                        "principal_id": authenticated_principal_id,
                     }},
                     correlation_id=event.correlation_id,
                     trace_id=event.trace_id,
@@ -528,46 +643,47 @@ async def ingest_telemetry(event: TelemetryEventV1):
                     cell_id=event.cell_id,
                     idempotency_key=idempotency_key
                 )
-        elif safety_verdict.verdict in ["require_human", "require_quorum"]:
-            # Create approval request and freeze intent
-            approval_id = approval_service.create_request(
-                correlation_id=event.correlation_id,
-                trace_id=event.trace_id,
-                tenant_id=event.tenant_id,
-                cell_id=event.cell_id,
-                idempotency_key=idempotency_key,
-                requested_action_class=execution_intent.action_class,
-                payload_ref={"local_decision": local_decision.model_dump()}
-            )
+            else:
+                # Create approval request and freeze intent
+                approval_id = approval_service.create_request(
+                    correlation_id=event.correlation_id,
+                    trace_id=event.trace_id,
+                    tenant_id=event.tenant_id,
+                    cell_id=event.cell_id,
+                    idempotency_key=idempotency_key,
+                    requested_action_class=execution_intent.action_class,
+                    payload_ref={"local_decision": local_decision.model_dump()}
+                )
             
-            # Compute intent hash and bind to approval
-            intent_hash = intent_store.compute_intent_hash(execution_intent)
-            approval_service.bind_intent(
-                approval_id, 
-                execution_intent.intent_id, 
-                execution_intent.idempotency_key, 
-                intent_hash
-            )
+                # Compute intent hash and bind to approval
+                intent_hash = intent_store.compute_intent_hash(execution_intent)
+                approval_service.bind_intent(
+                    approval_id, 
+                    execution_intent.intent_id, 
+                    execution_intent.idempotency_key, 
+                    intent_hash
+                )
             
-            # Freeze the intent
-            intent_store.freeze_intent(approval_id, execution_intent)
+                # Freeze the intent
+                intent_store.freeze_intent(approval_id, execution_intent)
             
-            # Audit: approval requested with intent binding
-            audit_logger.emit_audit_record(
-                event_kind="approval_requested",
-                payload_ref={"kind": "inline", "ref": {
-                    "approval_id": approval_id,
-                    "intent_id": execution_intent.intent_id,
-                    "intent_hash": intent_hash,
-                    "verdict": safety_verdict.verdict,
-                    "rationale": safety_verdict.rationale
-                }},
-                correlation_id=event.correlation_id,
-                trace_id=event.trace_id,
-                tenant_id=event.tenant_id,
-                cell_id=event.cell_id,
-                idempotency_key=idempotency_key
-            )
+                # Audit: approval requested with intent binding
+                audit_logger.emit_audit_record(
+                    event_kind="approval_requested",
+                    payload_ref={"kind": "inline", "ref": {
+                        "approval_id": approval_id,
+                        "intent_id": execution_intent.intent_id,
+                        "intent_hash": intent_hash,
+                        "verdict": safety_verdict.verdict,
+                        "rationale": safety_verdict.rationale,
+                        "principal_id": authenticated_principal_id
+                    }},
+                    correlation_id=event.correlation_id,
+                    trace_id=event.trace_id,
+                    tenant_id=event.tenant_id,
+                    cell_id=event.cell_id,
+                    idempotency_key=idempotency_key
+                )
         else:
             # Audit: intent denied/escalated
             audit_logger.emit_audit_record(
@@ -632,16 +748,49 @@ async def get_audit_records(correlation_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def _authorize_approval_action(
+    approval_id: str,
+    api_key: Optional[str],
+    permission: Permission,
+) -> tuple:
+    """Authenticate and tenant-authorize an approval action.
+
+    Returns (auth_context, approval_details). The approval's tenant comes
+    from the stored request — never from caller-supplied fields.
+    """
+    details = approval_service.get_approval_details(approval_id)
+    if not details:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    auth_context = await _authenticate(api_key, permission, details.tenant_id)
+    return auth_context, details
+
+
 @app.post("/v1/approvals/{approval_id}/approve", response_model=ApprovalResponseV1)
-async def approve_approval(approval_id: str, request: ApprovalActionRequestV1):
+async def approve_approval(
+    approval_id: str,
+    request: ApprovalActionRequestV1,
+    x_api_key: Optional[str] = Header(default=None),
+):
     """Approve an approval request"""
     global approval_service
-    
+
     try:
-        logger.info(f"Approving request {approval_id} by operator {request.operator_id}")
-        
+        auth_context, details = await _authorize_approval_action(
+            approval_id, x_api_key, Permission.GRANT_APPROVAL
+        )
+
+        # The recorded approver is the authenticated principal; a
+        # request-supplied operator_id that differs is impersonation.
+        if request.operator_id != auth_context.principal_id:
+            raise HTTPException(
+                status_code=403,
+                detail="operator_id does not match the authenticated principal",
+            )
+
+        logger.info(f"Approving request {approval_id} by operator {auth_context.principal_id}")
+
         # Approve the request
-        status = approval_service.approve(approval_id, request.operator_id)
+        status = approval_service.approve(approval_id, auth_context.principal_id)
         
         # Get approval details
         details = approval_service.get_approval_details(approval_id)
@@ -660,25 +809,43 @@ async def approve_approval(approval_id: str, request: ApprovalActionRequestV1):
     except ValueError as e:
         logger.error(f"Failed to approve request {approval_id}: {e}")
         raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to approve request {approval_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/v1/approvals/{approval_id}/deny", response_model=ApprovalResponseV1)
-async def deny_approval(approval_id: str, request: ApprovalActionRequestV1):
+async def deny_approval(
+    approval_id: str,
+    request: ApprovalActionRequestV1,
+    x_api_key: Optional[str] = Header(default=None),
+):
     """Deny an approval request"""
     global approval_service
-    
+
     # Check if reason is provided for denial (outside try block to avoid catching HTTPException)
     if not request.reason or request.reason.strip() == "":
         raise HTTPException(status_code=422, detail="Reason is required for denial")
-    
+
     try:
-        logger.info(f"Denying request {approval_id} by operator {request.operator_id}")
-        
+        auth_context, details = await _authorize_approval_action(
+            approval_id, x_api_key, Permission.DENY_APPROVAL
+        )
+
+        # The recorded denier is the authenticated principal; a
+        # request-supplied operator_id that differs is impersonation.
+        if request.operator_id != auth_context.principal_id:
+            raise HTTPException(
+                status_code=403,
+                detail="operator_id does not match the authenticated principal",
+            )
+
+        logger.info(f"Denying request {approval_id} by operator {auth_context.principal_id}")
+
         # Deny the request
-        status = approval_service.deny(approval_id, request.operator_id, request.reason)
+        status = approval_service.deny(approval_id, auth_context.principal_id, request.reason)
         
         # Get approval details
         details = approval_service.get_approval_details(approval_id)
@@ -693,21 +860,27 @@ async def deny_approval(approval_id: str, request: ApprovalActionRequestV1):
         
         logger.info(f"Denied request {approval_id} with status {status}")
         return response
-        
+
     except ValueError as e:
         logger.error(f"Failed to deny request {approval_id}: {e}")
         raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to deny request {approval_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/v1/approvals/{approval_id}", response_model=ApprovalStatusResponseV1)
-async def get_approval_status(approval_id: str):
+async def get_approval_status(
+    approval_id: str,
+    x_api_key: Optional[str] = Header(default=None),
+):
     """Get approval status"""
     global approval_service
-    
+
     try:
+        await _authorize_approval_action(approval_id, x_api_key, Permission.VIEW_STATUS)
         logger.info(f"Retrieving approval status for {approval_id}")
         
         # Get approval details
@@ -725,7 +898,9 @@ async def get_approval_status(approval_id: str):
         
         logger.info(f"Retrieved approval status for {approval_id}: {details.status}")
         return response
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve approval status for {approval_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

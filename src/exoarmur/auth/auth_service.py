@@ -277,6 +277,64 @@ class AuthService:
         return auth_context
 
 
+def export_key_store_records(key_store: APIKeyStore) -> List[Dict[str, Any]]:
+    """Serialize an APIKeyStore to JSON-safe records.
+
+    Only key hashes are exported — never raw API keys.
+    """
+    records = []
+    for key in key_store.keys.values():
+        records.append({
+            "key_id": key.key_id,
+            "key_hash": key.key_hash,
+            "tenant_ids": list(key.tenant_ids),
+            "permissions": sorted(p.value for p in key.permissions),
+            "principal_id": key.principal_id,
+            "created_at": key.created_at.isoformat(),
+            "expires_at": key.expires_at.isoformat() if key.expires_at else None,
+            "is_active": key.is_active,
+            "description": key.description,
+            "last_used_at": key.last_used_at.isoformat() if key.last_used_at else None,
+        })
+    return records
+
+
+def import_key_store_records(key_store: APIKeyStore, records: List[Dict[str, Any]]) -> int:
+    """Load serialized API key records into a store. Returns count loaded.
+
+    Raises ValueError on malformed records — callers fail closed.
+    """
+    loaded = 0
+    for rec in records:
+        try:
+            permissions = {Permission(p) for p in rec["permissions"]}
+            key = APIKey(
+                key_id=rec["key_id"],
+                key_hash=rec["key_hash"],
+                tenant_ids=list(rec["tenant_ids"]),
+                permissions=permissions,
+                principal_id=rec["principal_id"],
+                created_at=datetime.fromisoformat(rec["created_at"]),
+                expires_at=(
+                    datetime.fromisoformat(rec["expires_at"])
+                    if rec.get("expires_at") else None
+                ),
+                is_active=bool(rec.get("is_active", True)),
+                description=rec.get("description"),
+                last_used_at=(
+                    datetime.fromisoformat(rec["last_used_at"])
+                    if rec.get("last_used_at") else None
+                ),
+            )
+        except (KeyError, ValueError) as exc:
+            raise ValueError(f"Malformed API key record {rec.get('key_id')!r}: {exc}") from exc
+
+        key_store.keys[key.key_id] = key
+        key_store.key_hashes[key.key_hash] = key.key_id
+        loaded += 1
+    return loaded
+
+
 # Global auth service instance
 _auth_service: Optional[AuthService] = None
 
