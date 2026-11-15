@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from enum import Enum
 
-from .canonical_utils import canonical_json, stable_hash
+from .canonical_utils import audit_payload_sha256, is_sha256_hex, verify_audit_payload_hash
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,9 @@ class AuditEventEnvelope:
     def __post_init__(self):
         """Validate and compute payload hash if not provided"""
         if not self.payload_hash:
-            # Compute hash of canonical payload
-            canonical_payload = canonical_json(self.payload)
-            computed_hash = stable_hash(canonical_payload)
+            # Compute hash using the audit record producer's convention so it
+            # is comparable with hashes recorded by AuditLogger
+            computed_hash = audit_payload_sha256(self.payload)
             # Use object.__setattr__ since dataclass is frozen
             object.__setattr__(self, 'payload_hash', computed_hash)
         
@@ -96,9 +96,7 @@ class AuditEventEnvelope:
     def verify_payload_integrity(self) -> bool:
         """Verify that payload matches stored hash"""
         try:
-            canonical_payload = canonical_json(self.payload)
-            computed_hash = stable_hash(canonical_payload)
-            return computed_hash == self.payload_hash
+            return verify_audit_payload_hash(self.payload, self.payload_hash)
         except Exception as e:
             logger.error(f"Payload integrity verification failed: {e}")
             return False
@@ -123,6 +121,17 @@ class AuditEventEnvelope:
     @classmethod
     def from_audit_record(cls, audit_record: 'AuditRecordV1', sequence_number: Optional[int] = None) -> 'AuditEventEnvelope':
         """Create envelope from existing audit record"""
+        # An existing audit record must carry its recorded integrity evidence;
+        # never manufacture a replacement hash for it
+        recorded_hash = (
+            audit_record.hashes.get("sha256")
+            if isinstance(audit_record.hashes, dict)
+            else None
+        )
+        if not is_sha256_hex(recorded_hash):
+            raise EnvelopeValidationError(
+                f"Audit record {audit_record.audit_id} has a missing or malformed sha256 hash"
+            )
         return cls(
             event_id=audit_record.audit_id,
             timestamp=audit_record.recorded_at,
@@ -130,7 +139,7 @@ class AuditEventEnvelope:
             actor="system",  # Default actor since AuditRecordV1 doesn't have actor field
             correlation_id=audit_record.correlation_id,
             payload=audit_record.payload_ref,
-            payload_hash="",  # Will be computed in __post_init__
+            payload_hash=recorded_hash,
             sequence_number=sequence_number,
             cell_id=audit_record.cell_id,
             tenant_id=audit_record.tenant_id,

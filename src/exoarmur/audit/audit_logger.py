@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from spec.contracts.models_v1 import AuditRecordV1
 from exoarmur.nats_client import ExoArmurNATSClient
+from exoarmur.replay.canonical_utils import audit_payload_sha256
 
 logger = logging.getLogger(__name__)
 
@@ -265,8 +266,7 @@ class AuditLogger:
     
     def _compute_hash(self, payload_ref: Dict[str, Any]) -> str:
         """Compute SHA256 hash of payload"""
-        payload_str = json.dumps(payload_ref, sort_keys=True)
-        return hashlib.sha256(payload_str.encode()).hexdigest()
+        return audit_payload_sha256(payload_ref)
     
     async def start_consumer(self) -> None:
         """Start consuming audit records from JetStream"""

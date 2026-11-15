@@ -11,7 +11,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from .event_envelope import AuditEventEnvelope, EnvelopeValidationError
-from .canonical_utils import canonical_json, stable_hash, verify_canonical_hash
+from .canonical_utils import (
+    canonical_json, stable_hash, verify_canonical_hash,
+    is_sha256_hex,
+)
 
 # Import system components for reconstruction
 import sys
@@ -146,17 +149,34 @@ class ReplayEngine:
         
         for i, record in enumerate(audit_records):
             try:
-                envelope = AuditEventEnvelope.from_audit_record(record, sequence_number=i)
-                
-                # Verify payload integrity
-                if not envelope.verify_payload_integrity():
-                    report.add_failure(f"Payload integrity check failed for event {record.event_id}")
+                # Validate the recorded payload hash before building the
+                # envelope; a missing or malformed hash must fail replay
+                recorded_hash = (
+                    record.hashes.get("sha256")
+                    if isinstance(record.hashes, dict)
+                    else None
+                )
+                if not is_sha256_hex(recorded_hash):
+                    report.add_failure(
+                        f"Missing or malformed sha256 hash for audit record {record.audit_id}"
+                    )
+                    report.audit_integrity_verified = False
                     continue
-                
+
+                envelope = AuditEventEnvelope.from_audit_record(record, sequence_number=i)
+
+                # Verify payload integrity against the recorded hash
+                if not envelope.verify_payload_integrity():
+                    report.add_failure(
+                        f"Payload integrity check failed for audit record {record.audit_id}"
+                    )
+                    report.audit_integrity_verified = False
+                    continue
+
                 envelopes.append(envelope)
-                
+
             except Exception as e:
-                report.add_failure(f"Failed to create envelope for record {record.event_id}: {e}")
+                report.add_failure(f"Failed to create envelope for audit record {record.audit_id}: {e}")
         
         return envelopes
 

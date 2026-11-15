@@ -7,7 +7,10 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Any
 
-from exoarmur.replay.canonical_utils import canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError
+from exoarmur.replay.canonical_utils import (
+    canonical_json, stable_hash, verify_canonical_hash, CanonicalHashError,
+    audit_payload_sha256,
+)
 from exoarmur.replay.event_envelope import AuditEventEnvelope, EventTypePriority, EnvelopeValidationError
 from exoarmur.replay.replay_engine import ReplayEngine, ReplayReport, ReplayResult, ReplayEngineError
 from exoarmur.control_plane.intent_store import IntentStore
@@ -244,7 +247,10 @@ class TestReplayEngine:
                 trace_id="trace-1"
             )
         ]
-        
+
+        for record in records:
+            record.hashes["sha256"] = audit_payload_sha256(record.payload_ref)
+
         return records
     
     @pytest.fixture
@@ -296,7 +302,8 @@ class TestReplayEngine:
             correlation_id="test-corr",
             trace_id="trace-1"
         )
-        
+        corrupted_record.hashes["sha256"] = audit_payload_sha256(corrupted_record.payload_ref)
+
         replay_engine.audit_store["test-corr"] = [corrupted_record]
         
         report = replay_engine.replay_correlation("test-corr")
@@ -337,11 +344,14 @@ class TestReplayEngine:
                 trace_id="trace-1"
             )
         ]
-        
+
+        for record in records:
+            record.hashes["sha256"] = audit_payload_sha256(record.payload_ref)
+
         replay_engine.audit_store["test-corr"] = records
-        
+
         report = replay_engine.replay_correlation("test-corr")
-        
+
         assert report.result == ReplayResult.SUCCESS
         # High priority event should be processed first
         # (this would be verified by checking processing order in actual implementation)
@@ -362,7 +372,8 @@ class TestReplayEngine:
             correlation_id="test-corr",
             trace_id="trace-1"
         )
-        
+        binding_record.hashes["sha256"] = audit_payload_sha256(binding_record.payload_ref)
+
         records = sample_audit_records + [binding_record]
         replay_engine.audit_store["test-corr"] = records
         
@@ -407,7 +418,8 @@ class TestReplayEngine:
             correlation_id="test-corr",
             trace_id="trace-1"
         )
-        
+        binding_record.hashes["sha256"] = audit_payload_sha256(binding_record.payload_ref)
+
         records = sample_audit_records + [binding_record]
         replay_engine.audit_store["test-corr"] = records
         
@@ -417,6 +429,143 @@ class TestReplayEngine:
         assert report.result == ReplayResult.SUCCESS
         # Intent should not be reconstructed since it's missing from store
         assert "missing-approval" not in report.reconstructed_intents
+
+
+class TestAuditRecordEnvelopeConversion:
+    """from_audit_record must carry recorded hash evidence, never invent it"""
+
+    PAYLOAD_REF = {
+        "kind": "inline",
+        "ref": {
+            "event_id": "event-1",
+            "correlation_id": "corr-conv",
+            "trace_id": "trace-1",
+        },
+    }
+
+    def _make_record(self, sha256=None):
+        recorded = (
+            audit_payload_sha256(self.PAYLOAD_REF) if sha256 is None else sha256
+        )
+        return AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id="01J4NR5X9Z8GABCDEF12345671",
+            tenant_id="tenant-1",
+            cell_id="cell-1",
+            idempotency_key="key-conv",
+            recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            event_kind="telemetry_ingested",
+            payload_ref=self.PAYLOAD_REF,
+            hashes={"sha256": recorded, "upstream_hashes": []},
+            correlation_id="corr-conv",
+            trace_id="trace-1",
+        )
+
+    def test_missing_recorded_hash_rejected(self):
+        record = self._make_record()
+        del record.hashes["sha256"]
+        with pytest.raises(EnvelopeValidationError):
+            AuditEventEnvelope.from_audit_record(record)
+
+    def test_empty_recorded_hash_rejected(self):
+        record = self._make_record(sha256="")
+        with pytest.raises(EnvelopeValidationError):
+            AuditEventEnvelope.from_audit_record(record)
+
+    def test_malformed_recorded_hash_rejected(self):
+        for bad in ["not-a-hash", "zz" * 32, "A" * 63]:
+            record = self._make_record(sha256=bad)
+            with pytest.raises(EnvelopeValidationError):
+                AuditEventEnvelope.from_audit_record(record)
+
+    def test_valid_recorded_hash_preserved(self):
+        record = self._make_record()
+        envelope = AuditEventEnvelope.from_audit_record(record)
+        assert envelope.payload_hash == record.hashes["sha256"]
+        assert envelope.verify_payload_integrity() is True
+
+    def test_changed_payload_with_original_hash_fails(self):
+        record = self._make_record()
+        tampered = dict(self.PAYLOAD_REF)
+        tampered["ref"] = dict(self.PAYLOAD_REF["ref"], event_id="event-EVIL")
+        record.payload_ref = tampered
+        envelope = AuditEventEnvelope.from_audit_record(record)
+        assert envelope.payload_hash == record.hashes["sha256"]
+        assert envelope.verify_payload_integrity() is False
+
+
+class TestReplayPayloadIntegrity:
+    """Replay must validate payload_ref against the recorded sha256 hash"""
+
+    PAYLOAD_REF = {
+        "kind": "inline",
+        "ref": {
+            "event_id": "event-1",
+            "correlation_id": "corr-integrity",
+            "trace_id": "trace-1",
+            "tenant_id": "tenant-1",
+            "cell_id": "cell-1",
+        },
+    }
+
+    def _make_record(self, payload_ref=None, sha256=None, audit_id="01J4NR5X9Z8GABCDEF12345670"):
+        payload = self.PAYLOAD_REF if payload_ref is None else payload_ref
+        recorded = audit_payload_sha256(payload) if sha256 is None else sha256
+        return AuditRecordV1(
+            schema_version="1.0.0",
+            audit_id=audit_id,
+            tenant_id="tenant-1",
+            cell_id="cell-1",
+            idempotency_key="key-integrity",
+            recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            event_kind="telemetry_ingested",
+            payload_ref=payload,
+            hashes={"sha256": recorded, "upstream_hashes": []},
+            correlation_id="corr-integrity",
+            trace_id="trace-1",
+        )
+
+    def _replay(self, record):
+        engine = ReplayEngine(audit_store={"corr-integrity": [record]})
+        return engine.replay_correlation("corr-integrity")
+
+    def test_valid_record_replays_successfully(self):
+        report = self._replay(self._make_record())
+        assert report.result == ReplayResult.SUCCESS
+        assert report.audit_integrity_verified is True
+        assert len(report.failures) == 0
+
+    def test_tampered_payload_with_original_hash_fails(self):
+        record = self._make_record()
+        tampered = dict(self.PAYLOAD_REF)
+        tampered["ref"] = dict(self.PAYLOAD_REF["ref"], event_id="event-EVIL")
+        record.payload_ref = tampered
+        # hashes["sha256"] still holds the hash of the original payload
+        report = self._replay(record)
+        assert report.result == ReplayResult.FAILURE
+        assert report.audit_integrity_verified is False
+        assert any("integrity" in f.lower() or "hash" in f.lower() for f in report.failures)
+
+    def test_changed_recorded_hash_fails(self):
+        record = self._make_record()
+        record.hashes["sha256"] = audit_payload_sha256({"tampered": True})
+        report = self._replay(record)
+        assert report.result == ReplayResult.FAILURE
+        assert report.audit_integrity_verified is False
+
+    def test_missing_sha256_fails(self):
+        record = self._make_record()
+        del record.hashes["sha256"]
+        report = self._replay(record)
+        assert report.result == ReplayResult.FAILURE
+        assert report.audit_integrity_verified is False
+
+    def test_malformed_sha256_fails(self):
+        for bad in ["", "not-a-hash", "zz" * 32, "A" * 63]:
+            record = self._make_record(sha256=bad)
+            report = self._replay(record)
+            assert report.result == ReplayResult.FAILURE, f"hash {bad!r} should fail"
+            assert report.audit_integrity_verified is False
 
 
 class TestReplayIntegration:
