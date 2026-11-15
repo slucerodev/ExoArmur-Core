@@ -303,9 +303,19 @@ certification. No third-party audit or formal verification has been conducted.*
 
 ### DACT v0.2 Self-Assessment
 
-DACT Levels 1-5 are **internally evaluated** by the ExoArmur test suite —
-this is self-assessment against our own framework, not certification.
-Level 6 (formal verification) remains pending external/formal review.
+DACT is ExoArmur's own evaluation framework, not an independent standard
+or certification. Current status per level:
+
+- **Levels 1, 4, 5** — internally evaluated within their documented scope
+  by dedicated compliance tests (`tests/compliance/`).
+- **Level 2 (Cryptographic Attestation)** — partial: canonical hashes are
+  computed and checked for consistency; evidence signatures are stored but
+  not verified (`NOT_CHECKED`).
+- **Level 3 (Counterfactual Analysis)** — not implemented; no
+  counterfactual engine exists on this baseline.
+- **Level 6 (Formal Verification)** — pending external/formal review.
+
+This is self-assessment against our own framework, not certification.
 
 ### Known Gaps on This Baseline
 
