@@ -70,7 +70,7 @@ class LoginRequest(BaseModel):
 async def login(body: LoginRequest, response: Response) -> dict:
     """Exchange a validated API key for a short-lived HttpOnly session cookie."""
     principal = await auth.authenticate_api_key(body.api_key)
-    token = await auth.issue_session(principal)
+    token = await auth.issue_session(principal, auth.hash_key(body.api_key))
     auth.set_session_cookie(response, token)
     return {
         "principal_id": principal.principal_id,
