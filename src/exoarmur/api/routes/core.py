@@ -16,10 +16,12 @@ from exoarmur.api.stores import (
     observation_store,
 )
 
+health_router = APIRouter()
 router = APIRouter()
+router.include_router(health_router)
 
 
-@router.get("/health", response_model=HealthResponse)
+@health_router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
     return HealthResponse(
         status="healthy",

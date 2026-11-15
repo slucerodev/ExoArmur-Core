@@ -120,8 +120,11 @@ uvicorn "exoarmur.api.server:create_pilot_app" --factory --host 127.0.0.1 --port
 ```
 
 `create_pilot_app` is the **supported pilot surface**: it mounts only
-`/health` and `/api/pilot/*`. The legacy/demo routers (`/v1/*`,
-`/api/v2/*`, `/api/cli/*`) are not exposed there; they remain available
+`/health` and `/api/pilot/*` (plus FastAPI's intentional `/docs`,
+`/redoc`, `/openapi.json` schema endpoints). The legacy/demo routers
+(`/v1/*`, `/api/v2/*`, `/api/cli/*`) and the unauthenticated
+`/admin/consistency` endpoint are not exposed there; they remain
+available
 separately and unauthenticated via `exoarmur.api.server:create_app` for
 the deterministic demo/CLI surface — do not use `create_app` for pilot
 deployments.

@@ -68,7 +68,7 @@ This matrix documents the current validation status of ExoArmur-Core across all 
 | cffi | 2.0.0 | None | ✅ Clean |
 | annotated-types | 0.7.0 | None | ✅ Clean |
 
-**Note**: All dependencies scanned with pip-audit using upgraded pip (26.1.2) in fresh virtual environment.
+**Note**: Versions above reflect `requirements.lock` as of November 2026. The pip-audit scan (upgraded pip 26.1.2, fresh venv) was run June 1, 2026 against the then-current pins — `python-ulid`, `cryptography`, `click`, and `python-json-logger` have changed since, so their "Clean" status is dated evidence, not a current scan result. Re-run `pip-audit` for current versions.
 
 ## Code Suppression Audit
 

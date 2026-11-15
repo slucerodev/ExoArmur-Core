@@ -12,18 +12,18 @@ This document provides a comprehensive review of all third-party dependencies in
 
 ### Direct Dependencies
 
-| Package | Version | License | Purpose | Security Status |
+| Package | Version (requirements.lock) | License | Purpose | Security Status |
 |---------|---------|---------|---------|-----------------|
-| pydantic | 2.12.5 | MIT | Data validation and parsing | ✅ No known vulnerabilities |
-| pydantic-core | 2.41.5 | MIT | Pydantic core functionality | ✅ No known vulnerabilities |
-| cryptography | 48.0.0 | Apache 2.0 / BSD | Cryptographic operations | ✅ No known vulnerabilities |
-| python-ulid | 4.1.0 | MIT | Deterministic ID generation | ✅ No known vulnerabilities |
-| click | 8.4.1 | BSD | CLI framework | ✅ No known vulnerabilities |
-| python-json-logger | 4.1.0 | BSD | Structured logging | ✅ No known vulnerabilities |
-| typing-extensions | 4.15.0 | MIT | Type hints | ✅ No known vulnerabilities |
-| typing-inspection | 0.4.2 | MIT | Type inspection | ✅ No known vulnerabilities |
-| cffi | 2.0.0 | MIT | Foreign function interface | ✅ No known vulnerabilities |
-| annotated-types | 0.7.0 | MIT | Type annotations | ✅ No known vulnerabilities |
+| pydantic | 2.12.5 | MIT | Data validation and parsing | ✅ No known vulnerabilities (June 1, 2026 scan) |
+| pydantic-core | 2.41.5 | MIT | Pydantic core functionality | ✅ No known vulnerabilities (June 1, 2026 scan) |
+| cryptography | 46.0.7 | Apache 2.0 / BSD | Cryptographic operations | ⚠️ Version changed since scan — unverified, re-run pip-audit |
+| python-ulid | 4.1.0 | MIT | Deterministic ID generation | ⚠️ Version changed since scan — unverified, re-run pip-audit |
+| click | 8.3.1 | BSD | CLI framework | ⚠️ Version changed since scan — unverified, re-run pip-audit |
+| python-json-logger | 2.0.7 | BSD | Structured logging | ⚠️ Version changed since scan — unverified, re-run pip-audit |
+| typing-extensions | 4.15.0 | MIT | Type hints | ✅ No known vulnerabilities (June 1, 2026 scan) |
+| typing-inspection | 0.4.2 | MIT | Type inspection | ✅ No known vulnerabilities (June 1, 2026 scan) |
+| cffi | 2.0.0 | MIT | Foreign function interface | ✅ No known vulnerabilities (June 1, 2026 scan) |
+| annotated-types | 0.7.0 | MIT | Type annotations | ✅ No known vulnerabilities (June 1, 2026 scan) |
 
 ### Indirect Dependencies
 
@@ -54,22 +54,23 @@ python -m venv /tmp/exoarmur_audit_venv
 ### Security Assessment
 
 **High-Value Dependencies:**
-- **cryptography (48.0.0)** - Critical for cryptographic operations. Well-maintained, frequent security updates. No known vulnerabilities.
-- **pydantic (2.12.5)** - Core data validation. Actively maintained, strong security track record. No known vulnerabilities.
+- **cryptography (46.0.7)** - Critical for cryptographic operations. Well-maintained, frequent security updates. Version differs from the June 1, 2026 scan — re-run pip-audit before relying on a clean result.
+- **pydantic (2.12.5)** - Core data validation. Actively maintained, strong security track record. No known vulnerabilities (June 1, 2026 scan).
 
 **Medium-Value Dependencies:**
-- **python-ulid (4.1.0)** - Deterministic ID generation. Minimal attack surface. No known vulnerabilities.
-- **click (8.4.1)** - CLI framework. Mature, well-tested. No known vulnerabilities.
+- **python-ulid (4.1.0)** - Deterministic ID generation. Minimal attack surface. Version changed since the June 1, 2026 scan — unverified.
+- **click (8.3.1)** - CLI framework. Mature, well-tested. Version differs from the June 1, 2026 scan — unverified.
 
 **Low-Value Dependencies:**
 - **typing-extensions, typing-inspection, cffi, annotated-types** - Type checking and FFI. Minimal security impact. No known vulnerabilities.
 
 ### Dependency Security Posture
 
-**Overall Assessment:** ✅ Clean
+**Overall Assessment:** ✅ Clean as of the June 1, 2026 scan — with caveats
 
-All dependencies have:
-- No known vulnerabilities in current versions
+As of that dated scan, dependencies had:
+- No known vulnerabilities in the scanned versions (several pins have since
+  changed — see ⚠️ rows above; re-run `pip-audit` for current results)
 - Permissive licenses compatible with commercial use
 - Active maintenance and security updates
 - Strong security track records
