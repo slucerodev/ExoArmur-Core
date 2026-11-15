@@ -37,7 +37,7 @@ class IDFactory:
         digest = hashlib.sha256(canonical.encode("utf-8")).digest()
 
         # Generate ULID from hash bytes
-        return str(ulid.from_bytes(digest[:16]))
+        return str(ulid.ULID.from_bytes(digest[:16]))
 
     def make_intent_id(
         self,
