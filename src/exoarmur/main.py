@@ -47,9 +47,15 @@ from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
+from exoarmur.policy.operator_policy import (
+    OperatorPolicy,
+    OperatorPolicyDecisionPoint,
+    load_operator_policy,
+    PolicyUnavailableError,
+    PolicyVerificationError,
+)
 from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, TrustedSafetyContext
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
-from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
 
 # Configure structured logging
@@ -74,21 +80,26 @@ execution_kernel: Optional[ExecutionKernel] = None
 audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
 intent_store: Optional[IntentStore] = None
+operator_policy: Optional[OperatorPolicy] = None
 background_tasks = set()  # Track background tasks for deterministic shutdown
 
 
-class _AllowPolicyDecisionPoint:
-    def evaluate(self, intent: ActionIntent) -> PolicyDecision:
-        return PolicyDecision(
-            verdict=PolicyVerdict.ALLOW,
-            rationale="allow_path_adapter",
-            confidence=1.0,
-            approval_required=False,
-            policy_version="v1-ingest-adapter"
-        )
+def _load_operator_policy() -> Optional[OperatorPolicy]:
+    """Load the operator-approved policy, fail-closed.
 
-    def approval_status(self, intent_id: str) -> str:
-        return "not_required"
+    Requires both EXOARMUR_POLICY_FILE (operator-controlled path) and
+    EXOARMUR_POLICY_SHA256 (independently pinned digest). Any missing or
+    invalid input yields None — policy evaluation then denies by default.
+    """
+    path = os.environ.get("EXOARMUR_POLICY_FILE", "").strip()
+    digest = os.environ.get("EXOARMUR_POLICY_SHA256", "").strip()
+    if not path and not digest:
+        return None
+    try:
+        return load_operator_policy(path, digest)
+    except (PolicyUnavailableError, PolicyVerificationError) as exc:
+        logger.error("Operator policy unavailable; execution policy denies by default: %s", exc)
+        return None
 
 
 class _ExecutionIntentRecorder:
@@ -157,13 +168,16 @@ def _deterministic_audit_retrieved_at(audit_records: List[AuditRecordV1]) -> dat
     return datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
-def _to_action_intent(execution_intent) -> ActionIntent:
+def _to_action_intent(execution_intent, actor_id: Optional[str] = None) -> ActionIntent:
     subject = execution_intent.subject or {}
     subject_id = str(subject.get("subject_id", execution_intent.intent_id))
     subject_type = str(subject.get("subject_type", "subject"))
+    # actor_id is the authenticated principal when supplied; the telemetry
+    # subject is monitored data, not caller identity.
+    actor = actor_id if actor_id is not None else subject_id
     return ActionIntent(
         intent_id=execution_intent.intent_id,
-        actor_id=subject_id,
+        actor_id=actor,
         actor_type=subject_type,
         action_type=execution_intent.intent_type,
         target=f"exoarmur://execution-intent/{subject_id}",
@@ -196,21 +210,21 @@ def _operator_trust_score() -> Optional[float]:
     return value
 
 
-async def _execute_intent_via_proxy_pipeline(execution_intent, trusted_context: TrustedSafetyContext) -> bool:
+async def _execute_intent_via_proxy_pipeline(execution_intent, trusted_context: TrustedSafetyContext, actor_id: Optional[str] = None) -> bool:
     if execution_kernel is None or audit_logger is None:
         raise RuntimeError("Execution runtime is not initialized")
 
     pipeline_audit_emitter = _BufferedPipelineAuditEmitter()
 
     pipeline = ProxyPipeline(
-        _AllowPolicyDecisionPoint(),
+        OperatorPolicyDecisionPoint(operator_policy),
         safety_gate if safety_gate is not None else SafetyGate(),
         _ExecutionIntentRecorder(execution_kernel, execution_intent),
         pipeline_audit_emitter,
         execution_gate=execution_gate if execution_gate is not None else ExecutionGate(nats_client=nats_client),
         trusted_safety_context=trusted_context,
     )
-    result, _trace = await pipeline.execute_with_trace_async(_to_action_intent(execution_intent))
+    result, _trace = await pipeline.execute_with_trace_async(_to_action_intent(execution_intent, actor_id=actor_id))
 
     for event in pipeline_audit_emitter.events:
         await audit_logger.emit_audit_record_async(
@@ -237,8 +251,10 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     """Initialize ExoArmur Core components"""
     global nats_client, telemetry_validator, facts_deriver, local_decider
     global belief_generator, collective_aggregator, safety_gate, execution_gate, execution_kernel, audit_logger, approval_service, intent_store
-    
+    global operator_policy
+
     nats_client = nats_client_instance
+    operator_policy = _load_operator_policy()
     
     # Initialize internal modules
     telemetry_validator = TelemetryValidator()
@@ -383,8 +399,9 @@ async def ingest_telemetry(event: TelemetryEventV1):
         # Only authoritative sources are used: local_decision and
         # collective_state are produced above. Inputs with no source are
         # represented honestly rather than fabricated:
-        #   - policy_verified=False: no policy verification mechanism exists,
-        #     so the gate must escalate rather than treat a boolean as proof.
+        #   - policy_verified: True only when a digest-verified operator
+        #     policy is loaded; per-intent authorization is still enforced
+        #     by OperatorPolicyDecisionPoint at dispatch.
         #   - trust: explicit operator configuration only
         #     (EXOARMUR_OPERATOR_TRUST_SCORE); unavailable -> blocked verdict.
         #   - degraded_mode=True: no degraded-mode monitoring exists, so the
@@ -394,7 +411,7 @@ async def ingest_telemetry(event: TelemetryEventV1):
         from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState, SafetyVerdict
 
         policy_state = PolicyState(
-            policy_verified=False,
+            policy_verified=operator_policy is not None,
             kill_switch_global=False,
             kill_switch_tenant=False,
             required_approval="none"
@@ -449,35 +466,68 @@ async def ingest_telemetry(event: TelemetryEventV1):
         )
         
         if safety_verdict.verdict == "allow":
-            # Execute intent immediately. The trusted safety context reuses
-            # the real upstream artifacts: the LocalDecisionV1, collective
-            # state, and policy/trust/environment states evaluated above, and
-            # the action class derived by ExecutionKernel (not caller input).
-            trusted_context = TrustedSafetyContext(
-                local_decision=local_decision,
-                tenant_id=execution_intent.tenant_id,
-                actor_id=str((execution_intent.subject or {}).get("subject_id", "")),
-                trust_score=operator_trust,
-                collective_state=collective_state,
-                policy_verified=policy_state.policy_verified,
-                kill_switch_global=policy_state.kill_switch_global,
-                kill_switch_tenant=policy_state.kill_switch_tenant,
-                required_approval=policy_state.required_approval,
-                degraded_mode=environment_state.degraded_mode,
-                action_classes={execution_intent.intent_type: execution_intent.action_class},
-            )
-            await _execute_intent_via_proxy_pipeline(execution_intent, trusted_context)
-            
-            # Audit: intent executed
-            audit_logger.emit_audit_record(
-                event_kind="intent_executed",
-                payload_ref={"kind": "inline", "ref": execution_intent.model_dump()},
-                correlation_id=event.correlation_id,
-                trace_id=event.trace_id,
-                tenant_id=event.tenant_id,
-                cell_id=event.cell_id,
-                idempotency_key=idempotency_key
-            )
+            # Identity constraint: operator policy rules bind an authenticated
+            # principal. This route has no authenticated principal context —
+            # the telemetry subject_id is data about the observed subject, not
+            # proof of the caller's identity — so governed execution remains
+            # blocked here until an authenticated dependency supplies one.
+            authenticated_principal_id = None
+            policy_rule = None
+            if authenticated_principal_id is not None and operator_policy is not None:
+                policy_rule = operator_policy.matching_rule(
+                    execution_intent.tenant_id,
+                    authenticated_principal_id,
+                    execution_intent.intent_type,
+                )
+
+            if policy_rule is None:
+                audit_logger.emit_audit_record(
+                    event_kind="execution_blocked",
+                    payload_ref={"kind": "inline", "ref": {
+                        "reason": "no_authenticated_principal_or_policy_rule",
+                        "verdict": safety_verdict.verdict,
+                    }},
+                    correlation_id=event.correlation_id,
+                    trace_id=event.trace_id,
+                    tenant_id=event.tenant_id,
+                    cell_id=event.cell_id,
+                    idempotency_key=idempotency_key
+                )
+            else:
+                # Execute intent. The trusted safety context reuses the real
+                # upstream artifacts and the matched operator policy rule —
+                # never caller-supplied values.
+                trusted_context = TrustedSafetyContext(
+                    local_decision=local_decision,
+                    tenant_id=execution_intent.tenant_id,
+                    actor_id=authenticated_principal_id,
+                    trust_score=operator_trust,
+                    collective_state=collective_state,
+                    policy_verified=True,
+                    kill_switch_global=policy_state.kill_switch_global,
+                    kill_switch_tenant=policy_state.kill_switch_tenant,
+                    required_approval=policy_rule.required_approval,
+                    degraded_mode=environment_state.degraded_mode,
+                    action_classes=dict(policy_rule.action_classes),
+                    default_action_class=policy_rule.default_action_class,
+                )
+                executed = await _execute_intent_via_proxy_pipeline(
+                    execution_intent, trusted_context, actor_id=authenticated_principal_id
+                )
+
+                # Audit: intent executed (only on actual executor success)
+                audit_logger.emit_audit_record(
+                    event_kind="intent_executed" if executed else "execution_blocked",
+                    payload_ref={"kind": "inline", "ref": {
+                        "intent_id": execution_intent.intent_id,
+                        "executed": executed,
+                    }},
+                    correlation_id=event.correlation_id,
+                    trace_id=event.trace_id,
+                    tenant_id=event.tenant_id,
+                    cell_id=event.cell_id,
+                    idempotency_key=idempotency_key
+                )
         elif safety_verdict.verdict in ["require_human", "require_quorum"]:
             # Create approval request and freeze intent
             approval_id = approval_service.create_request(
