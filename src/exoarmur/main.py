@@ -41,12 +41,13 @@ from exoarmur.decision.local_decider import LocalDecider
 from exoarmur.beliefs.belief_generator import BeliefGenerator
 from exoarmur.collective_confidence.aggregator import CollectiveConfidenceAggregator
 from exoarmur.safety.safety_gate import SafetyGate
+from exoarmur.safety.execution_gate import ExecutionGate
 from exoarmur.execution.execution_kernel import ExecutionKernel
 from exoarmur.audit.audit_logger import AuditLogger
 from exoarmur.nats_client import ExoArmurNATSClient, NATSConfig
 from exoarmur.control_plane.approval_service import ApprovalService
 from exoarmur.control_plane.intent_store import IntentStore
-from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline
+from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import ProxyPipeline, TrustedSafetyContext
 from exoarmur.execution_boundary_v2.models.action_intent import ActionIntent
 from exoarmur.execution_boundary_v2.models.policy_decision import PolicyDecision, PolicyVerdict
 from exoarmur.execution_boundary_v2.interfaces.executor_plugin import ExecutorResult
@@ -68,6 +69,7 @@ local_decider: Optional[LocalDecider] = None
 belief_generator: Optional[BeliefGenerator] = None
 collective_aggregator: Optional[CollectiveConfidenceAggregator] = None
 safety_gate: Optional[SafetyGate] = None
+execution_gate: Optional[ExecutionGate] = None
 execution_kernel: Optional[ExecutionKernel] = None
 audit_logger: Optional[AuditLogger] = None
 approval_service: Optional[ApprovalService] = None
@@ -87,14 +89,6 @@ class _AllowPolicyDecisionPoint:
 
     def approval_status(self, intent_id: str) -> str:
         return "not_required"
-
-
-class _FixedSafetyGate:
-    def __init__(self, safety_verdict):
-        self._safety_verdict = safety_verdict
-
-    def evaluate_safety(self, intent, local_decision, collective_state, policy_state, trust_state, environment_state):
-        return self._safety_verdict
 
 
 class _ExecutionIntentRecorder:
@@ -181,7 +175,28 @@ def _to_action_intent(execution_intent) -> ActionIntent:
     )
 
 
-async def _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict) -> bool:
+def _operator_trust_score() -> Optional[float]:
+    """Explicitly configured operator trust score for the pilot deployment.
+
+    This is configured trust for the deployment principal — not a measured
+    score. Returns None when not configured; callers must treat that as
+    unavailable and block execution rather than inventing a value.
+    """
+    raw = os.environ.get("EXOARMUR_OPERATOR_TRUST_SCORE")
+    if raw is None or not raw.strip():
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        logger.error("EXOARMUR_OPERATOR_TRUST_SCORE is not a valid float: %r", raw)
+        return None
+    if not 0.0 <= value <= 1.0:
+        logger.error("EXOARMUR_OPERATOR_TRUST_SCORE out of range [0,1]: %r", raw)
+        return None
+    return value
+
+
+async def _execute_intent_via_proxy_pipeline(execution_intent, trusted_context: TrustedSafetyContext) -> bool:
     if execution_kernel is None or audit_logger is None:
         raise RuntimeError("Execution runtime is not initialized")
 
@@ -189,11 +204,13 @@ async def _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict) -
 
     pipeline = ProxyPipeline(
         _AllowPolicyDecisionPoint(),
-        _FixedSafetyGate(safety_verdict),
+        safety_gate if safety_gate is not None else SafetyGate(),
         _ExecutionIntentRecorder(execution_kernel, execution_intent),
         pipeline_audit_emitter,
+        execution_gate=execution_gate if execution_gate is not None else ExecutionGate(nats_client=nats_client),
+        trusted_safety_context=trusted_context,
     )
-    result = pipeline.execute(_to_action_intent(execution_intent))
+    result, _trace = await pipeline.execute_with_trace_async(_to_action_intent(execution_intent))
 
     for event in pipeline_audit_emitter.events:
         await audit_logger.emit_audit_record_async(
@@ -219,7 +236,7 @@ async def _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict) -
 def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = None):
     """Initialize ExoArmur Core components"""
     global nats_client, telemetry_validator, facts_deriver, local_decider
-    global belief_generator, collective_aggregator, safety_gate, execution_kernel, audit_logger, approval_service, intent_store
+    global belief_generator, collective_aggregator, safety_gate, execution_gate, execution_kernel, audit_logger, approval_service, intent_store
     
     nats_client = nats_client_instance
     
@@ -230,6 +247,7 @@ def initialize_components(nats_client_instance: Optional[ExoArmurNATSClient] = N
     belief_generator = BeliefGenerator(nats_client)
     collective_aggregator = CollectiveConfidenceAggregator(nats_client)
     safety_gate = SafetyGate()
+    execution_gate = ExecutionGate(nats_client)
     approval_service = ApprovalService()
     intent_store = IntentStore()
     execution_kernel = ExecutionKernel(nats_client, approval_service, intent_store)
@@ -361,28 +379,48 @@ async def ingest_telemetry(event: TelemetryEventV1):
         # Step 5: Collective confidence - compute collective state
         collective_state = collective_aggregator.compute_collective_state(belief)
         
-        # Step 6: Safety - evaluate safety gate with arbitration
-        from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState
-        
+        # Step 6: Safety - evaluate safety gate with arbitration.
+        # Only authoritative sources are used: local_decision and
+        # collective_state are produced above. Inputs with no source are
+        # represented honestly rather than fabricated:
+        #   - policy_verified=False: no policy verification mechanism exists,
+        #     so the gate must escalate rather than treat a boolean as proof.
+        #   - trust: explicit operator configuration only
+        #     (EXOARMUR_OPERATOR_TRUST_SCORE); unavailable -> blocked verdict.
+        #   - degraded_mode=True: no degraded-mode monitoring exists, so the
+        #     conservative value is assumed.
+        #   - kill_switch_*: advisory for the V1 gate rules only; the
+        #     authoritative check is ExecutionGate immediately before dispatch.
+        from exoarmur.safety.safety_gate import PolicyState, TrustState, EnvironmentState, SafetyVerdict
+
         policy_state = PolicyState(
-            policy_verified=True,  # TODO: implement actual policy verification
-            kill_switch_global=False,  # TODO: implement actual kill switch checks
+            policy_verified=False,
+            kill_switch_global=False,
             kill_switch_tenant=False,
             required_approval="none"
         )
-        
-        trust_state = TrustState(emitter_trust_score=0.85)  # TODO: implement actual trust scoring
-        
-        environment_state = EnvironmentState(degraded_mode=False)  # TODO: implement actual degraded mode detection
-        
-        safety_verdict = safety_gate.evaluate_safety(
-            intent=None,  # Will be created in execution step
-            local_decision=local_decision,
-            collective_state=collective_state,
-            policy_state=policy_state,
-            trust_state=trust_state,
-            environment_state=environment_state
-        )
+
+        operator_trust = _operator_trust_score()
+        if operator_trust is None:
+            safety_verdict = SafetyVerdict(
+                verdict="require_human",
+                rationale=(
+                    "Operator trust score is not configured "
+                    "(EXOARMUR_OPERATOR_TRUST_SCORE); execution blocked"
+                ),
+                rule_ids=["SG-TRUST-UNAVAILABLE"],
+            )
+        else:
+            trust_state = TrustState(emitter_trust_score=operator_trust)
+            environment_state = EnvironmentState(degraded_mode=True)
+            safety_verdict = safety_gate.evaluate_safety(
+                intent=None,  # Will be created in execution step
+                local_decision=local_decision,
+                collective_state=collective_state,
+                policy_state=policy_state,
+                trust_state=trust_state,
+                environment_state=environment_state
+            )
         
         # Audit: safety gate evaluated
         audit_logger.emit_audit_record(
@@ -411,8 +449,24 @@ async def ingest_telemetry(event: TelemetryEventV1):
         )
         
         if safety_verdict.verdict == "allow":
-            # Execute intent immediately
-            await _execute_intent_via_proxy_pipeline(execution_intent, safety_verdict)
+            # Execute intent immediately. The trusted safety context reuses
+            # the real upstream artifacts: the LocalDecisionV1, collective
+            # state, and policy/trust/environment states evaluated above, and
+            # the action class derived by ExecutionKernel (not caller input).
+            trusted_context = TrustedSafetyContext(
+                local_decision=local_decision,
+                tenant_id=execution_intent.tenant_id,
+                actor_id=str((execution_intent.subject or {}).get("subject_id", "")),
+                trust_score=operator_trust,
+                collective_state=collective_state,
+                policy_verified=policy_state.policy_verified,
+                kill_switch_global=policy_state.kill_switch_global,
+                kill_switch_tenant=policy_state.kill_switch_tenant,
+                required_approval=policy_state.required_approval,
+                degraded_mode=environment_state.degraded_mode,
+                action_classes={execution_intent.intent_type: execution_intent.action_class},
+            )
+            await _execute_intent_via_proxy_pipeline(execution_intent, trusted_context)
             
             # Audit: intent executed
             audit_logger.emit_audit_record(

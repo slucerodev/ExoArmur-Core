@@ -92,6 +92,7 @@ class TestHTTPExecutorIntegration:
             intent_id="test-http-123",
             actor_id="agent-001",
             actor_type="agent",
+            tenant_id="test-tenant",
             action_type="http_request",
             target="https://api.example.com/health",
             parameters={
@@ -118,7 +119,7 @@ class TestHTTPExecutorIntegration:
         # Mock the HTTP executor's _execute_http_request method
         with patch.object(http_executor, '_execute_http_request', return_value=mock_response):
             # Create proxy pipeline with HTTP executor
-            pipeline = ProxyPipeline(fake_pdp, fake_safety_gate, http_executor, audit_emitter)
+            pipeline = ProxyPipeline(fake_pdp, fake_safety_gate, http_executor, audit_emitter, trusted_safety_context=_trusted_context())
             
             # Execute intent through pipeline
             result = pipeline.execute(sample_http_intent)
@@ -163,7 +164,7 @@ class TestHTTPExecutorIntegration:
             mock_execute.side_effect = Exception("Connection timeout")
             
             # Create proxy pipeline with HTTP executor
-            pipeline = ProxyPipeline(fake_pdp, fake_safety_gate, http_executor, audit_emitter)
+            pipeline = ProxyPipeline(fake_pdp, fake_safety_gate, http_executor, audit_emitter, trusted_safety_context=_trusted_context())
             
             # Execute intent through pipeline
             result = pipeline.execute(sample_http_intent)
@@ -193,3 +194,37 @@ class TestHTTPExecutorIntegration:
     def test_http_executor_name(self, http_executor):
         """Test HTTP executor name."""
         assert http_executor.name() == "http-executor"
+
+
+def _trusted_context():
+    """Operator-supplied trusted safety context for pipeline tests."""
+    from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import TrustedSafetyContext
+    from exoarmur.collective_confidence.aggregator import CollectiveState
+    from spec.contracts.models_v1 import LocalDecisionV1
+
+    decision = LocalDecisionV1(
+        schema_version="1.0.0",
+        decision_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        tenant_id="test-tenant",
+        cell_id="test-cell",
+        subject={"subject_type": "agent", "subject_id": "agent-001"},
+        classification="benign",
+        severity="low",
+        confidence=0.95,
+        evidence_refs={},
+        correlation_id="corr-1",
+        trace_id="trace-1",
+    )
+    return TrustedSafetyContext(
+        local_decision=decision,
+        tenant_id="test-tenant",
+        actor_id="agent-001",
+        trust_score=0.9,
+        collective_state=CollectiveState(aggregate_score=0.0, quorum_count=0, conflict_detected=False),
+        policy_verified=True,
+        kill_switch_global=False,
+        kill_switch_tenant=False,
+        required_approval="none",
+        degraded_mode=False,
+        action_classes={"*": "A1_soft_containment"},
+    )

@@ -34,6 +34,7 @@ def reset_feature_flags_isolation():
         'EXOARMUR_FLAG_V2_FEDERATION_IDENTITY_ENABLED',
         'EXOARMUR_FLAG_V2_AUDIT_FEDERATION_ENABLED',
         'EXOARMUR_FAIL_OPEN_KILL_SWITCH',  # Test mode kill switch override
+        'EXOARMUR_OPERATOR_TRUST_SCORE',  # Operator-configured trust for pilot path
         'EXOARMUR_TEST_API_KEY'  # Test API key for auth tests
     ]
     
@@ -42,6 +43,7 @@ def reset_feature_flags_isolation():
     
     # Set test mode defaults (only if not already set)
     os.environ.setdefault('EXOARMUR_FAIL_OPEN_KILL_SWITCH', '1')
+    os.environ.setdefault('EXOARMUR_OPERATOR_TRUST_SCORE', '0.9')
     os.environ.setdefault('EXOARMUR_TEST_API_KEY', 'test-api-key-12345')
     
     # Reset global feature flags instance

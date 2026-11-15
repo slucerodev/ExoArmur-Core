@@ -5,7 +5,6 @@ Provides framework-agnostic wrapper to route tool execution through
 ExoArmur's ProxyPipeline without modifying Core runtime entrypoints.
 """
 
-import asyncio
 from datetime import datetime
 from typing import Any, Callable, Dict, Mapping, Optional, Union
 from inspect import iscoroutinefunction
@@ -109,12 +108,11 @@ def _wrap_async_tool(
         # Create ActionIntent
         intent = _create_action_intent(tool_name, args, kwargs, clock)
         
-        # Execute through pipeline (run sync pipeline in async context)
+        # Execute through pipeline on the caller's event loop so
+        # loop-bound enforcement components (e.g. NATS kill-switch state)
+        # are awaited natively
         pipeline = pipeline_factory()
-        # Run the sync execute method in the async context
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: pipeline.execute(intent)
-        )
+        result, _trace = await pipeline.execute_with_trace_async(intent)
         
         # Return the executor result output
         return result.output

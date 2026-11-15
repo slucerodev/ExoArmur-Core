@@ -19,6 +19,7 @@ class ExecutionActionType(str, Enum):
     IDENTITY_CONTAINMENT_REVERT = "identity_containment_revert"
     IDENTITY_CONTAINMENT_EXPIRE = "identity_containment_expire"
     EXECUTION_KERNEL_INTENT = "execution_kernel_intent"
+    PROXY_PIPELINE_EXECUTION = "proxy_pipeline_execution"
     FEDERATION_JOIN = "federation_join"
     APPROVAL_GRANT = "approval_grant"
     APPROVAL_DENY = "approval_deny"

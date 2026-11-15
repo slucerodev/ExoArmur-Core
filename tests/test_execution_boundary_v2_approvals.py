@@ -173,8 +173,10 @@ class TestApprovalIntegration:
             action_type="http_request",
             target="https://api.example.com/sensitive",
             parameters={"method": "POST"},
-            safety_context={"risk_level": "medium"},
-            timestamp=datetime.now(timezone.utc)
+            safety_context={"risk_level": "medium", "action_class": "A1_soft_containment"},
+            timestamp=datetime.now(timezone.utc),
+            tenant_id="test-tenant",
+            cell_id="test-cell"
         )
     
     @pytest.fixture
@@ -296,7 +298,7 @@ class TestApprovalIntegration:
             def execute(self, intent):
                 raise Exception("Should not be called")
         
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter(), trusted_safety_context=_trusted_context())
         
         # Execute intent - should return approval pending
         result = pipeline.execute(sample_intent)
@@ -326,7 +328,7 @@ class TestApprovalIntegration:
             def execute(self, intent):
                 raise Exception("Should not be called")
         
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), FakeExecutor(), AuditEmitter(), trusted_safety_context=_trusted_context())
         
         # Record denial
         denial_record = ApprovalRecord(
@@ -371,7 +373,7 @@ class TestApprovalIntegration:
                 return ExecutorResult(success=True, output={"status": "success"}, error=None, evidence={})
         
         fake_executor = FakeExecutor()
-        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), fake_executor, AuditEmitter())
+        pipeline = ProxyPipeline(pdp, FakeSafetyGate(), fake_executor, AuditEmitter(), trusted_safety_context=_trusted_context())
         
         # Record approval
         approval_record = ApprovalRecord(
@@ -390,3 +392,37 @@ class TestApprovalIntegration:
         assert hasattr(result, 'success')
         assert result.success is True
         assert fake_executor.execute_called is True
+
+
+def _trusted_context():
+    """Operator-supplied trusted safety context for pipeline tests."""
+    from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import TrustedSafetyContext
+    from exoarmur.collective_confidence.aggregator import CollectiveState
+    from spec.contracts.models_v1 import LocalDecisionV1
+
+    decision = LocalDecisionV1(
+        schema_version="1.0.0",
+        decision_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        tenant_id="test-tenant",
+        cell_id="test-cell",
+        subject={"subject_type": "agent", "subject_id": "agent-001"},
+        classification="benign",
+        severity="low",
+        confidence=0.95,
+        evidence_refs={},
+        correlation_id="corr-1",
+        trace_id="trace-1",
+    )
+    return TrustedSafetyContext(
+        local_decision=decision,
+        tenant_id="test-tenant",
+        actor_id="agent-001",
+        trust_score=0.9,
+        collective_state=CollectiveState(aggregate_score=0.0, quorum_count=0, conflict_detected=False),
+        policy_verified=True,
+        kill_switch_global=False,
+        kill_switch_tenant=False,
+        required_approval="none",
+        degraded_mode=False,
+        action_classes={"*": "A1_soft_containment"},
+    )

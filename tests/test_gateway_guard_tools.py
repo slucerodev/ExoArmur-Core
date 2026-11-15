@@ -224,6 +224,10 @@ class MockProxyPipeline:
             error=None
         )
 
+    async def execute_with_trace_async(self, intent: ActionIntent):
+        """Async entry point used by the gateway's async tool wrapper."""
+        return self.execute(intent), None
+
 
 class MockPolicyDecisionPoint(PolicyDecisionPoint):
     """Mock PDP for testing."""

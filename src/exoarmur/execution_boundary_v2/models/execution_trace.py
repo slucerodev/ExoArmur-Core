@@ -17,6 +17,7 @@ class TraceStage(str, Enum):
     POLICY_EVALUATED = "policy_evaluated"
     APPROVAL_CHECKED = "approval_checked"
     SAFETY_EVALUATED = "safety_evaluated"
+    KILL_SWITCH_CHECKED = "kill_switch_checked"
     EXECUTOR_DISPATCHED = "executor_dispatched"
     COMPLETED = "completed"
 

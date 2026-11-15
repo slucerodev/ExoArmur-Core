@@ -126,7 +126,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate()
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-deny-intent",
             action_type="test_action",
@@ -179,7 +179,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate()
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-approval-intent",
             action_type="test_action",
@@ -228,7 +228,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate(should_allow=True)
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-approved-intent",
             action_type="test_action",
@@ -236,6 +236,7 @@ class TestExecutionTrace:
             tenant_id="test-tenant",
             actor_id="test_actor",
             actor_type="test",
+            safety_context={"action_class": "A1_soft_containment"},
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -247,7 +248,7 @@ class TestExecutionTrace:
         assert result.success is True
         
         # Verify trace structure
-        assert len(trace.events) == 4  # INTENT_RECEIVED, APPROVAL_CHECKED, SAFETY_EVALUATED, EXECUTOR_DISPATCHED
+        assert len(trace.events) == 5  # INTENT_RECEIVED, APPROVAL_CHECKED, SAFETY_EVALUATED, KILL_SWITCH_CHECKED, EXECUTOR_DISPATCHED
         assert trace.final_status == "EXECUTED" if result.success else "FAILED"
         assert trace.trace_version == "v1"
         assert "executor_name" in trace.evidence
@@ -275,7 +276,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate(should_allow=False)  # Block at safety gate
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-safety-block-intent",
             action_type="test_action",
@@ -283,6 +284,7 @@ class TestExecutionTrace:
             tenant_id="test-tenant",
             actor_id="test_actor",
             actor_type="test",
+            safety_context={"action_class": "A1_soft_containment"},
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -323,7 +325,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate()
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-deterministic-intent",
             action_type="test_action",
@@ -360,7 +362,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate()
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-audit-intent",
             action_type="test_action",
@@ -378,7 +380,7 @@ class TestExecutionTrace:
         # Reset and test execution path
         audit_emitter.audit_records.clear()
         mock_pdp = MockPDP(PolicyVerdict.ALLOW)
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         
         result, trace = pipeline.execute_with_trace(intent)
         assert len(audit_emitter.audit_records) == 1
@@ -396,7 +398,7 @@ class TestExecutionTrace:
         approval_store.record(approval_record)
         
         mock_pdp = MockPDP(PolicyVerdict.REQUIRE_APPROVAL, approval_store)
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         
         result, trace = pipeline.check_approval_and_execute(intent)
         assert len(audit_emitter.audit_records) == 1
@@ -409,7 +411,7 @@ class TestExecutionTrace:
         mock_safety = MockSafetyGate()
         audit_emitter = AuditEmitter()
         
-        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter)
+        pipeline = ProxyPipeline(mock_pdp, mock_safety, mock_executor, audit_emitter, trusted_safety_context=_trusted_context())
         intent = ActionIntent(
             intent_id="test-compatibility-intent",
             action_type="test_action",
@@ -428,3 +430,37 @@ class TestExecutionTrace:
         assert result.success is False
         assert result.error == "DENIED"
         # Should not return a tuple when using execute()
+
+
+def _trusted_context():
+    """Operator-supplied trusted safety context for pipeline tests."""
+    from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import TrustedSafetyContext
+    from exoarmur.collective_confidence.aggregator import CollectiveState
+    from spec.contracts.models_v1 import LocalDecisionV1
+
+    decision = LocalDecisionV1(
+        schema_version="1.0.0",
+        decision_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        tenant_id="test-tenant",
+        cell_id="test-cell",
+        subject={"subject_type": "agent", "subject_id": "agent-001"},
+        classification="benign",
+        severity="low",
+        confidence=0.95,
+        evidence_refs={},
+        correlation_id="corr-1",
+        trace_id="trace-1",
+    )
+    return TrustedSafetyContext(
+        local_decision=decision,
+        tenant_id="test-tenant",
+        actor_id="test_actor",
+        trust_score=0.9,
+        collective_state=CollectiveState(aggregate_score=0.0, quorum_count=0, conflict_detected=False),
+        policy_verified=True,
+        kill_switch_global=False,
+        kill_switch_tenant=False,
+        required_approval="none",
+        degraded_mode=False,
+        action_classes={"*": "A1_soft_containment"},
+    )

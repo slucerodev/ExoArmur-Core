@@ -96,7 +96,7 @@ class TestFilesystemExecutorIntegration:
             audit_emitter = AuditEmitter()
             
             # Create pipeline
-            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)
+            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter, trusted_safety_context=_trusted_context())
             
             # Create test file first
             test_file = os.path.join(temp_dir, "test.txt")
@@ -115,6 +115,7 @@ class TestFilesystemExecutorIntegration:
                     "operation": "read",
                     "path": "test.txt"
                 },
+                tenant_id="test-tenant",
                 timestamp=datetime.now(timezone.utc)
             )
             
@@ -157,7 +158,7 @@ class TestFilesystemExecutorIntegration:
             audit_emitter = AuditEmitter()
             
             # Create pipeline
-            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)
+            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter, trusted_safety_context=_trusted_context())
             
             # Execute write intent through pipeline
             intent = ActionIntent(
@@ -217,7 +218,7 @@ class TestFilesystemExecutorIntegration:
             audit_emitter = AuditEmitter()
             
             # Create pipeline
-            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter)
+            pipeline = ProxyPipeline(pdp, safety_gate, fs_executor, audit_emitter, trusted_safety_context=_trusted_context())
             
             # Execute write intent (should be blocked by executor)
             intent = ActionIntent(
@@ -248,3 +249,37 @@ class TestFilesystemExecutorIntegration:
             executor_event = executor_events[0]
             assert executor_event.details["execution_success"] is False
             assert executor_event.details["execution_error"] == "Write operations not allowed"
+
+
+def _trusted_context():
+    """Operator-supplied trusted safety context for pipeline tests."""
+    from exoarmur.execution_boundary_v2.pipeline.proxy_pipeline import TrustedSafetyContext
+    from exoarmur.collective_confidence.aggregator import CollectiveState
+    from spec.contracts.models_v1 import LocalDecisionV1
+
+    decision = LocalDecisionV1(
+        schema_version="1.0.0",
+        decision_id="01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        tenant_id="test-tenant",
+        cell_id="test-cell",
+        subject={"subject_type": "agent", "subject_id": "agent-001"},
+        classification="benign",
+        severity="low",
+        confidence=0.95,
+        evidence_refs={},
+        correlation_id="corr-1",
+        trace_id="trace-1",
+    )
+    return TrustedSafetyContext(
+        local_decision=decision,
+        tenant_id="test-tenant",
+        actor_id="test-actor",
+        trust_score=0.9,
+        collective_state=CollectiveState(aggregate_score=0.0, quorum_count=0, conflict_detected=False),
+        policy_verified=True,
+        kill_switch_global=False,
+        kill_switch_tenant=False,
+        required_approval="none",
+        degraded_mode=False,
+        action_classes={"*": "A1_soft_containment"},
+    )
