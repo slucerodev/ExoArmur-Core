@@ -18,7 +18,7 @@ A deterministic governance runtime that sits between an AI decision layer and ex
 
 ## Pilot Goal (Bounded)
 
-The bounded pilot — one authenticated, policy-controlled real file-write workflow with human approval of the exact action, durable global/tenant pauses, durable evidence, and an operator GUI — is implemented on the `pilot/governed-workflow` branch; see [docs/PILOT.md](docs/PILOT.md). On `main` the legacy API remains unauthenticated with hardcoded safety inputs — see [Known Limitations](docs/KNOWN_LIMITATIONS.md).
+The bounded pilot — one authenticated, policy-controlled real file-write workflow with human approval of the exact action, durable global/tenant pauses, durable evidence, and an operator GUI — is merged on `main`. Serve it with `exoarmur.api.server:create_pilot_app` (health + `/api/pilot/*` only); the legacy demo routers remain on the separate `create_app` factory and are unauthenticated — see [docs/PILOT.md](docs/PILOT.md) and [Known Limitations](docs/KNOWN_LIMITATIONS.md).
 
 ## Installation
 
@@ -168,7 +168,7 @@ The kernel consists of:
 
 ## Status
 
-Reference implementation (v2.2.0). Single maintainer. Apache-2.0 licensed, public repository. Not production-certified. Not externally audited. The deterministic kernel and replay verification are internally evaluated. The legacy HTTP demo layer is **not authenticated**; the authenticated, policy-controlled pilot workflow lives on the `pilot/governed-workflow` branch — see [docs/PILOT.md](docs/PILOT.md) and [Known Limitations](docs/KNOWN_LIMITATIONS.md). Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
+Reference implementation (v2.2.0). Single maintainer. Apache-2.0 licensed, public repository. Not production-certified. Not externally audited. The deterministic kernel and replay verification are internally evaluated. The supported pilot surface (`create_pilot_app`: authenticated, policy-controlled file-write workflow with approvals, durable pauses, evidence, and an operator GUI) is on `main` — see [docs/PILOT.md](docs/PILOT.md). The legacy HTTP demo layer (`create_app`) is **not authenticated** — see [Known Limitations](docs/KNOWN_LIMITATIONS.md). GitHub Actions could not run for the pilot merge due to a billing restriction; validation relied on recorded local tests and live demonstrations. Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
 
 ## Documentation
 

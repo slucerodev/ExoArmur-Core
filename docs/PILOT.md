@@ -26,8 +26,6 @@ implementation, not a production deployment. See
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core
 cd ExoArmur-Core
-# The pilot is not yet merged — check out the pilot branch explicitly:
-git fetch origin && git checkout pilot/governed-workflow
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,postgres,demo-api]"
 ```
@@ -97,10 +95,12 @@ export EXOARMUR_APPROVAL_TTL_HOURS=24   # optional, default 24
 uvicorn "exoarmur.api.server:create_pilot_app" --factory --host 127.0.0.1 --port 8000
 ```
 
-`create_pilot_app` mounts only `/health` and `/api/pilot/*` — the legacy
-demo routers (`/v1/*`, `/api/v2/*`, `/api/cli/*`) are not exposed. They
-remain available separately via `exoarmur.api.server:create_app` for the
-deterministic demo/CLI surface.
+`create_pilot_app` is the **supported pilot surface**: it mounts only
+`/health` and `/api/pilot/*`. The legacy/demo routers (`/v1/*`,
+`/api/v2/*`, `/api/cli/*`) are not exposed there; they remain available
+separately and unauthenticated via `exoarmur.api.server:create_app` for
+the deterministic demo/CLI surface — do not use `create_app` for pilot
+deployments.
 
 The service fails closed: if the policy file is missing, altered, or the
 digest does not match `EXOARMUR_POLICY_SHA256`, every governed action is

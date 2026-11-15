@@ -34,38 +34,40 @@ can make informed decisions about adoption and contribution.
 ## Governance Limitations (2.2.0 baseline)
 
 The bounded pilot (one authenticated, policy-controlled file-write workflow
-with approvals, durable pauses, evidence, and an operator GUI) is implemented
-on the `pilot/governed-workflow` branch — see [docs/PILOT.md](PILOT.md). On
-the `main`/`baseline-2.2.0-alignment` baseline the following gaps remain:
+with approvals, durable pauses, evidence, and an operator GUI) is merged on
+`main` — see [docs/PILOT.md](PILOT.md). Two application factories exist:
+
+- **`exoarmur.api.server:create_pilot_app`** — the supported pilot surface:
+  `/health` plus `/api/pilot/*` only. This is the factory to deploy.
+- **`exoarmur.api.server:create_app`** — the legacy/demo surface: it
+  additionally mounts `/v1/*`, `/api/v2/*`, and `/api/cli/*`, which remain
+  **unauthenticated** and are not part of the supported pilot.
 
 ### No Authentication on the Legacy HTTP API
-- **Status**: The pre-pilot `exoarmur.api` routes (`/v1/*`, `/api/v2/*`,
+- **Status**: The legacy `exoarmur.api` routes (`/v1/*`, `/api/v2/*`,
   `/api/cli/*`) have no authentication. Approval endpoints
   (`/v1/approvals/{id}/approve|deny`) accept any self-asserted `operator_id`
   header — identification, not authentication.
-- **Impact**: On the baseline, anyone who can reach those routes can
-  approve/deny or ingest telemetry. The pilot router (`/api/pilot/*`) is the
-  authenticated surface; legacy routes remain unauthenticated by design until
-  migrated.
+- **Impact**: Anyone who can reach the legacy app can approve/deny or ingest
+  telemetry. Deployments of the supported pilot must use
+  `create_pilot_app`, which does not mount these routers at all.
 - **Path Forward**: Extend pilot-grade authentication to legacy routes or
-  retire them. Deployments of the supported pilot should use the isolated
-  `exoarmur.api.server:create_pilot_app` factory, which does not mount the
-  legacy routers at all.
+  retire them.
 
-### Hardcoded Safety Inputs in ProxyPipeline (baseline)
-- **Status**: On the baseline, `ProxyPipeline.execute_with_trace()` uses
-  hardcoded `policy_verified=True`, `emitter_trust_score=0.85`,
-  `required_approval="none"`, kill-switch flags `False`. The pilot branch
-  replaces this with an injectable `SafetyContextProvider` that fails closed
-  when trusted inputs are absent; the `ai-complete` demo passes explicitly
+### Hardcoded Safety Inputs in ProxyPipeline (legacy path only)
+- **Status**: `ProxyPipeline.execute_with_trace()` no longer hardcodes
+  permissive inputs — it requires an injectable `SafetyContextProvider` and
+  fails closed when trusted inputs are absent. The pilot service supplies
+  operator-configured inputs; the `ai-complete` demo passes explicitly
   labeled demo inputs only.
-- **Impact**: Baseline pipeline mechanics run, but not against trustworthy
-  operational evidence.
+- **Impact**: Callers that construct `ProxyPipeline` without a provider get
+  a deterministic deny, not silent permissive defaults.
 
-### No Authoritative Kill Switch (baseline)
-- **Status**: Baseline pipeline has no durable pause store. The pilot branch
-  adds durable global/tenant `execution_pauses` re-checked immediately before
-  dispatch, including approval resume.
+### Authoritative Kill Switch (pilot scope)
+- **Status**: The pilot enforces durable global/tenant `execution_pauses`
+  (PostgreSQL `execution_pauses` table) re-checked immediately before
+  executor dispatch, including approval resume. This covers the pilot
+  governed path only — the legacy routers have no pause enforcement.
 
 ### Allow-by-Construction Demo Policy (unchanged)
 - **Status**: `POST /api/cli/ai-complete` still uses an internal `_AllowPolicy`
@@ -201,18 +203,19 @@ the `main`/`baseline-2.2.0-alignment` baseline the following gaps remain:
   (`api/db.py`, `api/stores.py`, migration `api/migrations/001_init.sql`),
   but kernel-level audit persistence requires external integration.
 - **Impact**: Kernel audit evidence is in-memory unless the host persists it.
-  The pilot branch persists governed-action evidence durably in PostgreSQL
+  The pilot persists governed-action evidence durably in PostgreSQL
   (`002_pilot.sql`); legacy kernel audit records remain in-memory.
 
 ### No Built-In Kill Switch or Federation
-- **Status**: No emergency pause mechanism; federation crypto exists only as
-  contract specs (`src/spec/contracts/federation_v2.yaml`) without a hardened
+- **Status**: The pilot governed path has durable global/tenant execution
+  pauses (see above); there is no kernel-level or legacy-route pause
+  mechanism. Federation crypto exists only as contract specs
+  (`src/spec/contracts/federation_v2.yaml`) without a hardened
   implementation on this baseline
 - **Impact**: Multi-node federation not production-ready (and not part of the
-  bounded pilot goal). The pilot branch adds durable global/tenant execution
-  pauses enforced immediately before dispatch.
-- **Path Forward**: Federation deferred; kill switch implemented on the pilot
-  branch.
+  bounded pilot goal). The pilot adds durable global/tenant execution pauses
+  enforced immediately before dispatch on the governed path.
+- **Path Forward**: Federation deferred.
 
 ## Summary
 
@@ -220,19 +223,21 @@ ExoArmur-Core on the 2.2.0 baseline is a **public Apache-2.0 reference
 implementation** with a deterministic governance kernel, internally evaluated
 replay/evidence verification, real local executors (filesystem, SQLite),
 executor scaffolds for vendors, and an **unauthenticated** FastAPI demo/CLI
-layer. It lacks third-party certification and production operational
-experience. On the `pilot/governed-workflow` branch, the bounded goal —
-one authenticated, policy-controlled real file-write workflow with human
+layer. The supported pilot surface — `create_pilot_app` — provides one
+authenticated, policy-controlled real file-write workflow with human
 approval of the exact action, durable global/tenant pauses, durable evidence
-with integrity verification, and an operator GUI — is implemented and covered
-by focused tests against real PostgreSQL; see [docs/PILOT.md](PILOT.md).
-Remaining gaps: legacy routes are still unauthenticated, the pilot covers a
-single executor/operation set, and evidence verification is payload-hash
-consistency only (no signer verification).
+with integrity verification, and an operator GUI; see [docs/PILOT.md](PILOT.md).
+Remaining gaps: the legacy `create_app` routes are still unauthenticated,
+the pilot covers a single executor/operation set, and evidence verification
+is payload-hash consistency only (no signer verification).
 
 ## Current Status
 
 - **Version**: 2.2.0
 - **License**: Apache-2.0 (see LICENSE)
-- **Stage**: Public reference implementation; bounded pilot implemented on `pilot/governed-workflow`
-- **Last updated**: pilot branch `pilot/governed-workflow`
+- **Stage**: Public reference implementation; bounded pilot merged on `main`
+- **Validation note**: GitHub Actions could not run for the pilot merge
+  (billing restriction); validation relied on recorded local tests
+  (`tests/api/test_pilot.py` — 24 passed against real PostgreSQL; full suite
+  398 passed / 17 skipped) and live demonstrations.
+- **Last updated**: post-merge documentation alignment on `main`
