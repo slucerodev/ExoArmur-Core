@@ -1,6 +1,6 @@
 # Known Limitations
 
-*Last updated: aligned to the 2.2.0 baseline (`baseline-2.2.0-alignment`)*
+*Last updated: post-merge pilot documentation alignment on `main`*
 
 ## Overview
 
@@ -13,7 +13,7 @@ can make informed decisions about adoption and contribution.
 ### No Third-Party Security Audit
 - **Status**: Security and compliance are self-validated only
 - **Impact**: No independent security review has been conducted
-- **Mitigation**: Automated scanning (bandit, pip-audit, gitleaks) is enforced via CI
+- **Mitigation**: Automated scanning (bandit, pip-audit, gitleaks) is defined in CI; note GitHub Actions could not run for recent merges due to a billing restriction — validation relied on recorded local runs
 - **Path Forward**: Seeking third-party security audit partnership
 
 ### No Production Certification
@@ -69,25 +69,51 @@ with approvals, durable pauses, evidence, and an operator GUI) is merged on
   executor dispatch, including approval resume. This covers the pilot
   governed path only — the legacy routers have no pause enforcement.
 
+### Pilot Scope Limitations
+- **Boundary, not interception**: the pilot governs only actions submitted
+  through `/api/pilot/*`. Agents must be integrated to route file writes
+  through it; ExoArmur does not automatically control an agent's other
+  filesystem or network access, and deployments must ensure governed
+  operations cannot be performed through unmediated paths.
+- **Pauses block subsequent dispatch only**: durable global/tenant pauses
+  prevent pending and approved actions from being dispatched (including
+  approval resume). They do not interrupt an effect already executing.
+- **Filesystem-only, local-only**: the pilot supports `create_file` /
+  `modify_file` inside `EXOARMUR_WORKSPACE_ROOT` on local PostgreSQL. No
+  other executors, operations, or databases are supported.
+- **Ambiguous interrupted executions**: an action stuck in `EXECUTING`
+  (e.g., process crash mid-dispatch) is reported as ambiguous, not
+  automatically retried — retry semantics are the operator's decision.
+- **Unpaginated history**: action listing returns all records for a
+  tenant; there is no pagination or retention policy.
+- **Evidence is hash consistency, not tamper-proofing**: `verify` detects
+  stored records altered after write, but cannot detect an attacker who
+  rewrites content and hash together, and signatures are `NOT_CHECKED`.
+
 ### Allow-by-Construction Demo Policy (unchanged)
 - **Status**: `POST /api/cli/ai-complete` still uses an internal `_AllowPolicy`
   and a mocked REPLAY executor. It is a demo of pipeline mechanics, not a
   governed path, and is explicitly isolated from the pilot boundary.
 
-### Approvals Do Not Resume Execution
-- **Status**: Approval records transition PENDING → APPROVED/DENIED in the
-  store, but nothing re-dispatches the underlying action intent after approval.
-- **Impact**: The approval workflow is record-keeping only on this baseline.
-- **Path Forward**: Wire approved intents back through the governed pipeline
-  with fresh policy/safety/kill-switch checks.
+### Approvals Do Not Resume Execution (legacy path only)
+- **Status**: On the legacy `create_app` surface, approval records transition
+  PENDING → APPROVED/DENIED in the store, but nothing re-dispatches the
+  underlying action intent. The **pilot** path does resume: approval
+  re-validates the stored action and dispatches it through the governed
+  pipeline (`/api/pilot/*` only).
+- **Impact**: Approval workflow is record-keeping only on the legacy demo
+  surface; it is functional on the supported pilot path.
+- **Path Forward**: Retire or govern the legacy approval routes.
 
-### TrustEvaluator Is Interface-Only
-- **Status**: `kernel/trust_evaluator.py` raises `NotImplementedError`
-- **Impact**: No real trust scoring logic implemented; the `0.85` value used by
-  the pipeline is a hardcoded placeholder
+### TrustEvaluator Is Interface-Only; Pilot Trust Is Configured, Not Measured
+- **Status**: `kernel/trust_evaluator.py` raises `NotImplementedError`.
+  The pilot does not measure trust — the operator policy file supplies a
+  configured `trust_score` per principal, which is an operator assertion,
+  not a measured or verified signal.
+- **Impact**: No real trust scoring logic implemented; governance decisions
+  rest on configured values whose correctness is the operator's responsibility.
 - **Mitigation**: Formal interface defined for future implementation
-- **Path Forward**: Requires an authoritative trust source (e.g., operator
-  configuration clearly labeled as configured, not measured, trust)
+- **Path Forward**: Requires an authoritative trust source
 
 ## Implementation Limitations
 
@@ -236,8 +262,10 @@ is payload-hash consistency only (no signer verification).
 - **Version**: 2.2.0
 - **License**: Apache-2.0 (see LICENSE)
 - **Stage**: Public reference implementation; bounded pilot merged on `main`
+- **Distribution**: source version 2.2.0; published PyPI release is 2.1.0 and
+  predates the pilot — install from source per [docs/PILOT.md](PILOT.md)
 - **Validation note**: GitHub Actions could not run for the pilot merge
   (billing restriction); validation relied on recorded local tests
   (`tests/api/test_pilot.py` — 24 passed against real PostgreSQL; full suite
   398 passed / 17 skipped) and live demonstrations.
-- **Last updated**: post-merge documentation alignment on `main`
+- **Last updated**: post-merge pilot documentation alignment on `main`
