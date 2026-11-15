@@ -2,19 +2,23 @@
 
 **Minimal deterministic governance kernel for autonomous systems.**
 
-ExoArmur is a minimal deterministic governance kernel for autonomous systems. It enforces policy gates, produces cryptographic audit trails, and enables deterministic replay verification.
+ExoArmur is a minimal deterministic governance kernel for autonomous systems. It routes action intents through a policy and safety boundary before executor dispatch, produces canonical-hash audit records, and supports deterministic replay verification of recorded evidence.
 
 ## What ExoArmur Is
 
-A deterministic governance runtime that sits between an AI decision layer and execution targets. Every action passes through a policy gate, produces a cryptographic audit trail, and is deterministically replayable.
+A deterministic governance runtime that sits between an AI decision layer and execution targets. Every action that reaches the `ProxyPipeline` boundary passes through policy evaluation, a safety gate, target validation, and executor dispatch, with an execution trace recorded along the way.
 
 ## What ExoArmur Is Not
 
 - **Not** a full autonomous system — it is a governance layer, not an agent
-- **Not** a platform executor — Core does not include vendor SDK integrations (LangChain, OpenAI, Anthropic, HuggingFace are scaffolds only)
-- **Not** production-certified — this is a reference implementation seeking formal verification
+- **Not** a platform executor — Core does not include vendor SDK integrations (LangChain, OpenAI, Anthropic, HuggingFace are scaffolds only; real vendor calls live in optional addon packages)
+- **Not production-certified** — this is a reference implementation seeking formal verification
 - **Not** externally audited — security and compliance are self-validated, not third-party audited
-- **Not** a web service — the kernel is importable as a pure Python library with zero network dependencies
+- **Not a complete governed service out of the box** — the kernel is importable as a pure Python library, and the repository also ships an optional FastAPI API/demo layer (`exoarmur.api`) that is **not yet authenticated or fully governed** (see [Known Limitations](docs/KNOWN_LIMITATIONS.md))
+
+## Pilot Goal (Bounded)
+
+The near-term goal is one authenticated, policy-controlled real workflow: an operator-authenticated caller, a verified operator policy, real approvals for elevated action classes, durable evidence records, an emergency pause (kill switch), and an operator-facing GUI. Several of these capabilities are **planned, not yet implemented** — see [Known Limitations](docs/KNOWN_LIMITATIONS.md) for the current state.
 
 ## Installation
 
@@ -33,70 +37,80 @@ pip install exoarmur-core[demo-api]
 python scripts/demo_api.py
 ```
 
-## Quickstart (5-Minute Proof)
+## Quickstart
 
-Run the health check to verify installation:
-
-```bash
-exoarmur health
-```
-
-Run the demo to see deterministic governance in action:
+Install and verify the package imports:
 
 ```bash
-exoarmur demo
+pip install -e .
+python -c "import exoarmur; print(exoarmur.__version__)"
 ```
+
+The `exoarmur` CLI currently exposes `version` and `info` commands:
+
+```bash
+exoarmur --help
+exoarmur version
+```
+
+Requires Python 3.10 or later.
+
+**Optional Demo API:**
+
+To run the optional FastAPI demo/CLI-bridge server (not required for Core runtime):
+
+```bash
+pip install exoarmur-core[demo-api]
+uvicorn exoarmur.api.server:create_app --factory
+```
+
+The API layer is a developer/demo interface. It is **not authenticated** and several of its governed-execution paths use demo policy defaults — see [Known Limitations](docs/KNOWN_LIMITATIONS.md) before relying on it.
 
 ## CLI Usage
 
 ```bash
 Usage: exoarmur [OPTIONS] COMMAND [ARGS]...
 
-  ExoArmur Core — deterministic governance and replayable audit layer
+  ExoArmur Core – deterministic governance and replayable audit layer for execution.
 
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
 
 Commands:
-  demo        Run demonstration scenarios
-  evidence    Evidence pack operations
-  health      Quick health check
-  proof       Run deterministic proof mode - single command system...
-  verify-all  Run complete system verification
+  info      Show ExoArmur Core information.
+  version   Show ExoArmur Core version information.
 ```
 
 ## Current Validation Status
 
-**Test Suite:** 338 passed, 17 skipped, 0 failed
+**Test Suite (last recorded full run, May 31, 2026):** 338 passed, 17 skipped, 0 failed. The suite has grown since that run (396 tests collected on the 2.2.0 baseline); re-run before citing current numbers.
 
 ```bash
 python -m pytest tests/ -q -rs
 ```
 
-**E2E Tests:** 22 passed, 0 failed
+**E2E Tests (same dated run):** 22 passed, 0 failed
 
 ```bash
 python -m pytest tests/e2e/ -v
 ```
 
-**DACT Compliance:** Levels 1-5 are internally validated by the ExoArmur test suite. Third-party audit has not yet been completed. Level 6 remains pending external/formal review.
-
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) for detailed validation status.
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md) for detailed, dated validation status.
 
 ## Executors
 
 **Core Executors (included in exoarmur-core):**
-- **FileSystemExecutor** — governs file operations (create, delete, rename, modify) with automatic rollback and state hash verification
-- **DatabaseExecutor** — governs database operations with transaction rollback and state verification
+- **FileSystemExecutor** — governs file operations (create, delete, rename, modify) with rollback plans and state-hash verification against the local filesystem
+- **DatabaseExecutor** — governs SQLite operations with transaction rollback and state verification
 
-**Platform Executor Scaffolds (reference implementations only):**
-- **langchain_executor.py** — Scaffold for LangChain agent governance
-- **openai_executor.py** — Scaffold for OpenAI API governance
+**Platform Executor Scaffolds (reference implementations only — no live vendor calls):**
+- **openai_executor.py** — Scaffold returning mock data; `_execute_openai_operation()` does not call the OpenAI API
 - **anthropic_executor.py** — Scaffold for Anthropic API governance
 - **huggingface_executor.py** — Scaffold for HuggingFace model governance
+- **langchain_executor.py** — Scaffold for LangChain agent governance
 
-**Note:** Real platform integrations (with actual API calls) belong in optional addon packages (e.g., `exoarmur-openai-executor`). Core provides the plugin infrastructure and evidence schema for external effects, but does not include vendor SDK integrations.
+**Note:** A class existing does not establish a functioning vendor integration. Real platform integrations (with actual API calls) belong in optional addon packages (e.g., `exoarmur-openai-executor`). Core provides the plugin infrastructure and evidence schema for external effects, but does not include vendor SDK integrations. The `POST /api/cli/ai-complete` endpoint uses the external `exoarmur-openai-executor` package in **REPLAY (mocked) mode only** — it does not perform live OpenAI calls.
 
 ## Demo Artifacts
 
@@ -114,18 +128,20 @@ The kernel enforces deterministic replay through:
 
 ## DACT Compliance
 
-ExoArmur-Core implements the Deterministic Autonomy Compliance Test (DACT) v0.2:
+DACT (Deterministic Autonomy Compliance Test) v0.2 is **ExoArmur's own evaluation framework**, defined in [docs/DACT_STANDARD_v0.2.md](docs/DACT_STANDARD_v0.2.md) — it is not an independent standard or certification body.
 
 | Level | Requirement | Status |
 |-------|-------------|--------|
-| 1 | Deterministic Replay | ✅ Internally validated |
-| 2 | Cryptographic Attestation | ✅ Internally validated |
-| 3 | Counterfactual Analysis | ✅ Internally validated |
-| 4 | ML Isolation | ✅ Internally validated |
-| 5 | Air-Gap Integrity | ✅ Internally validated |
-| 6 | Formal Verification | ⏳ Pending third-party review |
+| 1 | Deterministic Replay | ✅ Internally evaluated by the test suite |
+| 2 | Cryptographic Attestation | ✅ Internally evaluated (canonical hashes; evidence signatures are recorded but **not** verified — see below) |
+| 3 | Counterfactual Analysis | ✅ Internally evaluated |
+| 4 | ML Isolation | ✅ Internally evaluated |
+| 5 | Air-Gap Integrity | ✅ Internally evaluated (kernel scope) |
+| 6 | Formal Verification | ⏳ Pending external/formal review |
 
-**Note:** Levels 1-5 are internally validated by the ExoArmur test suite. Third-party audit has not yet been completed.
+**Note:** Levels 1-5 are internally evaluated by the ExoArmur test suite. This is self-assessment against our own framework — not third-party certification. Level 6 remains pending.
+
+**Honest scope of "replay verification":** the replay endpoints recompute canonical hashes from stored records and compare them. Recomputing a hash from stored content alone does not prove the original content was preserved — it detects inconsistencies between stored fields, not tampering that rewrote both content and hash. Separately, `kernel/replay_verification.py` compares stored request/response hashes against canonical recomputation (`VERIFIED`/`MISMATCH`/`MALFORMED`/`NOT_CHECKED`), and evidence signatures are explicitly reported as `NOT_CHECKED` because signature verification is not implemented.
 
 ## Architecture
 
@@ -148,11 +164,11 @@ The kernel consists of:
 | `executors/anthropic_executor.py` | AnthropicExecutor scaffold (reference implementation) |
 | `executors/huggingface_executor.py` | HuggingFaceExecutor scaffold (reference implementation) |
 
-**Total kernel: ~1,680 lines**
+**Total kernel: ~1,800 lines** (the `kernel/` package alone; executors and the API layer are additional)
 
 ## Status
 
-Reference implementation. Single maintainer. Not production-certified. Not externally audited. Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
+Reference implementation (v2.2.0). Single maintainer. Apache-2.0 licensed, public repository. Not production-certified. Not externally audited. The deterministic kernel and replay verification are internally evaluated; the HTTP API/demo layer is **not authenticated** and does not yet provide authoritative kill switches, trusted safety inputs, or approval-to-execution resume wiring — see [Known Limitations](docs/KNOWN_LIMITATIONS.md). Seeking formal verification partnership and pilot integrations in high-assurance environments (defense, sovereign infrastructure, critical systems).
 
 ## Documentation
 
@@ -164,6 +180,8 @@ Reference implementation. Single maintainer. Not production-certified. Not exter
 - [Formal Verification Invariants](docs/formal_verification/INVARIANTS.md) — Formal specifications for DACT Level 6
 - [LangChain Executor Integration](docs/integrations/LANGCHAIN_EXECUTOR.md) — Scaffold integration guide
 - [Project Status](PROJECT_STATUS.md) — Current validation status and roadmap
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md) — Disclosed gaps, including unauthenticated API and incomplete governance wiring
+- [Validation Matrix](docs/VALIDATION_MATRIX.md) — Dated test/security validation results
 - [Security Policy](SECURITY.md) — Security policy and threat model
 - [Contributing](CONTRIBUTING.md) — Contribution policy and development setup
 - [Changelog](CHANGELOG.md) — Version history

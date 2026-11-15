@@ -12,7 +12,7 @@ The ExoArmur kernel has **zero ML in the authority path**. All decision-making i
 
 ### 1. Zero ML in Kernel
 
-The ExoArmur kernel (~1,100 lines) contains:
+The ExoArmur kernel (~1,800 lines) contains:
 
 - **No ML imports** in kernel modules
 - **No ML dependencies** in core execution path

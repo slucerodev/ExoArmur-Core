@@ -68,12 +68,16 @@ The kernel has **zero ML in the authority path**. All decision-making is determi
 
 ## Air-Gap Integrity
 
-The kernel has **zero network dependencies** and **zero web interfaces**:
+The **kernel** (`kernel/` + `executors/` packages) has **zero network dependencies**:
 
-- No network calls in execution path
+- No network calls in the kernel execution path
 - No external dependencies for core decisions
 - Importable as a pure Python library
 - Verified via dependency audit
+
+Scope note: the optional `exoarmur.api` FastAPI layer and `scripts/` utilities are
+separate from the kernel and do use web frameworks; the air-gap claim applies to
+the kernel packages only.
 
 ## ASCII Architecture Diagram
 
@@ -87,7 +91,7 @@ The kernel has **zero network dependencies** and **zero web interfaces**:
                     └─────────────────────────────────────┘
                                 ↕
                     ┌─────────────────────────────────────┐
-                    │      ExoArmur Kernel (~1,100 lines)  │
+                    │      ExoArmur Kernel (~1,800 lines)  │
                     │                                     │
                     │  ┌─────────────────────────────────┐ │
                     │  │      ProxyPipeline             │ │
@@ -130,7 +134,14 @@ The kernel has **zero network dependencies** and **zero web interfaces**:
 3. **Safety Check**: SafetyGate enforces deterministic constraints
 4. **Executor Dispatch**: Executor performs the operation
 5. **Trace Recording**: ExecutionTrace records all events
-6. **Audit Emission**: Audit event emitted with cryptographic hash
+6. **Audit Emission**: Audit event emitted with canonical record
+
+> **Current limitation (2.2.0 baseline):** `ProxyPipeline.execute_with_trace()`
+> currently constructs its safety-evaluation state (`policy_verified`, trust
+> score, kill switches, required approval) from hardcoded placeholder values,
+> and no durable kill-switch store exists. These inputs are scheduled to be
+> replaced by trusted application configuration — see
+> [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
 
 ### Rollback Flow
 1. **Pre-execution**: Rollback plan computed for reversible actions

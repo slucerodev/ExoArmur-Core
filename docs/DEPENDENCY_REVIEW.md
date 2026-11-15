@@ -1,8 +1,8 @@
 # Dependency Review
 
-*Prepared for: Prospective Acquirers and Strategic Buyers*
-*Date: June 1, 2026*
-*Version: 2.1.0*
+*Prepared for: ExoArmur-Core contributors and evaluators*
+*Date: June 1, 2026 (dependency pins may have changed; re-run `pip-audit` for current results)*
+*Version: 2.2.0*
 
 ## Overview
 
@@ -263,11 +263,11 @@ ExoArmur-Core has a clean, low-risk dependency profile:
 
 ### Recommendations
 
-**For Acquisition:**
-1. ✅ Dependencies are acceptable for commercial use
-2. ✅ No licensing blockers
+**For General Use:**
+1. ✅ Dependencies are acceptable for use under Apache-2.0
+2. ✅ No licensing blockers for the permissive dependency set
 3. ✅ Maintenance burden is manageable
-4. ✅ Security posture is clean
+4. ✅ Security posture is clean (as of the dated scan above)
 
 **For Production:**
 1. Implement automated dependency monitoring

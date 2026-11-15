@@ -223,86 +223,6 @@ No verifiable state exchange.
 
 ---
 
-## Deterministic Autonomy Compliance Test (DACT v0.2)
-
-A system satisfies minimum autonomous defense criteria **only if** it passes all of the following:
-
-### Test 1 — Replay Parity
-- **Input:** identical event stream (N ≥ 3 runs)
-- **Requirement:** outputs must produce identical hashes
-- **Fail:** any divergence
-
-### Test 2 — Action Reversibility
-- **Input:** executed autonomous action
-- **Requirement:** system returns to pre‑action state within defined bounds
-- **Fail:** residual state divergence
-
-### Test 3 — Audit Verification
-- **Input:** exported audit chain
-- **Requirement:** independent verifier validates integrity without system trust
-- **Fail:** unverifiable or mutable records
-
-### Test 4 — ML Isolation
-- **Input:** disable all ML components
-- **Requirement:** decision pipeline remains valid and deterministic
-- **Fail:** degraded correctness or undefined behavior
-
-### Test 5 — Counterfactual Consistency
-- **Input:** remove action and replay
-- **Requirement:** divergence analysis must be deterministic across runs
-- **Fail:** inconsistent counterfactual outcomes
-
-### Test 6 — Air-Gap Integrity
-- **Input:** operate without network access
-- **Requirement:** core functionality remains operational
-- **Fail:** network dependencies in execution path
-
----
-
-## Why This Matters (Immediate Operational Impact)
-
-### Incident Response
-- **Current:** "We think this is what happened."
-- **Deterministic:** "We can prove exactly what happened."
-
-### Legal / Compliance
-- **Current:** narrative reconstruction
-- **Deterministic:** cryptographically verifiable decision record
-
-### Autonomous Action Risk
-- **Current:** irreversible actions justified probabilistically
-- **Deterministic:** bounded, reversible, provable actions
-
-### Multi‑Org Coordination
-- **Current:** trust‑based sharing
-- **Deterministic:** verifiable, signed state exchange
-
-### Regulatory and Liability Implications
-
-In environments subject to audit, breach disclosure, or legal review:
-
-- Non‑reproducible decisions may be classified as non‑verifiable controls
-- Irreversible automated actions may introduce unbounded operational risk
-- Unverifiable audit logs may be considered insufficient forensic evidence
-
-As autonomous response systems proliferate, the ability to prove decision integrity will shift from differentiator to baseline expectation.
-
----
-
-## Immediate Operator Action
-
-Security teams can evaluate their current stack within 48 hours:
-
-1. Select a recent high‑severity incident
-2. Attempt deterministic replay across 3 runs
-3. Attempt full action rollback
-4. Attempt independent audit validation
-
-**If any step fails:**
-
-> The system is operating with unquantified autonomous risk that cannot be independently verified or bounded.
-
----
 
 ## What Comes Next — Future Extensions
 
@@ -311,12 +231,10 @@ ExoArmur Core is the single‑node proof.
 Future reserved extension surfaces may include:
 - federated deterministic nodes
 - signed belief propagation
-
-Details are intentionally omitted from this repository.
 - sovereignty‑preserving coordination
 - cross‑domain verifiable defense behavior
 
-These capabilities are implemented and demonstrable under test conditions.
+These are **planned, not implemented** on the current baseline.
 
 ---
 
@@ -353,61 +271,55 @@ And once measured:
 
 ---
 
-## VERIFICATION STATUS — MAY 2026
+## VERIFICATION STATUS — 2.2.0 BASELINE
 
-**ExoArmur kernel has been tested and all claims are VERIFIED.**
+*Scope: internal evaluation only. DACT v0.2 is ExoArmur's own evaluation
+framework (see `docs/DACT_STANDARD_v0.2.md`), not an independent standard or
+certification. No third-party audit or formal verification has been conducted.*
 
-### Test Results Summary
+### Internally Evaluated Claims
 
-| Doctrine Claim | Verification Status | Evidence |
-|---------------|---------------------|----------|
-| 1. Deterministic Replay | ✅ **VERIFIED** | Three-run determinism gate in CI; canonical JSON encoding ensures hash consistency |
-| 2. Cryptographic Attestation | ✅ **VERIFIED** | ExecutionProofBundle with SHA-256 hashes; Ed25519 signature support |
-| 3. Reversible Actions | ✅ **VERIFIED** | FileSystemExecutor and DatabaseExecutor with rollback plans; ActionClass enum (A0-A3); 300s rollback window |
-| 4. ML Isolation | ✅ **VERIFIED** | Kernel has zero ML in authority path; dependency audit shows no ML imports in kernel/ or executors/ |
-| 5. Counterfactual Replay | ✅ **VERIFIED** | Counterfactual engine with A/B replay diffing; deterministic comparison of execution outcomes |
-| 6. Air-Gap Integrity | ✅ **VERIFIED** | Zero network dependencies; zero web interfaces; importable as pure Python library |
+| Doctrine Claim | Internal Status | Evidence / Caveat |
+|---------------|-----------------|-------------------|
+| 1. Deterministic Replay | Internally evaluated | Canonical JSON + deterministic IDs/clock; CI three-run stability gate. Recomputing hashes detects stored-field inconsistency, not proof that original content was preserved. |
+| 2. Cryptographic Attestation | Partially supported | Canonical SHA-256 hashes over evidence payloads. `evidence_signature` is stored but signature verification is **not implemented** (`NOT_CHECKED` in `kernel/replay_verification.py`). No Ed25519 or signer verification exists on this baseline. |
+| 3. Reversible Actions | Internally evaluated | FileSystemExecutor and DatabaseExecutor implement rollback plans with state-hash checks; not all executors/action classes are reversible. |
+| 4. ML Isolation | Internally evaluated | Kernel packages contain no ML imports; advisory ML guidance in `docs/ML_ISOLATION.md`. |
+| 5. Counterfactual Replay | Not implemented on this baseline | No counterfactual engine exists in the 2.2.0 architecture. |
+| 6. Air-Gap Integrity | Internally evaluated (kernel scope) | `kernel/` and `executors/` have no network dependencies. The optional `exoarmur.api` FastAPI layer is outside this scope. |
 
-### DACT v0.2 Compliance
+### DACT v0.2 Self-Assessment
 
-| Minimum Requirement | Status |
-|---------------------|--------|
-| deterministic replay (multi-run parity) | ✅ PASS |
-| cryptographic audit chain integrity | ✅ PASS |
-| action reversibility guarantees | ✅ PASS |
-| isolation of non-deterministic components | ✅ PASS |
-| ML isolation from authority path | ✅ PASS |
-| counterfactual explainability | ✅ PASS |
-| air-gap integrity | ✅ PASS |
+DACT Levels 1-5 are **internally evaluated** by the ExoArmur test suite —
+this is self-assessment against our own framework, not certification.
+Level 6 (formal verification) remains pending external/formal review.
 
-**Overall Assessment: 7/7 requirements verified — DACT v0.2 Levels 1-5 internally validated by ExoArmur test suite. Third-party audit has not yet been completed. Level 6 remains pending external/formal review.**
+### Known Gaps on This Baseline
 
-### Test Metrics
-- **Test Count:** Kernel tests passing (FileSystemExecutor, DatabaseExecutor)
-- **Determinism Check:** 0 violations in core modules
-- **ML Isolation Check:** No ML imports in kernel/ or executors/
-- **Network Dependency Check:** No network imports in kernel/ or executors/
-- **Replay Hash Consistency:** 100% across all test runs
+- No authentication on the HTTP API; approval endpoints accept self-asserted
+  `operator_id` headers.
+- `ProxyPipeline` safety inputs (policy verification, trust, kill switches)
+  are hardcoded placeholders, not trusted sources.
+- No durable kill switch or approval-to-execution resume wiring.
+- Vendor executors (OpenAI, Anthropic, HuggingFace, LangChain) are scaffolds
+  returning mock data.
+
+See `docs/KNOWN_LIMITATIONS.md` for the full disclosure.
 
 ### Verification Commands
 
 ```bash
-# Run kernel tests
-python -m pytest tests/executors/ -q
+# Run tests
+python -m pytest tests/ -q
 
-# Three-run determinism check
-for i in 1 2 3; do python -m pytest tests/ -q; done
-
-# ML isolation check
+# ML isolation check (kernel + executors only)
 grep -r "import torch\|import transformers\|import sklearn\|import tensorflow" \
   src/exoarmur/kernel src/exoarmur/executors || echo "ML ISOLATION CLEAN"
 
-# Air-gap check
-grep -r "import urllib\|import requests\|import socket\|import nats\|import fastapi\|import pydantic" \
+# Air-gap check (kernel + executors only)
+grep -r "import urllib\|import requests\|import socket\|import nats" \
   src/exoarmur/kernel src/exoarmur/executors || echo "AIRGAP CLEAN"
 ```
-
-**ExoArmur kernel is capable and provable. All doctrine claims have been validated through automated testing and dependency audits.**
 
 ---
 
