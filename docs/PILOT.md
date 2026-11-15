@@ -150,10 +150,22 @@ database.
 
 Open `http://127.0.0.1:8000/api/pilot/gui` (served by the pilot app). Enter an API key to log in
 (the key is kept in memory for the session only — never in browser
-storage). The console shows pending approvals with exact parameters,
-action history, evidence verification, active policy version, supported
-operations, and pause controls. All controls call the same authenticated
-API; the backend enforces permissions regardless of the GUI.
+storage). The console shows:
+
+- an approval queue with a review panel displaying the exact frozen
+  content, requester, target, expiry, and approval requirement before
+  "Approve & execute" (which dispatches immediately after re-checks);
+- action history with readable outcomes, blocking reasons, an execution
+  timeline, evidence verification scope, and collapsible raw records;
+- independent global/tenant pause controls with scoped resume
+  confirmation, disabled when the principal lacks `pause:control` or the
+  pause is already in the requested state;
+- a plain-language policy summary with the raw rules expandable;
+- connection freshness and automatic refresh every 15s while the tab is
+  visible (manual refresh always available; failures are shown explicitly).
+
+Controls are permission-aware for usability only — the backend enforces
+every permission regardless of the GUI.
 
 ## 9. Restart durability
 

@@ -3,62 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>ExoArmur Pilot — Operator Console</title>
 <style>
-  :root { --bg:#0f1419; --panel:#1a2230; --border:#2a3550; --text:#dbe4f0;
-          --muted:#8fa3c0; --accent:#4da3ff; --ok:#3ecf8e; --warn:#ffb84d; --bad:#ff6b6b; }
+  :root { --bg:#0f1419; --panel:#1a2230; --panel2:#141c29; --border:#2a3550;
+          --text:#dbe4f0; --muted:#8fa3c0; --accent:#4da3ff; --ok:#3ecf8e;
+          --warn:#ffb84d; --bad:#ff6b6b; }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--text); }
-  header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; gap:16px; align-items:center; }
+  header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px;
+           align-items:center; flex-wrap:wrap; position:sticky; top:0; background:var(--bg); z-index:5; }
   header h1 { font-size:16px; margin:0; font-weight:600; }
-  .badge { padding:2px 10px; border-radius:10px; font-size:12px; border:1px solid var(--border); }
-  .badge.paused { color:var(--bad); border-color:var(--bad); }
+  .badge { padding:2px 10px; border-radius:10px; font-size:12px; border:1px solid var(--border); white-space:nowrap; }
+  .badge.paused,.badge.bad { color:var(--bad); border-color:var(--bad); }
   .badge.ok { color:var(--ok); border-color:var(--ok); }
-  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 20px; max-width:1200px; }
-  @media (max-width:800px){ main{grid-template-columns:1fr;} }
+  .badge.warn { color:var(--warn); border-color:var(--warn); }
+  .badge.muted { color:var(--muted); }
+  .spacer { flex:1; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 20px; max-width:1280px; }
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
   section { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px; }
   section h2 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  section h3 { margin:14px 0 6px; font-size:13px; color:var(--text); }
+  .tw { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
-  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; word-break:break-word; }
   th { color:var(--muted); font-weight:500; }
-  button { background:var(--accent); color:#08111f; border:0; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:600; }
+  button { background:var(--accent); color:#08111f; border:0; border-radius:5px; padding:6px 12px;
+           cursor:pointer; font-weight:600; font-size:13px; }
   button.deny { background:var(--bad); color:#fff; }
   button.ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
-  button:disabled { opacity:.5; cursor:default; }
-  input,textarea,select { width:100%; background:#0d1420; color:var(--text); border:1px solid var(--border); border-radius:5px; padding:7px; font:inherit; }
-  textarea { min-height:90px; font-family:ui-monospace,monospace; font-size:12px; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input,textarea,select { width:100%; background:#0d1420; color:var(--text); border:1px solid var(--border);
+                          border-radius:5px; padding:7px; font:inherit; }
+  textarea { min-height:110px; font-family:ui-monospace,monospace; font-size:12px; }
   label { display:block; margin:8px 0 3px; color:var(--muted); font-size:12px; }
-  .row { display:flex; gap:8px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .row > * { flex:1; }
   .msg { padding:8px 10px; border-radius:5px; margin:8px 0; font-size:13px; }
   .msg.err { background:#3a1620; color:var(--bad); }
   .msg.ok { background:#12301f; color:var(--ok); }
+  .msg.info { background:#14273a; color:var(--accent); }
   .mono { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all; }
   .status { font-weight:600; }
   .status.EXECUTED,.status.APPROVED { color:var(--ok); }
   .status.PENDING_APPROVAL,.status.EXECUTING { color:var(--warn); }
   .status.DENIED,.status.FAILED,.status.BLOCKED,.status.EXPIRED { color:var(--bad); }
   #login { max-width:380px; margin:80px auto; }
-  pre { background:#0d1420; border:1px solid var(--border); border-radius:5px; padding:8px; overflow:auto; font-size:12px; }
+  pre { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:10px;
+        overflow:auto; font-size:12px; white-space:pre-wrap; word-break:break-word; max-height:280px; }
+  details { margin:8px 0; }
+  summary { cursor:pointer; color:var(--muted); font-size:12px; }
+  .kv { display:grid; grid-template-columns:150px 1fr; gap:4px 12px; font-size:13px; margin:8px 0; }
+  .kv dt { color:var(--muted); }
+  .kv dd { margin:0; word-break:break-word; }
+  .timeline { list-style:none; margin:8px 0; padding:0; font-size:12px; }
+  .timeline li { padding:5px 8px; word-break:break-word; border-left:3px solid var(--border); margin-bottom:4px; background:var(--panel2); border-radius:0 5px 5px 0; }
+  .timeline li.ok { border-left-color:var(--ok); }
+  .timeline li.fail { border-left-color:var(--bad); }
+  .timeline .tstage { color:var(--muted); font-family:ui-monospace,monospace; }
   .hidden { display:none; }
-  a { color:var(--accent); }
+  .full { grid-column:1 / -1; }
+  .empty { color:var(--muted); padding:10px 4px; font-size:13px; }
+  .connfail { color:var(--bad); }
+  @media (max-width:640px){ .kv{grid-template-columns:1fr;} header{padding:10px 14px;} main{padding:12px 14px;} }
 </style>
 </head>
 <body>
 <header>
   <h1>ExoArmur Pilot Console</h1>
-  <span id="pauseBadge" class="badge">…</span>
-  <span id="policyBadge" class="badge">…</span>
-  <span style="flex:1"></span>
+  <span id="connBadge" class="badge muted">connecting…</span>
+  <span id="pauseGlobalBadge" class="badge">global: …</span>
+  <span id="pauseTenantBadge" class="badge">tenant: …</span>
+  <span class="spacer"></span>
   <span id="who" class="badge"></span>
+  <button class="ghost" id="refreshBtn">Refresh</button>
   <button class="ghost" id="logoutBtn">Log out</button>
 </header>
 
 <div id="login">
   <section>
     <h2>Operator sign-in</h2>
-    <p style="color:var(--muted)">Enter an operator API key. The key is exchanged for a short-lived session cookie; it is not stored in the browser.</p>
-    <label>API key</label>
+    <p style="color:var(--muted)">Enter an API key. It is exchanged for a short-lived session cookie; the key is not stored in the browser.</p>
+    <label for="apiKey">API key</label>
     <input type="password" id="apiKey" autocomplete="off">
     <div style="margin-top:10px"><button id="loginBtn">Sign in</button></div>
     <div id="loginMsg"></div>
@@ -66,58 +93,96 @@
 </div>
 
 <main id="app" class="hidden">
+  <div id="banner"></div>
+
+  <section class="full">
+    <h2>Approval queue</h2>
+    <div id="queueMsg"></div>
+    <div class="tw"><table><thead><tr>
+      <th>Operation</th><th>Target</th><th>Requester</th><th>Class</th><th>Expires</th><th></th>
+    </tr></thead><tbody id="queue"></tbody></table></div>
+  </section>
+
+  <section id="reviewPanel" class="full hidden">
+    <h2>Review proposed action</h2>
+    <div id="reviewMsg"></div>
+    <dl class="kv" id="reviewKv"></dl>
+    <h3>Exact frozen content</h3>
+    <pre id="reviewContent"></pre>
+    <p style="color:var(--muted);font-size:12px">
+      Approving dispatches <strong>this exact stored action</strong> — parameters cannot change
+      after approval. Policy, tenant authorization, and execution pauses are re-checked
+      immediately before the executor runs.
+    </p>
+    <div class="row" id="reviewButtons"></div>
+  </section>
+
   <section>
     <h2>Propose file action</h2>
     <div id="submitMsg"></div>
-    <label>Operation</label>
+    <label for="op">Operation</label>
     <select id="op">
       <option value="create_file">create_file (new file)</option>
       <option value="modify_file">modify_file (existing file)</option>
     </select>
-    <label>Path (relative to workspace)</label>
+    <label for="path">Path (relative to workspace)</label>
     <input id="path" placeholder="reports/out.txt">
-    <label>Content</label>
+    <label for="content">Content</label>
     <textarea id="content"></textarea>
     <div style="margin-top:10px"><button id="submitBtn">Submit for governance</button></div>
+    <p style="color:var(--muted);font-size:12px">Submission creates a governed proposal; depending on policy it may execute immediately or wait for approval.</p>
   </section>
 
   <section>
     <h2>Execution pauses</h2>
     <div id="pauseMsg"></div>
-    <p>Global pause blocks all governed dispatch. Tenant pause blocks only this tenant.</p>
     <div class="row">
-      <button id="pauseGlobal" class="deny">Pause globally</button>
-      <button id="resumeGlobal">Resume global</button>
+      <div style="flex:1;border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div class="row"><strong>Global</strong><span id="gState" class="badge muted">…</span></div>
+        <p style="color:var(--muted);font-size:12px;margin:6px 0">Blocks dispatch for every tenant.</p>
+        <div id="gControls"></div>
+      </div>
+      <div style="flex:1;border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div class="row"><strong>Tenant</strong>
+          <select id="tenantSel" style="width:auto;flex:0 0 140px"></select>
+          <span id="tState" class="badge muted">…</span></div>
+        <p style="color:var(--muted);font-size:12px;margin:6px 0">Blocks dispatch for the selected tenant only.</p>
+        <div id="tControls"></div>
+      </div>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button id="pauseTenant" class="deny">Pause tenant</button>
-      <button id="resumeTenant">Resume tenant</button>
-    </div>
-    <h2 style="margin-top:18px">Active policy</h2>
-    <div id="policyView" class="mono">…</div>
   </section>
 
   <section>
-    <h2>Approval queue</h2>
-    <div id="queueMsg"></div>
-    <table><thead><tr>
-      <th>Action</th><th>Target</th><th>Class</th><th>Requester</th><th>Expires</th><th></th>
-    </tr></thead><tbody id="queue"></tbody></table>
+    <h2>Active policy</h2>
+    <div id="policySummary" class="mono">…</div>
+    <details><summary>Raw policy rules</summary><pre id="policyRaw"></pre></details>
+    <p style="color:var(--muted);font-size:12px" id="policyMeta"></p>
   </section>
 
   <section>
     <h2>Action history</h2>
     <div id="histMsg"></div>
-    <table><thead><tr>
-      <th>When</th><th>Op</th><th>Path</th><th>Status</th><th>By</th><th></th>
-    </tr></thead><tbody id="history"></tbody></table>
+    <div class="tw"><table><thead><tr>
+      <th>When</th><th>Op</th><th>Path</th><th>Status</th><th>Outcome</th><th></th>
+    </tr></thead><tbody id="history"></tbody></table></div>
     <div id="detail"></div>
   </section>
 </main>
 
 <script>
 const API = '/api/pilot';
-let me = null;
+const REFRESH_MS = 15000;
+let me = null;          // {principal_id, tenant_ids, permissions}
+let lastOk = null;      // timestamp of last successful refresh
+let refreshTimer = null;
+let state = { actions: [], status: null, policy: null };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtTime = s => s ? String(s).slice(0,19).replace('T',' ') : '—';
+const parseT = s => s ? new Date(String(s).replace(' ','T')) : null;
+const can = p => me && (me.permissions||[]).includes(p);
 
 async function req(path, opts={}) {
   opts.headers = Object.assign({'x-exoarmur-request':'1','content-type':'application/json'}, opts.headers||{});
@@ -127,108 +192,349 @@ async function req(path, opts={}) {
   if (!r.ok) throw new Error(data.detail || ('HTTP '+r.status));
   return data;
 }
-function msg(el, text, ok) { el.innerHTML = `<div class="msg ${ok?'ok':'err'}">${text}</div>`; }
-function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-function showLogin(){ document.getElementById('login').classList.remove('hidden');
-  document.getElementById('app').classList.add('hidden'); }
-function showApp(){ document.getElementById('login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden'); }
-
-document.getElementById('loginBtn').onclick = async () => {
-  const key = document.getElementById('apiKey').value.trim();
-  const r = await fetch(API+'/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({api_key:key})});
-  if(!r.ok){ msg(document.getElementById('loginMsg'),'Login failed: '+(await r.json()).detail, false); return; }
-  me = await r.json();
-  document.getElementById('who').textContent = me.principal_id;
-  showApp(); refresh();
-};
-document.getElementById('logoutBtn').onclick = async ()=>{ await fetch(API+'/auth/logout',{method:'POST'}); showLogin(); };
-
-document.getElementById('submitBtn').onclick = async () => {
-  const body = {operation:op.value, path:path.value.trim(), content:content.value};
-  try { const d = await req('/actions',{method:'POST',body:JSON.stringify(body)});
-    msg(document.getElementById('submitMsg'), `Submitted ${d.action.action_id} — status ${d.action.status}`, true); refresh();
-  } catch(e){ msg(document.getElementById('submitMsg'), e.message, false); }
-};
-const op=document.getElementById('op'), path=document.getElementById('path'), content=document.getElementById('content');
-
-async function pause(scope, paused){
-  try { await req('/pauses',{method:'PUT',body:JSON.stringify({scope,paused})}); refresh(); }
-  catch(e){ msg(document.getElementById('pauseMsg'), e.message, false); }
+function msg(el, text, ok) {
+  el.innerHTML = text ? `<div class="msg ${ok===true?'ok':ok===false?'err':'info'}">${text}</div>` : '';
 }
-document.getElementById('pauseGlobal').onclick=()=>pause('global',true);
-document.getElementById('resumeGlobal').onclick=()=>pause('global',false);
-document.getElementById('pauseTenant').onclick=()=>pause('tenant',true);
-document.getElementById('resumeTenant').onclick=()=>pause('tenant',false);
+function showLogin(){ stopTimer(); $('login').classList.remove('hidden');
+  $('app').classList.add('hidden'); }
+function showApp(){ $('login').classList.add('hidden'); $('app').classList.remove('hidden'); }
 
-async function decide(id, decision){
-  const reason = decision==='deny' ? prompt('Denial reason (required):') : null;
-  if(decision==='deny' && !reason) return;
+// ---------- auth ----------
+$('loginBtn').onclick = async () => {
+  const key = $('apiKey').value.trim();
   try {
-    await req(`/actions/${id}/${decision}`,{method:'POST',body:JSON.stringify(decision==='deny'?{reason}: {})});
-    refresh();
-  } catch(e){ alert(e.message); }
-}
+    const r = await fetch(API+'/auth/login',{method:'POST',
+      headers:{'content-type':'application/json'},body:JSON.stringify({api_key:key})});
+    if(!r.ok){ msg($('loginMsg'),'Login failed: '+((await r.json().catch(()=>({}))).detail||r.status), false); return; }
+    me = await r.json();
+    $('who').textContent = `${me.principal_id} · ${me.tenant_ids.join(',')||'no tenant'}`;
+    showApp(); refresh(); startTimer();
+  } catch(e){ msg($('loginMsg'),'Login failed: '+e.message, false); }
+};
+$('logoutBtn').onclick = async ()=>{ try{ await fetch(API+'/auth/logout',{method:'POST'}); }catch(e){} me=null; showLogin(); };
 
+// ---------- data ----------
 async function refresh(){
   try {
-    const [st, pol, acts] = await Promise.all([
-      req('/status'), req('/policy'), req('/actions')]);
-    const pb=document.getElementById('pauseBadge');
-    const g=st.pauses?.global, t=st.pauses?.tenant;
-    pb.textContent = g?'GLOBAL PAUSED':(t?'TENANT PAUSED':'RUNNING');
-    pb.className='badge '+((g||t)?'paused':'ok');
-    document.getElementById('policyBadge').textContent =
-      pol.loaded?`policy ${pol.sha256.slice(0,12)}`:'NO POLICY';
-    document.getElementById('policyView').textContent = pol.loaded
-      ? JSON.stringify({version:pol.version,rules:pol.rules},null,1)
-      : 'Policy unavailable: '+(st.policy_error||'not loaded');
-    renderQueue(acts.actions.filter(a=>a.status==='PENDING_APPROVAL'));
-    renderHistory(acts.actions);
-  } catch(e){ if(e.message!=='auth') console.error(e); }
+    const st = await req('/status');
+    state.status = st;
+    me = { principal_id: st.principal_id, tenant_ids: st.tenant_ids||[], permissions: st.permissions||me?.permissions||[] };
+    $('who').textContent = `${me.principal_id} · ${me.tenant_ids.join(',')||'no tenant'}`;
+    const tenants = me.tenant_ids.length ? me.tenant_ids : [null];
+    const [pol, ...actLists] = await Promise.all([
+      req('/policy').catch(e => ({loaded:false,error:e.message})),
+      ...tenants.map(t => req('/actions'+(t?('?tenant_id='+encodeURIComponent(t)):'')).catch(e => ({actions:null,error:e.message})))]);
+    state.policy = pol;
+    state.actions = actLists.flatMap(a => a.actions || []);
+    const errs = actLists.filter(a=>a.error).map(a=>a.error);
+    if (errs.length) msg($('histMsg'), 'Action list unavailable: '+errs.join('; '), false);
+    else msg($('histMsg'), '');
+    lastOk = new Date();
+    renderAll(); clearBanner();
+  } catch(e){
+    if(e.message!=='auth'){
+      $('connBadge').textContent = 'connection failed';
+      $('connBadge').className = 'badge bad';
+      banner('Refresh failed: '+e.message+' — showing last known state.', true);
+    }
+  }
+}
+function clearBanner(){ $('banner').innerHTML=''; }
+function banner(text, isErr){
+  $('banner').innerHTML = `<div class="msg ${isErr?'err':'info'}" style="grid-column:1/-1">${esc(text)}</div>`;
+}
+function startTimer(){ stopTimer(); refreshTimer = setInterval(()=>{
+  if(document.visibilityState==='visible') refresh();
+}, REFRESH_MS); }
+function stopTimer(){ if(refreshTimer){clearInterval(refreshTimer); refreshTimer=null;} }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && me) refresh(); });
+$('refreshBtn').onclick = refresh;
+
+function renderAll(){
+  syncTenantSelect();
+  renderConn(); renderPauses(); renderQueue(); renderHistory(); renderPolicy(); renderPermissions();
+}
+function renderConn(){
+  const b=$('connBadge');
+  if(lastOk){ b.textContent='connected · updated '+lastOk.toTimeString().slice(0,8);
+    b.className='badge ok'; }
+}
+function renderPermissions(){
+  // Hide/disable controls the principal cannot use; backend still enforces.
+  $('submitBtn').disabled = !can('action:submit');
+  $('submitBtn').title = can('action:submit') ? '' : 'Requires permission: action:submit';
+  const section = $('op').closest('section');
+  section.style.opacity = can('action:submit') ? 1 : .55;
 }
 
-function renderQueue(items){
-  const tb=document.getElementById('queue'); tb.innerHTML='';
-  if(!items.length){ tb.innerHTML='<tr><td colspan="6" style="color:var(--muted)">No pending approvals</td></tr>'; return; }
+// ---------- pauses ----------
+function pauseInfo(){
+  const p = state.status?.pauses || {};
+  return { global: p.global, tenant: p.tenant, tenants: p.tenants||{}, detail: p.detail||{}, error: p.error };
+}
+function renderPauses(){
+  const pi = pauseInfo();
+  const tenants = pi.tenants || {};
+  const tid = $('tenantSel').value || (me?.tenant_ids||[])[0] || '';
+  const tInfo = tenants[tid] || (tid ? {paused:false} : null);
+  const gb=$('pauseGlobalBadge'), tb=$('pauseTenantBadge');
+  gb.textContent = pi.error ? 'global: unknown' : (pi.global===true?'global: PAUSED':'global: running');
+  gb.className='badge '+(pi.error?'warn':(pi.global?'paused':'ok'));
+  tb.textContent = pi.error ? 'tenant: unknown' : (!tid ? 'tenant: n/a' : (tInfo && tInfo.paused===true?'tenant: PAUSED':'tenant: running'));
+  tb.className='badge '+(pi.error?'warn':(!tid?'muted':(tInfo && tInfo.paused?'paused':'ok')));
+  if(pi.error) msg($('pauseMsg'),'Pause state unavailable: '+pi.error, false);
+
+  $('gState').textContent = pi.error?'unknown':(pi.global===true?'PAUSED':'running');
+  $('gState').className='badge '+(pi.error?'warn':(pi.global?'paused':'ok'));
+  $('tState').textContent = pi.error?'unknown':(!tid?'n/a':(tInfo && tInfo.paused===true?'PAUSED':'running'));
+  $('tState').className='badge '+(pi.error?'warn':(!tid?'muted':(tInfo && tInfo.paused?'paused':'ok')));
+  const tDetail = tInfo && tInfo.detail;
+  $('tState').title = tDetail ? `set by ${tDetail.updated_by} at ${fmtTime(tDetail.updated_at)}` : '';
+
+  const canPause = can('pause:control');
+  const tPaused = !!(tInfo && tInfo.paused===true);
+  $('gControls').innerHTML = pi.global===true
+    ? `<button ${canPause?'':'disabled'} onclick="resumePause('global')">Resume global execution</button>`
+    : `<button class="deny" ${canPause?'':'disabled'} onclick="pauseIt('global')">Pause all execution</button>`;
+  $('tControls').innerHTML = !tid ? '<span style="color:var(--muted);font-size:12px">No tenant selected</span>'
+    : tPaused
+    ? `<button ${canPause?'':'disabled'} onclick="resumePause('tenant')">Resume ${esc(tid)}</button>`
+    : `<button class="deny" ${canPause?'':'disabled'} onclick="pauseIt('tenant')">Pause ${esc(tid)}</button>`;
+}
+function syncTenantSelect(){
+  const sel=$('tenantSel'), cur=sel.value;
+  const tids = me?.tenant_ids || [];
+  sel.innerHTML = tids.map(t=>`<option value="${esc(t)}" ${t===cur?'selected':''}>${esc(t)}</option>`).join('');
+  if(!sel.value && tids.length) sel.value=tids[0];
+}
+$('tenantSel').onchange = renderPauses;
+
+async function pauseIt(scope){
+  const tid = scope==='tenant' ? ($('tenantSel').value||(me.tenant_ids||[])[0]) : undefined;
+  const what = scope==='global' ? 'ALL tenants' : 'tenant '+tid;
+  if(!confirm(`Pause execution for ${what}? Approved and pending dispatches will be blocked until resumed.`)) return;
+  try {
+    await req('/pauses',{method:'PUT',body:JSON.stringify({scope,paused:true,tenant_id:tid})});
+    msg($('pauseMsg'),'Paused '+what+'.', true); refresh();
+  } catch(e){ msg($('pauseMsg'), e.message, false); }
+}
+async function resumePause(scope){
+  const tid = scope==='tenant' ? ($('tenantSel').value||(me.tenant_ids||[])[0]) : undefined;
+  const what = scope==='global' ? 'ALL tenants' : 'tenant '+tid;
+  if(!confirm(`Resume execution for ${what}? Governed actions will be allowed to dispatch again.`)) return;
+  try {
+    await req('/pauses',{method:'PUT',body:JSON.stringify({scope,paused:false,tenant_id:tid})});
+    msg($('pauseMsg'),'Resumed '+what+'.', true); refresh();
+  } catch(e){ msg($('pauseMsg'), e.message, false); }
+}
+
+// ---------- policy ----------
+function renderPolicy(){
+  const pol = state.policy||{};
+  const sum=$('policySummary'), raw=$('policyRaw'), meta=$('policyMeta');
+  if(!pol.loaded){ sum.textContent='Policy unavailable: '+(pol.error||state.status?.policy_error||'not loaded');
+    raw.textContent=''; meta.textContent=''; return; }
+  const rules = pol.rules||[];
+  const lines = rules.map(r=>{
+    const ops=(r.operations||[]).join(', ')||'(any)';
+    const appr = r.required_approval==='none' ? 'no approval required'
+      : r.required_approval==='human' ? 'human approval required'
+      : r.required_approval==='quorum' ? 'quorum approval required' : String(r.required_approval);
+    const cls = r.action_classes && Object.keys(r.action_classes).length
+      ? ' · classes: '+Object.entries(r.action_classes).map(([k,v])=>`${k}→${v}`).join(', ')
+      : (r.default_action_class?` · class: ${r.default_action_class}`:'');
+    return `• ${r.principal_id} @ ${r.tenant_id}: ${ops}${cls} — ${appr}`;
+  });
+  sum.innerHTML = lines.length ? lines.map(esc).join('<br>') : 'Policy loaded but contains no rules — all actions denied.';
+  raw.textContent = JSON.stringify({version:pol.version, sha256:pol.sha256, rules:pol.rules},null,2);
+  meta.textContent = `version ${pol.version} · sha256 ${String(pol.sha256||'').slice(0,16)}… · digest pinned by operator configuration`;
+}
+
+// ---------- approval queue + review ----------
+function expiresLabel(a){
+  if(!a.expires_at) return '—';
+  const t = parseT(a.expires_at);
+  const expired = t && !isNaN(t) && t < new Date();
+  return `<span class="${expired?'status DENIED':''}">${fmtTime(a.expires_at)}${expired?' (expired)':''}</span>`;
+}
+function renderQueue(){
+  const items = state.actions.filter(a=>a.status==='PENDING_APPROVAL');
+  const tb=$('queue'); tb.innerHTML='';
+  if(!items.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No pending approvals</td></tr>'; return; }
   for(const a of items){
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="mono">${esc(a.operation)}</td>
       <td class="mono">${esc(a.path)}<br><span style="color:var(--muted)">${a.content_length} bytes</span></td>
-      <td>${esc(a.action_class)}</td><td class="mono">${esc(a.principal_id)}</td>
-      <td>${esc((a.expires_at||'').slice(0,19).replace('T',' '))}</td>
-      <td><button onclick="decide('${a.action_id}','approve')">Approve</button>
-          <button class="deny" onclick="decide('${a.action_id}','deny')">Deny</button></td>`;
+      <td class="mono">${esc(a.principal_id)}</td>
+      <td>${esc(a.action_class)}</td>
+      <td>${expiresLabel(a)}</td>
+      <td><button class="ghost" onclick="openReview('${a.action_id}')">Review</button></td>`;
     tb.appendChild(tr);
   }
 }
 
-async function showDetail(id){
+let reviewing = null;
+async function openReview(id){
+  $('reviewPanel').classList.remove('hidden');
+  $('reviewMsg').innerHTML='';
+  $('reviewKv').innerHTML='<dt>Loading…</dt><dd></dd>';
+  $('reviewContent').textContent='…';
+  $('reviewButtons').innerHTML='';
   try{
     const a = await req('/actions/'+id);
-    const v = await req('/actions/'+id+'/verify').catch(()=>null);
-    document.getElementById('detail').innerHTML =
-      `<h2 style="margin-top:14px">Action detail — ${esc(id)}</h2>
-       <pre>${esc(JSON.stringify({status:a.status,parameters:a.parameters,result:a.result,evidence:a.evidence,verify:v},null,2))}</pre>`;
-  }catch(e){ document.getElementById('detail').innerHTML=`<div class="msg err">${esc(e.message)}</div>`; }
+    reviewing = a;
+    const params = a.parameters||{};
+    const content = params.payload?.content ?? '';
+    const expT = parseT(a.expires_at);
+    const expired = expT && !isNaN(expT) && expT < new Date();
+    const apprText = a.action_class ? `action class ${a.action_class}` : 'unclassified';
+    $('reviewKv').innerHTML = `
+      <dt>Action ID</dt><dd class="mono">${esc(a.action_id)}</dd>
+      <dt>Requester</dt><dd class="mono">${esc(a.principal_id)}</dd>
+      <dt>Tenant</dt><dd class="mono">${esc(a.tenant_id)}</dd>
+      <dt>Operation</dt><dd class="mono">${esc(a.operation)} (${esc(params.operation||'')})</dd>
+      <dt>Target</dt><dd class="mono">${esc(a.target_path||a.path)}</dd>
+      <dt>Relative path</dt><dd class="mono">${esc(a.path)}</dd>
+      <dt>Content</dt><dd>${a.content_length} bytes (sha-bound at proposal)</dd>
+      <dt>Action class</dt><dd>${esc(apprText)}</dd>
+      <dt>Policy version</dt><dd class="mono">${esc(a.policy_version||'—')}</dd>
+      <dt>Parameters hash</dt><dd class="mono">${esc(a.params_sha256||'—')}</dd>
+      <dt>Expires</dt><dd>${expiresLabel(a)}${expired?' — <span class="status DENIED">expired; cannot be approved</span>':''}</dd>
+      <dt>Approval requirement</dt><dd>This action is <strong>pending human approval</strong>. Approval binds to this exact frozen parameter set.</dd>`;
+    $('reviewContent').textContent = content;
+    const btns=[];
+    if(can('approval:grant'))
+      btns.push(`<button ${expired?'disabled':''} onclick="decide('${a.action_id}','approve')">Approve &amp; execute</button>`);
+    else btns.push(`<button disabled title="Requires permission: approval:grant">Approve &amp; execute</button>`);
+    if(can('approval:deny'))
+      btns.push(`<button class="deny" onclick="decide('${a.action_id}','deny')">Deny</button>`);
+    else btns.push(`<button class="deny" disabled title="Requires permission: approval:deny">Deny</button>`);
+    $('reviewButtons').innerHTML = btns.join('');
+    $('reviewPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){ $('reviewKv').innerHTML=`<dt></dt><dd class="msg err">${esc(e.message)}</dd>`; }
 }
 
-function renderHistory(items){
-  const tb=document.getElementById('history'); tb.innerHTML='';
-  for(const a of items.slice(0,50)){
+async function decide(id, decision){
+  const a = state.actions.find(x=>x.action_id===id) || reviewing;
+  if(decision==='approve'){
+    const target = a ? `${a.operation} → ${a.path}` : id;
+    if(!confirm(`Approve & execute this exact action?\n\n${target}\nRequester: ${a?.principal_id||'?'}\n\nIt will be dispatched immediately after policy/pause re-checks.`)) return;
+  } else {
+    const reason = prompt('Denial reason (required):');
+    if(!reason) return;
+    try {
+      await req(`/actions/${id}/deny`,{method:'POST',body:JSON.stringify({reason})});
+      msg($('queueMsg'),'Denied.', true); $('reviewPanel').classList.add('hidden'); refresh(); return;
+    } catch(e){ msg($('queueMsg'), e.message, false); return; }
+  }
+  try {
+    const d = await req(`/actions/${id}/approve`,{method:'POST',body:JSON.stringify({})});
+    msg($('queueMsg')||$('histMsg'), `Approved & executed → ${d.action.status}`, true);
+    $('reviewPanel').classList.add('hidden'); refresh();
+  } catch(e){ msg($('queueMsg'), e.message, false); }
+}
+
+// ---------- submit ----------
+$('submitBtn').onclick = async () => {
+  const body = {operation:$('op').value, path:$('path').value.trim(), content:$('content').value};
+  try {
+    const d = await req('/actions',{method:'POST',body:JSON.stringify(body)});
+    const st = d.action.status;
+    const note = st==='PENDING_APPROVAL' ? ' — awaiting approval in the queue above'
+      : st==='EXECUTED' ? ' — executed' : ` — status ${st}`;
+    msg($('submitMsg'), `Submitted ${d.action.action_id}${note}`, true); refresh();
+  } catch(e){ msg($('submitMsg'), e.message, false); }
+};
+
+// ---------- history + detail ----------
+function outcomeText(a){
+  const r = a.result||{};
+  if(a.status==='EXECUTED') return 'Executed successfully';
+  if(a.status==='FAILED') return 'Execution failed: '+(r.error||'unknown error');
+  if(a.status==='DENIED') return 'Denied: '+(r.denial_reason||'no reason recorded');
+  if(a.status==='BLOCKED'){
+    const ev=a.evidence||{};
+    if(ev.dispatch_status) return 'Blocked before dispatch: '+ev.dispatch_status;
+    const bad=(ev.trace||[]).filter(t=>t.ok===false).pop();
+    if(bad) return 'Blocked: '+(bad.code||bad.stage)+(bad.details?.reason?' — '+bad.details.reason:'');
+    return 'Blocked before dispatch';
+  }
+  if(a.status==='EXPIRED') return 'Approval expired before dispatch';
+  if(a.status==='PENDING_APPROVAL') return 'Awaiting approval';
+  if(a.status==='EXECUTING') return 'Execution state ambiguous — verify manually';
+  return a.status;
+}
+function renderHistory(){
+  const tb=$('history'); tb.innerHTML='';
+  const items = state.actions.slice(0,50);
+  if(!items.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No actions recorded</td></tr>'; return; }
+  for(const a of items){
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${esc((a.created_at||'').slice(0,19).replace('T',' '))}</td>
-      <td>${esc(a.operation)}</td><td class="mono">${esc(a.path)}</td>
+    tr.innerHTML=`<td>${fmtTime(a.created_at)}</td>
+      <td class="mono">${esc(a.operation)}</td><td class="mono">${esc(a.path)}</td>
       <td class="status ${esc(a.status)}">${esc(a.status)}</td>
-      <td class="mono">${esc(a.approved_by||a.principal_id)}</td>
+      <td style="font-size:12px">${esc(outcomeText(a))}</td>
       <td><button class="ghost" onclick="showDetail('${a.action_id}')">Detail</button></td>`;
     tb.appendChild(tr);
   }
 }
 
-// If a session cookie already exists, skip the login form.
-fetch(API+'/status').then(r=>{ if(r.ok){ req('/status').then(()=>{ me={principal_id:'operator'}; document.getElementById('who').textContent='operator'; showApp(); refresh(); }).catch(()=>showLogin()); } else showLogin(); }).catch(()=>showLogin());
+async function showDetail(id){
+  const box=$('detail'); box.innerHTML='<div class="msg info">Loading…</div>';
+  try{
+    const [a, v] = await Promise.all([
+      req('/actions/'+id),
+      can('evidence:read') ? req('/actions/'+id+'/verify').catch(e=>({error:e.message})) : Promise.resolve(null)]);
+    const ev = a.evidence||{};
+    const trace = ev.trace||[];
+    const timeline = trace.length ? '<h3>Execution timeline</h3><ul class="timeline">'+
+      trace.map(t=>`<li class="${t.ok===false?'fail':'ok'}"><span class="tstage">${esc(t.stage)}</span> — ${esc(t.code)}${t.details&&Object.keys(t.details).length?' <span style="color:var(--muted)">'+esc(JSON.stringify(t.details).slice(0,160))+'</span>':''}</li>`).join('')+'</ul>' : '';
+    const verifyHtml = v==null ? '<p style="color:var(--muted);font-size:12px">Verification requires permission: evidence:read</p>'
+      : v.error ? `<p class="status DENIED">Verification failed: ${esc(v.error)}</p>`
+      : `<p><span class="status ${v.overall==='VERIFIED'?'EXECUTED':'DENIED'}">${esc(v.overall)}</span>
+           ${v.checks.map(c=>` · ${esc(c.check)}: ${esc(c.status)}`).join('')}</p>
+         <p style="color:var(--muted);font-size:12px">Scope: recomputes payload hashes of the stored record and compares them to values recorded at write time. It does <strong>not</strong> verify signatures, prove the original bytes were preserved against a compromised store, or attest signer identity.</p>`;
+    const outcome = outcomeText(a);
+    const blocking = (a.status==='BLOCKED'||a.status==='FAILED'||a.status==='DENIED')
+      ? `<h3>Blocking / failure detail</h3><pre>${esc(JSON.stringify({result:a.result,error:a.result?.error,denial_reason:a.result?.denial_reason,dispatch_status:ev.dispatch_status},null,2))}</pre>` : '';
+    const resumeBtn = (a.status==='APPROVED' && can('action:resume'))
+      ? `<button class="ghost" onclick="resumeAction('${a.action_id}')">Resume dispatch</button>` : '';
+    box.innerHTML = `
+      <h2 style="margin-top:14px">Action detail — <span class="mono">${esc(id)}</span></h2>
+      <dl class="kv">
+        <dt>Status</dt><dd class="status ${esc(a.status)}">${esc(a.status)}</dd>
+        <dt>Outcome</dt><dd>${esc(outcome)}</dd>
+        <dt>Requester</dt><dd class="mono">${esc(a.principal_id)}</dd>
+        <dt>Approved by</dt><dd class="mono">${esc(a.approved_by||'—')}</dd>
+        <dt>Created</dt><dd>${fmtTime(a.created_at)}</dd>
+        <dt>Updated</dt><dd>${fmtTime(a.updated_at)}</dd>
+        <dt>Expires</dt><dd>${a.expires_at?fmtTime(a.expires_at):'—'}</dd>
+        <dt>Evidence hash</dt><dd class="mono">${esc(a.evidence_sha256||'—')}</dd>
+      </dl>
+      ${verifyHtml}
+      ${blocking}
+      ${timeline}
+      ${resumeBtn}
+      <details><summary>Technical details (raw record)</summary>
+        <pre>${esc(JSON.stringify({parameters:a.parameters,result:a.result,evidence:a.evidence},null,2))}</pre>
+      </details>`;
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){ box.innerHTML=`<div class="msg err">${esc(e.message)}</div>`; }
+}
+async function resumeAction(id){
+  if(!confirm('Resume dispatch for this action? Policy, tenant authorization, and pauses are re-checked first.')) return;
+  try{ const d=await req(`/actions/${id}/resume`,{method:'POST',body:'{}'});
+    msg($('histMsg'),'Resumed → '+d.action.status, true); refresh(); }
+  catch(e){ msg($('histMsg'), e.message, false); }
+}
+
+// ---------- boot ----------
+(function boot(){
+  fetch(API+'/status').then(r=>{
+    if(r.ok){ me=null; refresh().then(()=>{showApp(); startTimer();}); }
+    else showLogin();
+  }).catch(()=>showLogin());
+})();
 </script>
 </body>
 </html>
