@@ -26,6 +26,8 @@ implementation, not a production deployment. See
 ```bash
 git clone https://github.com/slucerodev/ExoArmur-Core
 cd ExoArmur-Core
+# The pilot is not yet merged — check out the pilot branch explicitly:
+git fetch origin && git checkout pilot/governed-workflow
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,postgres,demo-api]"
 ```
@@ -37,7 +39,7 @@ Create a disposable database, e.g.:
 createdb exoarmur_pilot   # or: psql -c "CREATE DATABASE exoarmur_pilot;"
 ```
 
-Migrations (`api/migrations/001_init.sql`, `002_pilot.sql`) apply
+Migrations (`api/migrations/001_init.sql`–`003_session_key_binding.sql`) apply
 automatically when the app starts.
 
 ## 2. Bootstrap principal, policy, workspace
@@ -52,16 +54,36 @@ python examples/bootstrap_pilot.py \
   --action-class fs.create_file=A1_soft_containment \
   --action-class fs.modify_file=A2_hard_containment \
   --approval human --trust-score 0.9 \
-  --permission action:submit --permission action:read --permission action:resume \
-  --permission approval:grant --permission approval:deny \
-  --permission pause:control --permission evidence:read
+  --permission action:submit --permission action:read --permission action:resume
 ```
 
+This first run creates the **agent** principal (submitter) plus the
+operator policy file. Approval, pause, and evidence permissions belong
+to the approver principal created next.
+
 The script prints the raw API key **once** (only its SHA-256 hash is
-stored), the policy file path, and the pinned policy digest. Run it a
-second time with a different `--principal-id` (e.g. `operator-1`) to
-create a separate approver principal — keep `approval:grant` /
-`approval:deny` on the approver and `action:submit` on the agent.
+stored), the policy file path, and the pinned policy digest. **Save the
+agent key and the printed digest** — the digest is what
+`EXOARMUR_POLICY_SHA256` must be set to.
+
+Create the approver as a **credential-only** principal so the agent's
+policy rule is preserved (this writes only an `api_keys` row — no policy
+file is created or overwritten):
+
+```bash
+python examples/bootstrap_pilot.py \
+  --credentials-only \
+  --database-url "postgresql://USER:PASS@HOST:5432/exoarmur_pilot" \
+  --principal-id operator-1 --tenant-id tenant-1 \
+  --permission approval:grant --permission approval:deny \
+  --permission action:read --permission pause:control --permission evidence:read
+```
+
+Keep `action:submit`/`action:resume` on the agent key and
+`approval:grant`/`approval:deny` on the approver key. The service keeps
+using the **agent policy file and its original digest** — the approver
+needs no policy rule because approvals re-validate the action's stored
+principal against that policy.
 
 ## 3. Start the service
 
@@ -123,7 +145,7 @@ curl -X PUT http://127.0.0.1:8000/api/pilot/pauses \
 curl -X PUT http://127.0.0.1:8000/api/pilot/pauses \
   -H "X-API-Key: $APPROVER_KEY" -H "x-exoarmur-request: 1" \
   -H "Content-Type: application/json" \
-  -d '{"scope":"tenant","scope_key":"tenant-1","paused":true}'
+  -d '{"scope":"tenant","tenant_id":"tenant-1","paused":true}'
 ```
 
 Pauses are durable rows checked immediately before executor dispatch,
