@@ -175,7 +175,7 @@ const REFRESH_MS = 15000;
 let me = null;          // {principal_id, tenant_ids, permissions}
 let lastOk = null;      // timestamp of last successful refresh
 let refreshTimer = null;
-let state = { actions: [], status: null, policy: null };
+let state = { actions: [], tenantsData: {}, status: null, policy: null };
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
@@ -223,14 +223,35 @@ async function refresh(){
     const tenants = me.tenant_ids.length ? me.tenant_ids : [null];
     const [pol, ...actLists] = await Promise.all([
       req('/policy').catch(e => ({loaded:false,error:e.message})),
-      ...tenants.map(t => req('/actions'+(t?('?tenant_id='+encodeURIComponent(t)):'')).catch(e => ({actions:null,error:e.message})))]);
+      ...tenants.map(t => req('/actions'+(t?('?tenant_id='+encodeURIComponent(t)):'')).catch(e => {
+        if(e.message==='auth') throw e;   // session expired — propagate to logout
+        return {__error:e.message};
+      }))]);
     state.policy = pol;
-    state.actions = actLists.flatMap(a => a.actions || []);
-    const errs = actLists.filter(a=>a.error).map(a=>a.error);
-    if (errs.length) msg($('histMsg'), 'Action list unavailable: '+errs.join('; '), false);
+    // Per-tenant freshness: a failed fetch keeps the last-known actions for
+    // that tenant and marks them stale rather than dropping them silently.
+    tenants.forEach((t,i)=>{
+      const key = t || '(default)';
+      const res = actLists[i];
+      const prev = state.tenantsData[key];
+      if (res && res.actions){
+        state.tenantsData[key] = {actions: res.actions, error: null, at: new Date()};
+      } else {
+        const err = (res && res.__error) || 'request failed';
+        state.tenantsData[key] = prev
+          ? {...prev, error: err}                    // stale last-known data
+          : {actions: [], error: err, at: null};      // never loaded
+      }
+    });
+    state.actions = Object.values(state.tenantsData).flatMap(d=>d.actions);
+    const problems = dataProblems();
+    if (problems.length) msg($('histMsg'), 'Incomplete data: '+problems.join('; '), false);
     else msg($('histMsg'), '');
     lastOk = new Date();
-    renderAll(); clearBanner();
+    renderAll();
+    const probs = dataProblems();
+    if (probs.length) banner('Partial refresh: '+probs.join('; ')+'. Last-known data is shown where available.', true);
+    else clearBanner();
   } catch(e){
     if(e.message!=='auth'){
       $('connBadge').textContent = 'connection failed';
@@ -357,10 +378,22 @@ function expiresLabel(a){
   const expired = t && !isNaN(t) && t < new Date();
   return `<span class="${expired?'status DENIED':''}">${fmtTime(a.expires_at)}${expired?' (expired)':''}</span>`;
 }
+function dataProblems(){
+  // Tenants whose action data could not be refreshed this cycle.
+  return Object.entries(state.tenantsData)
+    .filter(([k,d])=>d.error)
+    .map(([k,d])=>`${k==='(default)'?'default tenant':k} unavailable${d.at?' (showing data from '+d.at.toTimeString().slice(0,8)+')':' (no data yet)'}: ${d.error}`);
+}
 function renderQueue(){
   const items = state.actions.filter(a=>a.status==='PENDING_APPROVAL');
   const tb=$('queue'); tb.innerHTML='';
-  if(!items.length){ tb.innerHTML='<tr><td colspan="6" class="empty">No pending approvals</td></tr>'; return; }
+  const problems = dataProblems();
+  if(!items.length){
+    const note = problems.length
+      ? 'No pending approvals in reachable data — but the queue is INCOMPLETE: '+problems.join('; ')
+      : 'No pending approvals';
+    tb.innerHTML=`<tr><td colspan="6" class="empty">${esc(note)}</td></tr>`; return;
+  }
   for(const a of items){
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="mono">${esc(a.operation)}</td>
@@ -429,7 +462,12 @@ async function decide(id, decision){
   }
   try {
     const d = await req(`/actions/${id}/approve`,{method:'POST',body:JSON.stringify({})});
-    msg($('queueMsg')||$('histMsg'), `Approved & executed → ${d.action.status}`, true);
+    const st = d.action.status;
+    const text = st==='EXECUTED' ? 'Approved — executed successfully'
+      : st==='BLOCKED' ? 'Approved, but dispatch was blocked: '+outcomeText(d.action)
+      : st==='FAILED' ? 'Approved, but execution failed: '+(d.action.result?.error||'unknown error')
+      : `Approved — final status ${st}`;
+    msg($('queueMsg'), text, st==='EXECUTED');
     $('reviewPanel').classList.add('hidden'); refresh();
   } catch(e){ msg($('queueMsg'), e.message, false); }
 }
