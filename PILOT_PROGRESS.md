@@ -14,15 +14,19 @@
 | 3 | Real governed action + approval resume | implemented, focused tests pass | `api/pilot_service.py` + `executors/file_system_executor.py` via `ProxyPipeline`; exact-param approval binding, deny/expiry, idempotent resume |
 | 4 | Durable pause + evidence | implemented, focused tests pass | `api/migrations/002_pilot.sql` (actions, pauses, evidence); pause re-check before dispatch; payload-hash verification endpoint |
 | 5 | Operator GUI | implemented | `api/gui/index.html` server-served, real API state, no stored master keys |
-| 6 | Docs + handover | pending | |
+| 6 | Docs + handover | done | `docs/PILOT.md` runbook; KNOWN_LIMITATIONS/README/docs index updated |
 
 ## Current task
-M6 — documentation/handover, then final integration validation.
+Complete — final report.
 
 ## Blockers
 (none)
 
+## Validation evidence
+- `tests/api/test_pilot.py`: 19 passed against real PostgreSQL (auth, tenant isolation, policy deny/allow, approval flow, deny, expiry, idempotency, pause global/tenant, traversal rejection, evidence verify+tamper, restart durability, GUI serving).
+- Full suite: 398 passed, 17 skipped.
+- Live demo (uvicorn + real DB + FileSystemExecutor): submit→PENDING_APPROVAL (no file), approve→EXECUTED + file written, evidence VERIFIED, global pause→BLOCKED no file, missing key→401, GUI served.
+
 ## Remaining work
-- M6 docs (setup/demo path, limitations).
-- Final full-suite run + end-to-end demonstration (real DB + executor + GUI).
-- Known gap to verify in final pass: expired-approval path test coverage.
+- Legacy routes (`/v1/*`, `/api/v2/*`, `/api/cli/*`) remain unauthenticated — out of pilot scope, documented.
+- Pilot branch not merged to main (per instructions).

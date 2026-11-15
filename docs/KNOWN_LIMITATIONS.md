@@ -33,50 +33,42 @@ can make informed decisions about adoption and contribution.
 
 ## Governance Limitations (2.2.0 baseline)
 
-These gaps apply to the `kernel/boundary.py` pipeline and the `exoarmur.api`
-HTTP layer as they exist today. They are prerequisites for the bounded pilot
-goal (one authenticated, policy-controlled real workflow) and are **planned,
-not implemented**.
+The bounded pilot (one authenticated, policy-controlled file-write workflow
+with approvals, durable pauses, evidence, and an operator GUI) is implemented
+on the `pilot/governed-workflow` branch — see [docs/PILOT.md](PILOT.md). On
+the `main`/`baseline-2.2.0-alignment` baseline the following gaps remain:
 
-### No Authentication on the HTTP API
-- **Status**: `exoarmur.api` routes have no authentication. Approval endpoints
-  (`/v1/approvals/{id}/approve|deny`) require an `operator_id` header but
-  accept any self-asserted value — this is identification, not authentication,
-  and permits operator impersonation.
-- **Impact**: Anyone who can reach the API can approve/deny approvals or ingest
-  telemetry; there is no server-validated principal.
-- **Mitigation**: None on this baseline. Do not expose the API beyond trusted
-  networks.
-- **Path Forward**: API-key or equivalent authenticated principal wired into
-  ingest and approval routes.
+### No Authentication on the Legacy HTTP API
+- **Status**: The pre-pilot `exoarmur.api` routes (`/v1/*`, `/api/v2/*`,
+  `/api/cli/*`) have no authentication. Approval endpoints
+  (`/v1/approvals/{id}/approve|deny`) accept any self-asserted `operator_id`
+  header — identification, not authentication.
+- **Impact**: On the baseline, anyone who can reach those routes can
+  approve/deny or ingest telemetry. The pilot router (`/api/pilot/*`) is the
+  authenticated surface; legacy routes remain unauthenticated by design until
+  migrated.
+- **Path Forward**: Extend pilot-grade authentication to legacy routes or
+  retire them.
 
-### Hardcoded Safety Inputs in ProxyPipeline
-- **Status**: `ProxyPipeline.execute_with_trace()` constructs the safety
-  evaluation state with hardcoded `policy_verified=True`,
-  `emitter_trust_score=0.85`, `required_approval="none"`, and both kill-switch
-  flags `False`. These are placeholders, not measured or verified values.
-- **Impact**: The safety gate runs, but not against trustworthy operational
-  evidence; a caller cannot be distinguished from an operator by the gate.
-- **Mitigation**: None on this baseline.
-- **Path Forward**: Inject explicit trusted safety context (real decision,
-  trust source, policy verification result) and fail closed when absent.
+### Hardcoded Safety Inputs in ProxyPipeline (baseline)
+- **Status**: On the baseline, `ProxyPipeline.execute_with_trace()` uses
+  hardcoded `policy_verified=True`, `emitter_trust_score=0.85`,
+  `required_approval="none"`, kill-switch flags `False`. The pilot branch
+  replaces this with an injectable `SafetyContextProvider` that fails closed
+  when trusted inputs are absent; the `ai-complete` demo passes explicitly
+  labeled demo inputs only.
+- **Impact**: Baseline pipeline mechanics run, but not against trustworthy
+  operational evidence.
 
-### No Authoritative Kill Switch
-- **Status**: Kill-switch flags exist in the safety state model but are always
-  `False` at pipeline construction; there is no durable switch store or
-  pre-dispatch enforcement.
-- **Impact**: No emergency pause capability on this baseline.
-- **Path Forward**: Durable switch state checked immediately before executor
-  dispatch (planned for the pilot).
+### No Authoritative Kill Switch (baseline)
+- **Status**: Baseline pipeline has no durable pause store. The pilot branch
+  adds durable global/tenant `execution_pauses` re-checked immediately before
+  dispatch, including approval resume.
 
-### Allow-by-Construction Demo Policy
-- **Status**: `POST /api/cli/ai-complete` uses an internal `_AllowPolicy` that
-  permits every completion, and runs the executor in REPLAY (mocked) mode via
-  the external `exoarmur-openai-executor` package.
-- **Impact**: This endpoint demonstrates pipeline mechanics only; it is not a
-  governed operational path.
-- **Path Forward**: Operator-approved policy source (e.g., digest-pinned
-  policy file) feeding the `PolicyDecisionPoint` protocol.
+### Allow-by-Construction Demo Policy (unchanged)
+- **Status**: `POST /api/cli/ai-complete` still uses an internal `_AllowPolicy`
+  and a mocked REPLAY executor. It is a demo of pipeline mechanics, not a
+  governed path, and is explicitly isolated from the pilot boundary.
 
 ### Approvals Do Not Resume Execution
 - **Status**: Approval records transition PENDING → APPROVED/DENIED in the
@@ -207,15 +199,18 @@ not implemented**.
   (`api/db.py`, `api/stores.py`, migration `api/migrations/001_init.sql`),
   but kernel-level audit persistence requires external integration.
 - **Impact**: Kernel audit evidence is in-memory unless the host persists it.
-- **Path Forward**: Durable evidence store is part of the pilot goal.
+  The pilot branch persists governed-action evidence durably in PostgreSQL
+  (`002_pilot.sql`); legacy kernel audit records remain in-memory.
 
 ### No Built-In Kill Switch or Federation
 - **Status**: No emergency pause mechanism; federation crypto exists only as
   contract specs (`src/spec/contracts/federation_v2.yaml`) without a hardened
   implementation on this baseline
 - **Impact**: Multi-node federation not production-ready (and not part of the
-  bounded pilot goal)
-- **Path Forward**: Kill switch planned for pilot; federation deferred
+  bounded pilot goal). The pilot branch adds durable global/tenant execution
+  pauses enforced immediately before dispatch.
+- **Path Forward**: Federation deferred; kill switch implemented on the pilot
+  branch.
 
 ## Summary
 
@@ -223,17 +218,19 @@ ExoArmur-Core on the 2.2.0 baseline is a **public Apache-2.0 reference
 implementation** with a deterministic governance kernel, internally evaluated
 replay/evidence verification, real local executors (filesystem, SQLite),
 executor scaffolds for vendors, and an **unauthenticated** FastAPI demo/CLI
-layer. It lacks third-party certification, production operational experience,
-authentication, authoritative kill switches, trusted safety inputs, verified
-operator policy, and approval-to-execution resume wiring.
-
-The bounded goal is one authenticated, policy-controlled real workflow with
-approvals, durable evidence, emergency pause, and an operator GUI — all
-planned, none complete.
+layer. It lacks third-party certification and production operational
+experience. On the `pilot/governed-workflow` branch, the bounded goal —
+one authenticated, policy-controlled real file-write workflow with human
+approval of the exact action, durable global/tenant pauses, durable evidence
+with integrity verification, and an operator GUI — is implemented and covered
+by focused tests against real PostgreSQL; see [docs/PILOT.md](PILOT.md).
+Remaining gaps: legacy routes are still unauthenticated, the pilot covers a
+single executor/operation set, and evidence verification is payload-hash
+consistency only (no signer verification).
 
 ## Current Status
 
 - **Version**: 2.2.0
 - **License**: Apache-2.0 (see LICENSE)
-- **Stage**: Public reference implementation; governance-hardening pilot in progress
-- **Last updated**: aligned to `baseline-2.2.0-alignment`
+- **Stage**: Public reference implementation; bounded pilot implemented on `pilot/governed-workflow`
+- **Last updated**: pilot branch `pilot/governed-workflow`
