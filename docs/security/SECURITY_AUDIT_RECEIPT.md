@@ -1,8 +1,8 @@
 # Security Audit Receipt
 
 *Status document for ExoArmur-Core security posture*
-*Date: June 1, 2026*
-*Version: 2.1.0*
+*Date: June 1, 2026 (internal scan receipt); baseline updated to 2.2.0*
+*Version: 2.2.0*
 
 ## Audit Status
 

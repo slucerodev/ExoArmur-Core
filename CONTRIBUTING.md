@@ -18,7 +18,7 @@ python -m pytest -q
 1. **Open an issue first** for large changes (new features, API changes, refactors).
 2. **One-axis changes only** — each PR should target exactly one of: replay correctness, dependency isolation, determinism under concurrency, or interface normalization.
 3. **All tests must pass** with no new skips or xfails.
-4. **The Golden Demo must remain unchanged** — run `exoarmur demo --operator-decision deny` and verify output.
+4. **The test suite must remain green** — run `python -m pytest -q` before submitting.
 
 ## Running Tests
 
@@ -52,7 +52,7 @@ These rules are the project's contract with its users. Violating any of them is 
 - If a change breaks replay determinism, it is rejected.
 
 ### 4. V1 Contracts Are Immutable
-- Files in `spec/contracts/` are locked. Additive-only changes via new versions.
+- Files in `src/spec/contracts/` are locked. Additive-only changes via new versions.
 - No weakening of existing assertions. No test skips to mask failures.
 
 ### 5. No Hidden State
@@ -62,7 +62,7 @@ These rules are the project's contract with its users. Violating any of them is 
 ## What We Need Help With
 
 - **Formal verification** — theorem-prover proofs of the ProxyPipeline invariants
-- **Language ports** — Rust, Go, or TypeScript implementations that pass the cross-language conformance checklist in `docs/PORTING_BLUEPRINT.md`
+- **Language ports** — Rust, Go, or TypeScript implementations aligned with the kernel's deterministic contracts
 - **Executor implementations** — real platform integrations (OpenAI, Anthropic, etc.) as separate installable packages
 - **Documentation** — clearer explanations, diagrams, integration guides
 - **Bug reports** — especially determinism violations or replay hash mismatches
@@ -87,7 +87,6 @@ By contributing, you agree that your contributions will be licensed under the Ap
 ## Resources
 
 - [Architecture](docs/ARCHITECTURE.md) — System design and component map
-- [Porting Blueprint](docs/PORTING_BLUEPRINT.md) — Language-agnostic spec for reimplementations
-- [DACT Standard](docs/DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test
+- [DACT Standard](docs/DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test (project's own framework)
 - [Security Policy](SECURITY.md) — Threat model and responsible disclosure
 - [Project Status](PROJECT_STATUS.md) — What's validated, what's pending

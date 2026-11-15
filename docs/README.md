@@ -9,7 +9,10 @@ This directory contains comprehensive documentation for ExoArmur Core.
 - [Architecture](ARCHITECTURE.md) — System architecture overview, kernel components, determinism guarantees
 - [The ExoArmur Doctrine](DOCTRINE.md) — Verified claims and compliance requirements
 - [ML Isolation Policy](ML_ISOLATION.md) — Advisory-only ML components and verification
-- [DACT Standard v0.2](DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test specification
+- [DACT Standard v0.2](DACT_STANDARD_v0.2.md) — Deterministic Autonomy Compliance Test specification (ExoArmur's own evaluation framework, not an independent standard)
+- [Known Limitations](KNOWN_LIMITATIONS.md) — Disclosed gaps: unauthenticated API, hardcoded safety inputs, no kill switch, scaffold executors, unverified signatures
+- [Validation Matrix](VALIDATION_MATRIX.md) — Dated test, security-scan, and dependency validation results
+- [Dependency Review](DEPENDENCY_REVIEW.md) — Third-party dependency inventory and license review
 
 ### Formal Verification
 
@@ -18,6 +21,10 @@ This directory contains comprehensive documentation for ExoArmur Core.
 ### Integration Guides
 
 - [LangChain Executor Integration](integrations/LANGCHAIN_EXECUTOR.md) — Scaffold integration guide for LangChain (reference implementation only)
+
+### Security
+
+- [Security Audit Receipt](security/SECURITY_AUDIT_RECEIPT.md) — Internal (self-validated) security scanning receipt; no third-party audit conducted
 
 ### Planned Documentation (Not Yet Available)
 

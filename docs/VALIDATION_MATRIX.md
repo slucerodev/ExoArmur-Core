@@ -123,7 +123,7 @@ python -m venv /tmp/exoarmur_audit_venv
 
 ## Current Baseline
 
-- **Version**: 2.1.0
-- **License**: Proprietary evaluation license
-- **Status**: Private reference implementation, buyer/pilot evaluation ready
-- **Last validated**: June 1, 2026
+- **Version**: 2.2.0 (`baseline-2.2.0-alignment` branch)
+- **License**: Apache-2.0 (see LICENSE)
+- **Status**: Public reference implementation; governance-hardening pilot in progress
+- **Last validated**: May 31, 2026 — test counts below reflect that run; the suite has since grown (396 tests collected on 2.2.0). Re-run before citing current numbers.
