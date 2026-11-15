@@ -96,14 +96,28 @@ async def status(request: Request) -> dict:
     svc = get_service()
     tenant_id = principal.tenant_ids[0] if principal.tenant_ids else ""
     try:
-        pauses = await svc.pause_state(tenant_id) if tenant_id else {
-            "global": False, "tenant": False, "detail": {}
-        }
+        if tenant_id:
+            pauses = await svc.pause_state(tenant_id)
+        else:
+            pauses = {"global": False, "tenant": False, "detail": {}}
+        # Per-tenant pause detail for every tenant the principal may act on,
+        # so the console can show the selected tenant's real state.
+        pauses["tenants"] = {}
+        for tid in principal.tenant_ids:
+            ps = await svc.pause_state(tid)
+            pauses["tenants"][tid] = {
+                "paused": ps["tenant"],
+                "detail": ps["detail"].get("tenant"),
+            }
+            pauses["global"] = pauses["global"] or ps["global"]
     except PilotStoreError as e:
         pauses = {"error": str(e)}
     pol = svc.policy.policy
     return {
         "service": "exoarmur-pilot",
+        "principal_id": principal.principal_id,
+        "tenant_ids": list(principal.tenant_ids),
+        "permissions": sorted(principal.permissions),
         "workspace_root": str(svc.workspace_root),
         "policy_loaded": pol is not None,
         "policy_version": svc.policy.policy_version,
@@ -195,15 +209,19 @@ async def submit_action(body: ActionSubmitRequest, request: Request) -> dict:
 
 
 @router.get("/actions")
-async def list_actions(request: Request, status: Optional[str] = None) -> dict:
+async def list_actions(
+    request: Request, status: Optional[str] = None, tenant_id: Optional[str] = None
+) -> dict:
     principal = await _principal(request)
     _check(principal, "action:read")
     svc = get_service()
-    tenant_id = principal.tenant_ids[0] if principal.tenant_ids else ""
-    if not tenant_id:
+    tenant = tenant_id or (principal.tenant_ids[0] if principal.tenant_ids else "")
+    if tenant_id:
+        _tenant_or_403(principal, tenant_id)
+    if not tenant:
         return {"actions": []}
     try:
-        records = await svc.list_actions(tenant_id, status=status)
+        records = await svc.list_actions(tenant, status=status)
     except PilotStoreError as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"actions": [_action_dict(r) for r in records]}
