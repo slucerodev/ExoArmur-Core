@@ -27,6 +27,7 @@ from exoarmur.kernel.boundary import (
     PolicyVerdict,
     ProxyPipeline,
     SafetyGate,
+    SafetyInputs,
     V2AuditEmitter,
     V2EnvironmentState,
     V2PolicyState,
@@ -41,6 +42,21 @@ from exoarmur.kernel.external_effect import (
 )
 from exoarmur.kernel.plugin_registry import PluginRegistry, get_plugin_registry
 from exoarmur.kernel.replay_verification import verify_evidence_integrity
+
+
+def _test_safety_inputs(intent: ActionIntent) -> SafetyInputs:
+    """Explicit test safety inputs — not a production default."""
+    return SafetyInputs(
+        policy_state=V2PolicyState(
+            policy_verified=True,
+            kill_switch_global=False,
+            kill_switch_tenant=False,
+            required_approval="none",
+        ),
+        trust_state=V2TrustState(emitter_trust_score=0.9),
+        environment_state=V2EnvironmentState(),
+        source="test_fixture",
+    )
 
 
 class MockPolicyDecisionPoint(PolicyDecisionPoint):
@@ -73,7 +89,7 @@ class TestFileSystemExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create intent for file creation
         target_file = authorized_root / "test.txt"
@@ -119,7 +135,7 @@ class TestFileSystemExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create intent for file creation outside authorized root
         target_file = unauthorized_root / "test.txt"
@@ -170,7 +186,7 @@ class TestFileSystemExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create intent
         target_file = authorized_root / "test.txt"
@@ -209,7 +225,7 @@ class TestDatabaseExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create table intent
         db_path = authorized_db_dir / "test.db"
@@ -301,7 +317,7 @@ class TestDatabaseExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create intent for database outside authorized directory
         db_path = unauthorized_db_dir / "test.db"
@@ -355,7 +371,7 @@ class TestDatabaseExecutorE2E:
         safety_gate = SafetyGate()
         audit_emitter = V2AuditEmitter()
 
-        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter)
+        pipeline = ProxyPipeline(policy, safety_gate, executor, audit_emitter, safety_context_provider=_test_safety_inputs)
 
         # Create intent
         db_path = authorized_db_dir / "test.db"

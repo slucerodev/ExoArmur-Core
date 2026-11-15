@@ -9,7 +9,7 @@ Extracted from execution_boundary_v2 before deletion.
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Union
 
 from exoarmur.kernel.clock import utc_now
 from exoarmur.kernel.ids import (
@@ -518,6 +518,25 @@ class V2EnvironmentState:
         self.resource_availability = resource_availability
 
 
+@dataclass
+class SafetyInputs:
+    """Trusted safety-evaluation inputs supplied by the hosting application.
+
+    These values must come from operator configuration or authoritative
+    services — never from agent-supplied intent fields. ``source`` labels
+    where the inputs originated (e.g. "operator_config", "demo") and is
+    recorded in the execution trace for auditability.
+    """
+
+    policy_state: V2PolicyState
+    trust_state: V2TrustState
+    environment_state: V2EnvironmentState
+    source: str = "unspecified"
+
+
+SafetyContextProvider = Callable[[ActionIntent], Optional[SafetyInputs]]
+
+
 class SafetyGate:
     """Safety gate with deterministic verdict resolution."""
 
@@ -643,11 +662,13 @@ class ProxyPipeline:
         safety_gate: SafetyGate,
         executor: ExecutorPlugin,
         audit_emitter: V2AuditEmitter,
+        safety_context_provider: Optional[SafetyContextProvider] = None,
     ):
         self.policy = policy
         self.safety_gate = safety_gate
         self.executor = executor
         self.audit_emitter = audit_emitter
+        self.safety_context_provider = safety_context_provider
 
     def execute_with_trace(
         self, intent: ActionIntent
@@ -678,26 +699,36 @@ class ProxyPipeline:
             )
         )
 
-        # Stage 3: Safety evaluation
-        policy_state = V2PolicyState(
-            policy_verified=True,
-            kill_switch_global=False,
-            kill_switch_tenant=False,
-            required_approval="none",
+        # Stage 3: Safety evaluation — inputs must come from the trusted
+        # provider; absent provider or inputs fail closed.
+        safety_inputs = (
+            self.safety_context_provider(intent)
+            if self.safety_context_provider is not None
+            else None
         )
-        trust_state = V2TrustState(emitter_trust_score=0.85)
-        environment_state = V2EnvironmentState()
-
-        safety_verdict = self.safety_gate.evaluate_safety(
-            intent, policy_state, trust_state, environment_state
-        )
+        if safety_inputs is None:
+            safety_verdict = SafetyVerdict(
+                verdict="deny",
+                rationale="Missing trusted safety context",
+                rule_ids=["missing_safety_context"],
+            )
+        else:
+            safety_verdict = self.safety_gate.evaluate_safety(
+                intent,
+                safety_inputs.policy_state,
+                safety_inputs.trust_state,
+                safety_inputs.environment_state,
+            )
         trace.events.append(
             TraceEvent.create(
                 trace.trace_id,
                 TraceStage.SAFETY_EVALUATED,
-                True,
+                safety_verdict.verdict != "deny",
                 "evaluated",
-                {"verdict": safety_verdict.verdict},
+                {
+                    "verdict": safety_verdict.verdict,
+                    "source": safety_inputs.source if safety_inputs else None,
+                },
             )
         )
 
